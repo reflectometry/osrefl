@@ -14,7 +14,8 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-import wavefunction_BBM, view
+import wavefunction_kernel
+import osrefl.viewers.view
 import czt
 
 
@@ -131,7 +132,7 @@ def partial_magnetic_BA_long(struc_cell,mag_cell,Q,lattice,beam):
 def cudaMagBA(struc_cell, Q, lattice, beam, omf, precision = 'float32',
               refract = False):
     
-    from threadSMBA import magCudaBA_form
+    from smba_driver import magCudaBA_form
     intensity = [None]*4
     
     form_factor = magCudaBA_form(struc_cell,Q,lattice,beam,omf, 
@@ -273,8 +274,8 @@ def cudaBA(cell,Q,lattice,beam,precision = 'float32',refract = False):
     beam:(Beam) = Holds all of the information about the experimental beam
     needed to apply beam dependent corrections to the data.
     '''
-    from threadSMBA import cudaBA_form
-    
+
+    from smba_driver import cudaBA_form
     form_factor = cudaBA_form(cell,Q,lattice,beam, 
                               precision = precision,refract = refract)
     
@@ -308,7 +309,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     beam:(Beam) = Holds all of the information about the experimental beam
     needed to apply beam dependent corrections to the data.
     '''
-    import wavefunction_thread
+    
     from scipy.interpolate import RectBivariateSpline
     from sample_prep import Q_space
     #from pylab import *
@@ -317,7 +318,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     #stack = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
     
     psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(stack, Q.q_list[0], Q.q_list[1], 
+                    wavefunction_kernel.wave(stack, Q.q_list[0], Q.q_list[1], 
                          Q.q_list[2],beam.wavelength,cell.step[2],
                          precision=precision))
     
@@ -403,7 +404,7 @@ def cudaSMBA(cell,Q,lattice,beam,precision = 'float32', refract = True):
     needed to apply beam dependent corrections to the data.
     '''
     
-    from threadSMBA import cudaSMBA_form
+    from smba_driver import cudaSMBA_form
 
     form_factor = cudaSMBA_form(cell,Q,lattice,beam, precision = precision)
 
@@ -529,7 +530,7 @@ def interpWaveCalc(cell,Q,beam):
     UNDER CONSTRUCTION
     '''
     from scipy.interpolate import RectBivariateSpline
-    import wavefunction_thread
+    import wavefunction_kernel
     import time
     
     Q.getKSpace(beam.wavelength)
