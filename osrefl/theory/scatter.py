@@ -652,27 +652,25 @@ class Calculator(object):
     def fitCompare(self,other,extraCompare = None,titles = ['other','self']):
         '''
         **Overview:**
-
+            
             This method plots two different data sets on the sample window for
             an easy visual comparison of the data.
-
+        
         .. warning::
             This method is obsolete!
-
+            
         '''
         if extraCompare != None:
             data = [other.data, self.corrected_results]+extraCompare
         else:
-            data = [other.data,self.corrected_results]
+            data = [[other.data,'Measured'],[self.corrected_results,'Theory']]
+            
+        extent = self.space.getExtent() 
 
-        extent = self.space.getExtent()
-        print 'STARTED'
-        MultiView(data,
-          [self.space.q_step[0],self.space.q_step[2]],
+        MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
           axisLabel = ['qx(A^-1)','qz(A^-1)'])
-        print 'GOT HERE'
         return
 
     def view_linear(self):
