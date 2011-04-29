@@ -2643,55 +2643,56 @@ class Theta_space(Space):
 class Q_space(Space):
     '''
     **Overview:**
-
+    
         Holds all of the information for the q-space output for which the
         scattering will be solved. Many of the attributes provided in this class
         make access to information about the scattering easier.
-
-
+    
+    
     **Parameters(__init__):**
-
+    
         *minimums:* (float,[3]|angstroms)
             The minimum q values that the user would like solved. The data is in
             the form: [minimum x, minimum y, minimum z]
-
+        
         *maximums:* (float,[3]|angstroms)
             The maximums q values that the user would like solved. The data is
             in the form: [maximums x, maximums y, maximums z]
-
+        
         *points:* (float,[3]|angstroms)
             The number of points that the user would like the provided q space
             (defined by the minimums and maximums) split into. The data is in
             the form: [x points,y points,z points]
-
+    
 
     **Parameters(Class):**
-
+    
         *q_step:* (float,[3]|angstroms^-1)
             The reciprocal space step size for the x,y and z dimensions.
-
+        
         *q_list:* (float,(3)[array]|angstroms^-1)
             The total list of values being solved for in the x, y and z
             directions.
-
+        
         *q_refract:* (float,[array]|angstroms^-1)
             When the neutron beam is transmitted through a substrate, the beam
             refracts, altering the effective qx value. This is recorded in this
             variable. Its value is dependent on the ki and ko values for a
             specific qx,qy, qz combination.
-
-
+            
+        *k_space:* (float,[array]|angstroms)
+            This is the equivelent k-space values for the given set of q values. 
     '''
     def __init__(self,minimums, maximums, points):
         if size(minimums) == 2:
             minimums = [minimums[0],minimums[0],minimums[1]]
-
+            
         if size(maximums) == 2:
             maximums = [maximums[0],maximums[0],maximums[1]]
-
+            
         if size(points) == 2:
             points = [points[0],points[0],points[1]]
-
+          
         self.type = 'Q_space'
         self.minimums = minimums
         self.maximums = maximums
@@ -2700,70 +2701,90 @@ class Q_space(Space):
         self.q_step = ((asarray(maximums) - asarray(minimums))/
                                                                 asarray(points))
         self.qx_refract = None
-
+        self.kin = None
+        self.kout = None
+        
         for i in range(3):
             self.q_list[i] = linspace(self.minimums[i],self.maximums[i],
-                                      self.points[i])
+                                      self.points[i]) 
         return
-
+    
     def vectorize(self,type = 'float'):
         '''
         **Overview:**
-
+        
             Turns the q information given by a q_space object into vectors to
             allow for vector math. Uses the numpy reshape functionality.
-
-
+        
+        
         **Parameters:**
-
+        
             *type(str):*
                 Allows the user to define the type of the numbers that q is.
                 (eg. float, complex)
         '''
-
+        
         q = [None,None,None]
         q[0] = asarray(self.q_list[0].reshape(size(self.q_list[0]),1,1),type)
         q[1] = asarray(self.q_list[1].reshape(1,size(self.q_list[1]),1),type)
         q[2] = asarray(self.q_list[2].reshape(1,1,size(self.q_list[2])),type)
         return q
-
+    
     def normalize(self):
         '''
         **Overview:**
-
+            
             Creates 3 arrays which contain the qx, qy, and qz value which are
             normalized by the total q magnitude.
-
+        
         **Returns:**
-
+            
             (list,3D array|angstroms^-1) The normalized Q values.
         '''
         qx,qy,qz = self.vectorize()
-
+        
         magQ = sqrt(qx**2 + qy**2 + qz**2)
-
+        
         qxn = qx/magQ
         qyn = qy/magQ
         qzn = qz/magQ
 
         return [qxn,qyn,qzn]
-
+    
     def getExtent(self):
         '''
         **Overview:**
-
-            This method is used to get the minimum and maximum plot area of
-            the Q_space object which can be directly fed to a pylab plotting
+        
+            This method is used to get the minimum and maximum plot area of 
+            the Q_space object which can be directly fed to a pylab plotting 
             object.
-
+            
         **Returns:**
             (array|angstroms^-1)
                 Returns an array in the form
                 :math:`[Q^{min}_{x},Q^{max}_{x},Q^{min}_{z},Q^{max}_{z}]`
-
+        
         '''
         return asarray([self.minimums[0],self.maximums[0],
                         self.minimums[2],self.maximums[2]])
+        
+    def getKSpace(self,wavelength):
+        '''
+        **Overview:**
+            
+            This method creates an attribute which holds the equivalent k-space
+            values for a given set of Qs.
+            
+        **Returns:** 
+          (array|angstroms)
+          
+        '''
+        from approximations import QxQyQz_to_k
+        vecQ = self.vectorize()
+        self.kin,self.kout = QxQyQz_to_k(vecQ[0],vecQ[1],vecQ[2],wavelength)
+        return
+    
+  
 class Beam(object):
     '''
     **Overview:**
