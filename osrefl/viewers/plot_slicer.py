@@ -6,7 +6,8 @@
 #Starting Date:8/23/2010
 
 
-from numpy import size, shape, array, log, zeros, ones, argwhere, asarray, ma, isneginf,log,inf,nonzero
+from numpy import size, shape, array, log, zeros, ones, argwhere, asarray, ma
+from numpy import isneginf,log10,inf,nonzero
 from numpy import amin, amax, sum, ceil,arange,linspace, exp
 import matplotlib,wx
 from matplotlib.colors import LogNorm
@@ -17,8 +18,9 @@ from mpl_toolkits.axes_grid import ImageGrid,Grid
 from matplotlib.widgets import RectangleSelector
 from matplotlib.blocking_input import BlockingInput
 from matplotlib.colors import LinearSegmentedColormap
-from pylab import figure,show,imshow, draw, delaxes,cla,subplot,setp,plot,figlegend,legend,xlim
-
+from pylab import figure,show,imshow, draw, delaxes,cla,subplot,setp,plot
+from pylab import figlegend,legend,xlim
+from copy import copy
 
 # Disable interactive mode so that plots are only updated on show() or draw().
 # Note that the interactive function must be called before selecting a backend
@@ -57,7 +59,7 @@ def MultiView(data, step, n, extent=None, titles = None,
 
 class MultiViewFrame(wx.Frame):
     '''
-    
+    This is the main Frame used to collect the Panels
     '''
     def __init__(self,parent):
         wx.Frame.__init__(self,parent,title = "Plot Comparison Application")
@@ -65,16 +67,29 @@ class MultiViewFrame(wx.Frame):
         return
 
 class ParentVisPanel(wx.Panel):
+    '''
+    This is the parent panel which is owned by the frame and owns all of the sub
+    panels.
+    '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         #self.SetBackgroundColour('purple')
         
 class plotNotebook(wx.Notebook):
+    '''
+    The GUI can hold multiple plots to view. This notebook has a page for each
+    set of data plus the first page which is a thumbnail view of all of the
+    plots.
+    '''
     def __init__(self,parent):
         wx.Notebook.__init__(self, parent,style = wx.BORDER_RAISED)
         #self.SetBackgroundColour('blue')
 
 class MultiViewPanel(wx.Panel):
+    ''''
+    This is top panel which displays all of the 2D plots in the notebook it is
+    somewhat rigid because it was written prior to the rest of the GUI.
+    '''
     def __init__(self,parent,id, data, extent, titles, axLabel, vlimit,
                  selMask,scale = 'log'):
         
@@ -96,37 +111,19 @@ class MultiViewPanel(wx.Panel):
         fm = FigureManagerBase(self.plotCanvas, 0)
         _pylab_helpers.Gcf.set_active(fm)
         
+        
+        
         if (scale == 'linear'):
             plotData = data
-            if vlimit[0] == None:
-    
-                vmin = amin(data[0])
-            else:
-                vmin = vlimit[0]
-                
-            if vlimit[1] == None:
-                vmax = amax(data[0])
-            else:
-                vmax = vlimit[1]
-                
+            vmin = vlimit[0]
+            vmax = vlimit[1]
         elif (scale == 'log'):
-            plotData = log(data)
-                
-            if (vlimit[1] == None):
-                vmax = log(amax(data[0][nonzero(data[0])]))
-            else:
-                vmax = log(vlimit[1])
-            if (vlimit[0] == None):
-
-                vmin = log(amax(data[0][nonzero(data[0])])) - 30.0
-
-            else:
-                vmin = log(vlimit[0])
-                
+            plotData = log10(data) 
+            vmin = log10(vlimit[0])
+            vmax = log10(vlimit[1])
             for i in range(viewCount):   
                 plotData[viewIdx[i]][data[viewIdx[i]] == 0.0] = vmin
-            
-        
+
         depth = ceil(float(viewCount/2.0))
         self.axes = [None]*int(viewCount)
         self.im = [None]*int(viewCount)
@@ -203,6 +200,12 @@ class MultiViewPanel(wx.Panel):
         return
 
 class MouseReadPan(wx.Panel):
+    '''
+    A panel for reading out all three dimensions of a 2D plot. This is important
+    for getting intensity values for scaleing. It works by first focusing on the
+    panel for which the mouse is currently over and then reading the values off
+    of the plot.
+    '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         self.readoutLabel = wx.StaticText(self,-1)
@@ -221,6 +224,10 @@ class MouseReadPan(wx.Panel):
         self.Fit()
           
 class ScalePan(wx.Panel):
+    '''
+    This is the panel which allows the user to toggle the 1D plot between a log
+    and linear scale.
+    '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         
@@ -236,6 +243,13 @@ class ScalePan(wx.Panel):
     
         
 class ZlimPan(wx.Panel):
+    '''
+    This panel allows the user to change the floor and ceiling limits on the 
+    data. The order of magnitude the theory calculates is much greater then what
+    the instrument realistically has the capability to measure so, by adjusting
+    the ceiling and floor to match the data, we can get a better handle on how
+    well the theory matches.
+    '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         wx.StaticText
@@ -244,7 +258,7 @@ class ZlimPan(wx.Panel):
 
         
         newFont = self.vminLab.GetFont()
-        newFont.SetPointSize(12)
+        newFont.SetPointSize(10)
         
         self.vminLab.SetFont(newFont)
         self.vmaxLab.SetFont(newFont)
@@ -262,21 +276,30 @@ class ZlimPan(wx.Panel):
         self.butSize.Add(self.submit)
         self.butSize.Add(self.reset)
         
-        self.labVal.Add(self.vminLab,1,wx.EXPAND|wx.RIGHT|wx.LEFT|wx.BOTTOM,border = 1)
-        self.labVal.Add(self.vmaxLab,1,wx.EXPAND|wx.RIGHT|wx.LEFT|wx.BOTTOM,border = 1)
+        self.labVal.Add(self.vminLab,1,wx.EXPAND|wx.RIGHT|wx.LEFT|wx.TOP,
+                                                                    border = 1)
+        self.labVal.Add(self.vmaxLab,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
         
         self.enterVal.Add(self.vminBox,1,wx.RIGHT|wx.LEFT,border = 1)
         self.enterVal.Add(self.vmaxBox,1,wx.RIGHT|wx.LEFT,border = 1)
         
         self.panSize.Add(self.labVal,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
         self.panSize.Add(self.enterVal,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
-        self.panSize.Add(self.butSize,1,wx.EXPAND|wx.ALL,border = 3)
+        self.panSize.Add(self.butSize,1,wx.EXPAND|wx.ALL,border = 1)
         self.SetSizer(self.panSize)
         
         self.Fit()
         return
     
 class HozVertPan(wx.Panel):
+    '''
+    Some of the other slicers out there use a 1D plot box on the right side for
+    the vertical slice and a 1D plot on the bottom for the horizontal. In
+    reality, the user is most likely only going to care about one slice at a
+    timeand the vertical 1D plot is somewhat clunky so this button allows the
+    user to toggle the plot axis for the single 1D plot at the bottom of the
+    GUI.
+    '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         
@@ -291,6 +314,10 @@ class HozVertPan(wx.Panel):
         return
     
 class slicePanel(wx.Panel):
+    '''
+    This is the 1D plot panel which displays the slices which the user selects
+    '''
+    
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_SUNKEN)
         
@@ -309,12 +336,16 @@ class slicePanel(wx.Panel):
         self.sliceAxis = self.sliceFigure.add_axes([0.1,0.2,0.8,0.7])
 
         sliceSizer = wx.BoxSizer(wx.VERTICAL)
-        sliceSizer.Add(self.sliceCanvas,-1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
+        sliceSizer.Add(self.sliceCanvas,-1,wx.EXPAND|wx.RIGHT|wx.LEFT,
+                                                                    border = 1)
         self.SetSizer(sliceSizer)
         return
     
     def updatePlot(self,data,xaxis,legLab,xlabel,ylabel,title,scale,legTog):
-
+        '''
+        The user can select a new slice at any time to plot on the 1D panel.
+        This method refreshes the plot so that the new data is displayed.
+        '''
         self.sliceAxis.cla()
 
         self.linePlot = self.sliceAxis.plot(xaxis,(array(data).T))
@@ -333,6 +364,45 @@ class slicePanel(wx.Panel):
         draw()
 
         return
+    
+class dataScale(wx.Panel):
+    '''
+    This panel allows the user to scale the theory to match it with the data.
+    This is done through 'markers' which tell the panel whether or not the 
+    array being plotted is 'Theory' or 'Measured'.
+    '''
+    def __init__(self,parent):
+        wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
+        self.submit = wx.Button(self,13, 'Submit',(10, 10))
+        self.reset = wx.Button(self,12, 'Reset',(10, 10))
+        self.scaleFactor = wx.TextCtrl(self, 11,size = (10, 10))
+        self.scaleFactorLabel = wx.StaticText(self,1,'Theory Scaling Factor')
+        newFont = self.scaleFactorLabel.GetFont()
+        newFont.SetPointSize(10)
+        
+        self.scaleFactorLabel.SetFont(newFont)
+        
+        self.horScaleSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.horSize = wx.BoxSizer(wx.HORIZONTAL) 
+        self.vertSize = wx.BoxSizer(wx.VERTICAL)
+        
+        self.horScaleSizer.Add(self.scaleFactor,1,wx.EXPAND,border = 1)
+        
+        self.horSize.Add(self.submit,1,wx.EXPAND|wx.RIGHT|wx.LEFT|wx.TOP,
+                                                                    border = 1)
+        self.horSize.Add(self.reset,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
+        
+        self.vertSize.Add(self.scaleFactorLabel,1,wx.EXPAND|wx.RIGHT|wx.LEFT,
+                                                                    border = 1)
+        self.vertSize.Add(self.horScaleSizer,1,wx.EXPAND|wx.RIGHT|wx.LEFT,
+                                                                    border = 1)
+        self.vertSize.Add(self.horSize,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
+        
+        self.SetSizer(self.vertSize)
+        return
+    
+    
+
     
 class PlotCtrler(object):
     '''
@@ -390,6 +460,7 @@ class PlotCtrler(object):
         
         self.zlim = ZlimPan(self.parPanel)
         
+        self.dataMatch = dataScale(self.parPanel)
         
         self.plotContrSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.toolSizer = wx.BoxSizer(wx.VERTICAL)
@@ -401,6 +472,8 @@ class PlotCtrler(object):
         self.toolSizer.Add(self.scale,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
         self.toolSizer.Add(self.zlim,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+                           border = 1)
+        self.toolSizer.Add(self.dataMatch,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
 
         
@@ -431,25 +504,78 @@ class PlotCtrler(object):
         self.zlim.Bind(wx.EVT_BUTTON,self.setZ,self.zlim.submit)
         self.zlim.Bind(wx.EVT_BUTTON,self.resetZ,self.zlim.reset)
         
+        
+        self.dataMatch.Bind(wx.EVT_BUTTON, self.setDataScale,
+                            self.dataMatch.submit)
+        self.dataMatch.Bind(wx.EVT_BUTTON, self.resetDataScale,
+                            self.dataMatch.reset)
+
         return
     
-    def resetZ(self,event):
-        self.plotInfo.vlimit = [None,None]
+    def clearText(self):
+        self.zlim.vminBox.Clear()
+        self.zlim.vmaxBox.Clear()
+        self.dataMatch.scaleFactor.Clear()
+        
+        return 
+    
+    def resetDataScale(self,event):
+
+        self.plotInfo.data = copy(self.plotInfo.preservedData)
+        self.plotInfo.initVlim()
         curPage = self.notePan.GetSelection()
         self.imScaleChange(event)
         self.notePan.SetSelection(curPage)
+        
+        self.clearText()
+        return
+    
+    def setDataScale(self,event):
+        
+        if self.dataMatch.scaleFactor.GetValue() != '':
+            self.plotInfo.data[self.plotInfo.type == 'Theory'] = (
+                  self.plotInfo.preservedData[self.plotInfo.type == 'Theory']*
+                  float(self.dataMatch.scaleFactor.GetValue()))
+            self.plotInfo.initVlim()
+            curPage = self.notePan.GetSelection()
+            self.imScaleChange(event)
+            self.notePan.SetSelection(curPage)
+        self.clearText()
+        return
+    
+    
+    def resetZ(self,event):
+        self.plotInfo.initVlim()
+        curPage = self.notePan.GetSelection()
+        self.imScaleChange(event)
+        self.notePan.SetSelection(curPage)
+        self.clearText()
         return
     
     def setZ(self,event):
-        self.plotInfo.vlimit[0] = float(self.zlim.vminBox.GetValue())
-        self.plotInfo.vlimit[1] = float(self.zlim.vmaxBox.GetValue())
         
-        if self.plotInfo.imScale == 'log':
-            self.plotInfo.vlimit[0] = exp(self.plotInfo.vlimit[0])
-            self.plotInfo.vlimit[1] = exp(self.plotInfo.vlimit[1])
+        vminHold = self.plotInfo.vlimit[0]
+        vmaxHold = self.plotInfo.vlimit[1]
+        
+        if self.zlim.vminBox.GetValue()!= '':
+            self.plotInfo.vlimit[0] = float(self.zlim.vminBox.GetValue())
+            if self.plotInfo.imScale == 'log':
+                self.plotInfo.vlimit[0] = 10**(self.plotInfo.vlimit[0])
+                
+        if self.zlim.vmaxBox.GetValue() !='':
+            self.plotInfo.vlimit[1] = float(self.zlim.vmaxBox.GetValue())
+            if self.plotInfo.imScale == 'log':
+                self.plotInfo.vlimit[1] = 10**(self.plotInfo.vlimit[1])
+
+        if self.plotInfo.vlimit[0] >= self.plotInfo.vlimit[1]:
+            print 'ERROR: Limits incorrectly chosen'
+            self.plotInfo.vlimit[0] = vminHold
+            self.plotInfo.vlimit[1] = vmaxHold
+            
         curPage = self.notePan.GetSelection()
         self.imScaleChange(event)
         self.notePan.SetSelection(curPage)
+        self.clearText()
         return
     
     def imScaleChange(self,event):
@@ -479,7 +605,8 @@ class PlotCtrler(object):
             ycorrd = self._convertCoord(self.plotInfo.extent[1],
                                            self.plotInfo.step[1],[y])[0]
 
-            if (xcorrd >= (self.plotInfo.n[0]) or ycorrd >= (self.plotInfo.n[1])):
+            if (xcorrd >= (self.plotInfo.n[0]) or ycorrd >= (
+                                                         self.plotInfo.n[1])):
                 self.readOut.readoutData.SetLabel(' ')
                 
             else:
@@ -493,7 +620,8 @@ class PlotCtrler(object):
         self.currPage = self.notePan.GetCurrentPage()
 
         #for coordinates
-        self.currPage.plotCanvas.mpl_connect('motion_notify_event',self.getCoord)
+        self.currPage.plotCanvas.mpl_connect('motion_notify_event',
+                                             self.getCoord)
         
         #for plot
         self.coordBeg = self.currPage.plotCanvas.mpl_connect(
@@ -544,7 +672,7 @@ class PlotCtrler(object):
         coord = zeros(size(value))
         
         for i in range(size(value)):
-            coord[i] = int((value[i]+abs(min))/step)
+            coord[i] = round((value[i]+abs(min))/step)
         return sorted(coord)
 
     def getSliceEnd(self,event):
@@ -603,8 +731,11 @@ class PlotCtrler(object):
              str('%.2e '%avgStart))
         if self.plotInfo.horizontal == True: title += ' Vertically' 
         else: title += ' Horizontally'        
-
-        self.slicePan.updatePlot(self.plotInfo.sliceData,
+        
+        floorSliceData = asarray(copy(self.plotInfo.sliceData))
+        floorSliceData[floorSliceData < self.plotInfo.vlimit[0]] = (
+                                                    self.plotInfo.vlimit[0])
+        self.slicePan.updatePlot(floorSliceData,
                                  self.plotInfo.sliceX,
                                  self.plotInfo.titles,
                                  self.plotInfo.axisLabel[0],
@@ -718,10 +849,20 @@ class PlotCtrler(object):
         
 class PlotInfo(object):
     def __init__(self,data,vlimit,titles,extent,step,n,axisLabel):
-        self.data = data
         
+        self.data=[]
+        self.type=[]
+        
+        for i in range(len(data)):self.data.append(data[i][0])
+        for i in range(len(data)):self.type.append(data[i][1])
+        
+        self.data = asarray(self.data)
+        self.type = asarray(self.type,dtype = object)
+        
+        self.preservedData = array(copy(self.data))
+    
         if vlimit == None:
-            self.vlimit = [None,None]
+            self.initVlim()
         else:
             self.vlimit = vlimit
         
@@ -744,18 +885,16 @@ class PlotInfo(object):
         self.sliceX = arange(30.0)
         return
     
+    
+    def initVlim(self):
+        
+        self.vlimit= [amax(self.data[0])*1.0e-20,amax(self.data)]
+        return 
 
        
 def _test():
 
     from omfLoader import *
-    from numpy import asarray,arange,reshape,shape
-    
-    '''
-    mag = Omf('/home/mettingc/Documents/BBM/c_500mTz_-Oxs_MinDriver-Magnetization-05-0005651.omf')
-    #mag = Omf('/home/mettingc/Documents/test.omf')
-    momentView(mag
-    '''
     
     import sample_prep,scatter
     from numpy import flipud,fliplr,rot90
@@ -771,7 +910,9 @@ def _test():
     GeoUnit = (sample_prep.GeomUnit(Dxyz = [10.0e4,10.0e4,2.2e4],
                                     n = [20,25,20],scene = scene))
     cell = GeoUnit.buildUnit()
-    space = sample_prep.Q_space([-.0001,-0.001,0.00002],[.0001,0.001,0.01],[200,5,200])
+    space = sample_prep.Q_space([-.0001,-0.001,0.00002],
+                                [.0001,0.001,0.01],[200,5,200])
+    
     lattice = sample_prep.Rectilinear([20,20,1],cell)
     beam = sample_prep.Beam(5.0,None,None,0.05,None)
     test = scatter.Calculator(lattice, beam, space, cell)
@@ -796,6 +937,8 @@ def _test():
     label = ['Test 1','Test 2','Test 3','Test 4']
     label = ['BA','resBA']
     axLab = ['xaxis','yaxis']
-    MultiView([baData,resbaData],[space.q_step[0],space.q_step[2]],[space.points[0],space.points[2]],titles=label,extent= extent,axisLabel = axLab)
+    MultiView([[baData,'Theory'],[resbaData,'Theory']],
+              [space.q_step[0],space.q_step[2]],[space.points[0],
+             space.points[2]],titles=label,extent= extent,axisLabel = axLab)
 
 if __name__=="__main__":_test()
