@@ -39,6 +39,7 @@ __device__ void rt_calc(Cplx k, const Real SLD[], const int nlayer,
 	{
 		iter = -1;
 		layer = nlayer-2;
+
 		knotz = (sqrt(pow(k,2) + 4.0 * PI * SLD[nlayer-1]));
 
 		no = (sqrt(1 - 4.0 * PI * SLD[nlayer-1]/pow(knotz,2)));
@@ -83,10 +84,12 @@ __device__ void rt_calc(Cplx k, const Real SLD[], const int nlayer,
 
 
 	Cplx frac(0.0,0.0);
+
 	Cplx num(0.0,0.0);
 	Cplx denom(0.0,0.0);
 
 	frac = (-1*I) / nf;
+
 
 	num = M11 + (I * no * M01) + frac * (-M10 - I * no * M00);
 	denom = -M11 + I*no*M01 + frac*(M10 - I * no * M00);
@@ -95,7 +98,6 @@ __device__ void rt_calc(Cplx k, const Real SLD[], const int nlayer,
 
 	if (nf.real() == 0.0) *t = 0.0;
 	else *t = 1.0 + *r;
-
 	*kz_tran = nf * knotz;
 
 	return;
@@ -107,7 +109,7 @@ CUDA_KERNEL
 cudaWave(const int nqx, const int nqy, const int nqz,
 		const Real Qx[], const Real Qy[], const Real Qz[], const Real SLD[],
 		const Real thickness[], const Real mu[],const int nlayer,
-		const Real wavelength, const int qxi,
+		const Real wavelength,const Real deltaz, const int qxi,
 		Cplx pio[],Cplx pit[],Cplx poo[],Cplx pot[], Real qxr[])
 		
 {
@@ -120,12 +122,9 @@ cudaWave(const int nqx, const int nqy, const int nqz,
 		const int qyi = (idx/nqz)%nqy;
 		const Cplx I(0.0,1.0);
 
-		Cplx t(0,0);
-		Cplx r(0,0);
-		Cplx kz_tran(0,0);
-
-
-		Real qzstep = Qz[1]-Qz[0];
+		Cplx t(0.0,0.0);
+		Cplx r(0.0,0.0);
+		Cplx kz_tran(0.0,0.0);
 
 		Real Qmag = sqrt(pow(Qx[qxi],2) + pow(Qy[qyi],2) + pow(Qz[qzi],2));
 
@@ -133,55 +132,64 @@ cudaWave(const int nqx, const int nqy, const int nqz,
 
 		Real knot = (2.0 * PI)/wavelength;
 
-		Cplx twoth = 2.0 * asin(Qmag/(2.0*knot));
+		Real twoth = 2.0 * asin(Qmag/(2.0*knot));
 
-		Cplx tilt = atan2(Qx[qxi],Qz[qzi]);
-
-
-		Cplx th_in = (twoth/2.0) + tilt;
-		Cplx th_out = (twoth/2.0) - tilt;
+		Real tilt = atan2(Qx[qxi],Qz[qzi]);
 
 
-		Cplx kz_in = knot * sin(th_in);
-		Cplx kz_out = -knot * sin(th_out);
+		Real th_in = (twoth/2.0) + tilt;
+		Real th_out = (twoth/2.0) - tilt;
+
+
+		Real kz_in = knot * sin(th_in);
+		Real kz_out = -knot * sin(th_out);
 
 
 
-		if  (kz_in.real() < 0.0)
+		if  (kz_in < 0.0)
 		{
 			rt_calc(-kz_in, &SLD[0], nlayer, &thickness[0], &t, &r, &kz_tran, 1);
-			pio[idx] = t*exp(-I*kz_tran*qzstep);
-			pit[idx] = 0.0;
-			qxr[idx] = Qx[qxi] + wavelength * SLD[nlayer-1];
 
+			pio[idx] = t*exp(I*-kz_tran*deltaz);
+			pit[idx] = 0.0;
+
+			qxr[idx] = Qx[qxi] + wavelength * SLD[nlayer-1];
 		}
 
 		else
 		{
 			rt_calc(kz_in,&SLD[0], nlayer, &thickness[0], &t, &r, &kz_tran, 0);
-			pio[idx] = 1.0*exp(I*kz_in*qzstep);
-			pit[idx] = r*exp(-I*kz_in*qzstep);
+
+			pio[idx] = 1.0*exp(I*kz_in*deltaz);
+			pit[idx] = r*exp(-I*kz_in*deltaz);
+
 			qxr[idx] = Qx[qxi];
 
 		}
 
 
-		if (kz_out.real() < 0.0)
+		if (kz_out < 0.0)
 		{
-			rt_calc(-kz_out, &SLD[0], nlayer, &thickness[0], &t, &r, &kz_tran, 0);
-			poo[idx] = 1.0*exp(-I*kz_out*qzstep);
-			pot[idx] = r * exp(I*kz_out*qzstep);
+			rt_calc(-kz_out, &SLD[0], nlayer, &thickness[0], &t, &r, &kz_tran,0);
+
+			poo[idx] = 1*exp(-I*kz_out*deltaz);
+			pot[idx] = r*exp(I*kz_out*deltaz);
 
 		}
 
 		else
 		{
 			rt_calc(kz_out, &SLD[0], nlayer, &thickness[0], &t, &r, &kz_tran, 0);
-			poo[idx] = t*exp(-I*kz_tran*qzstep);
+
+			poo[idx] = t*exp(-I*kz_tran*deltaz);
 			pot[idx] = 0.0;
+
 			qxr[idx] = Qx[qxi] - wavelength * SLD[nlayer-1];
+
 
 		}
 }
+
+
 
 
