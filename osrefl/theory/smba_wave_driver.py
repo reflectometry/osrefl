@@ -11,6 +11,7 @@ import numpy
 import numpy.linalg as linalg
 import approximations,sample_prep
 import time
+
 cuda.init()
 
 def readfile(name):
@@ -49,7 +50,8 @@ def loadkernelsrc(name, precision='float32', defines={}):
 
 
 
-def wave(stack, Qx, Qy, Qz,wavelength, gpu=None, precision='float32'):
+def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', proc = 'gpu'):
+    
     '''
     Overview:
         Calculates the wavefunction for a given stack of SLD values.
@@ -82,15 +84,21 @@ def wave(stack, Qx, Qy, Qz,wavelength, gpu=None, precision='float32'):
     calculation will be. The choices here are generally float32 and float64.
     '''
     
+    #Make sure there is a Cuda Device and, if not, use the python calculation
+    
+
+
     stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in 
                               stack, Qx, Qy, Qz]
 
     
     if precision == 'float32': 
         wavelength = numpy.float32(wavelength)
+        deltaz = numpy.float32(deltaz)
     else:
         wavelength = numpy.float64(wavelength)
-
+        deltaz = numpy.float64(deltaz)
+        
     cplx = 'complex64' if precision=='float32' else 'complex128'
     
     if gpu is not None:
@@ -109,18 +117,47 @@ def wave(stack, Qx, Qy, Qz,wavelength, gpu=None, precision='float32'):
     
     qx_refract =  numpy.zeros(size,dtype=precision)
     
+    if cuda.Device > 0 and proc == 'gpu':
+        
+        print 'Cuda Device Detected... Calculating wavefunction on GPU'
     
-    work_queue = Queue.Queue()
-    for qxi,qx in enumerate(Qx): work_queue.put(qxi)
-
-    threads = [WaveThread(gpus[k], work_queue, stack, wavelength,
-                      psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract,
-                      Qx, Qy, Qz)
+        work_queue = Queue.Queue()
+        for qxi,qx in enumerate(Qx): work_queue.put(qxi)
     
-           for k in range(numgpus)]
-    
-    for T in threads: T.start()
-    for T in threads: T.join()
+        threads = [WaveThread(gpus[k], work_queue, stack, wavelength,deltaz,
+                    psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract,
+                          Qx, Qy, Qz)
+        
+               for k in range(numgpus)]
+        
+        for T in threads: T.start()
+        for T in threads: T.join()
+        
+    else:
+        if cuda.Device == 0: print 'No Cuda Device Detected...'
+        print 'Calculating wavefunction with Python'
+        
+        if proc == 'cpu': print 'CPU Calculation Selected'
+        
+        from approximations import SMBA_wavecalcMultiK,QxQyQz_to_k
+        from numpy import array,asarray,reshape
+        
+        for q in Qx,Qy,Qz: q = asarray(q)
+        
+        Qx.reshape([len(Qx),1,1])
+        
+        Qx = array(Qx.reshape(len(Qx),1,1), dtype = precision)
+        Qy = array(Qy.reshape(1,len(Qy),1), dtype = precision)
+        Qz = array(Qz.reshape(1,1,len(Qz)), dtype = precision)
+        
+        kin,kout = QxQyQz_to_k(Qx,Qy,Qz,wavelength)
+        
+        psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
+                                   SMBA_wavecalcMultiK(qx_refract,deltaz, 
+                                               stack, wavelength,kin, kout))
+        
+        
+        
     return  psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract
 
 class WaveThread(threading.Thread):
@@ -136,13 +173,13 @@ class WaveThread(threading.Thread):
     of limited resources on the card.
     '''
     
-    def __init__(self, gpu, work_queue, stack, wavelength,
+    def __init__(self, gpu, work_queue, stack, wavelength,deltaz,
                       psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract,
                       Qx, Qy, Qz):
         
         threading.Thread.__init__(self)
-        self.wave_args = (Qx, Qy, Qz, stack, wavelength,psi_in_one,psi_in_two,
-                          psi_out_one,psi_out_two,qx_refract)
+        self.wave_args = (Qx, Qy, Qz, stack, wavelength,deltaz,psi_in_one,
+                          psi_in_two,psi_out_one,psi_out_two,qx_refract)
         self.work_queue = work_queue
         self.gpu = gpu
         self.precision = Qx.dtype
@@ -168,7 +205,7 @@ class WaveThread(threading.Thread):
 
         '''
         
-        (Qx, Qy, Qz, stack, wavelength,psi_in_one,psi_in_two,psi_out_one,
+        (Qx, Qy, Qz, stack, wavelength,deltaz,psi_in_one,psi_in_two,psi_out_one,
          psi_out_two,qx_refract) = self.wave_args
         
         nqx, nqy, nqz, nlayer = [numpy.int32(len(v)) for v in (Qx, Qy, 
@@ -207,8 +244,8 @@ class WaveThread(threading.Thread):
             
             
             self.cudaWave(nqx, nqy, nqz, cQx, cQy, cQz, cSLD, cthickness, cmu, 
-                          nlayer, wavelength, qxi, cpio, cpit, cpoo, cpot, cqxr,
-                     **cuda_partition(n))
+                          nlayer, wavelength,deltaz, qxi, cpio, cpit, cpoo, 
+                          cpot, cqxr, **cuda_partition(n))
 
             
             ## Delay fetching result until the kernel is complete
@@ -277,14 +314,20 @@ def cuda_partition(n):
 
 
 def main():
-    import wavefunction_BBM, approximations,pylab
+    
+    '''
+    This is a test to compare the results of the wave function calculation
+    between the Cuda and Python calculations.
+    '''
+    import wavefunction_BBM, approximations,pylab,numpy
+    from pylab import subplot
     '''
     unit_size = (50,50,50)
     unit_metric = (1.0e5,1.0e5,2.5e3)
     feature_size = (25,25,41)
     #Q_size = (100,100,100)
     '''
-    Q_size = (30,31,32)
+    Q_size = (10,10,10)
     wavelength = 5.0
     '''
     unit = numpy.zeros(unit_size, 'd')
@@ -292,12 +335,19 @@ def main():
     '''
     img = sample_prep.GrayImgUnit(filename =
           '/home/mettingc/Downloads/sample1_sld.png', 
-          newres = numpy.array([100.0,200.0]))
-
+          newres = numpy.array([200,400]))
     
     unit = img.unitBuild(Dxyz = [8480.0,8480.0,3500.0], 
                          scale = 1.0e-5,inc_sub=[0.0,2.0784314e-6])
+    from pylab import imshow,show,colorbar
+    from numpy import rot90
     unit.add_media()
+ 
+    imshow(rot90(unit.unit[:,5,:]))
+
+    show()
+    unit.viewSlice()
+
     gpu=None
     #gpu=1  # Use this line if you only want one GPU to be in use
 
@@ -309,8 +359,9 @@ def main():
     x = unit.value_list[0]
     y = unit.value_list[1]
     z = unit.value_list[2]
-    stack = approximations.wavefunction_format(unit.unit, unit.step[2])
-
+    
+    #stack = approximations.wavefunction_format(unit.unit, unit.step[2])
+    stack = unit.inc_sub
     '''
     x = (unit_metric[0]/unit_size[0])*numpy.arange(unit_size[0])
     y = (unit_metric[1]/unit_size[1])*numpy.arange(unit_size[1])
@@ -352,29 +403,60 @@ def main():
         print i
         for ii in range (Q_size[1]):
             for iii in range(Q_size[2]):
-                pio[i,ii,iii],pit[i,ii,iii],poo[i,ii,iii],pot[i,ii,iii],
-                pyrefract[i,ii,iii] = approximations.SMBA_wavecalc(qx[i],
-                   qz[1]-qz[0],stack,wavelength, ki[i,ii,iii],kf[i,ii,iii])
+
+                
+                pio[i,ii,iii],pit[i,ii,iii],poo[i,ii,iii],pot[i,ii,iii],pyrefract[i,ii,iii] = approximations.SMBA_wavecalc(qx[i],(qz[1]-qz[0]),stack,wavelength, ki[i,ii,iii],kf[i,ii,iii])
     
     print "time",time.time()-t0
     
     print 'done'
 
     BBM =[pio,pit,poo,pot]
-    
     cuda = [psi_in_one,psi_in_two,psi_out_one,psi_out_two]
-
+    
+    '''
+    pylab.imshow(numpy.rot90(numpy.sum(pio.real,axis = 1)))
+    pylab.colorbar()
+    pylab.figure()
+    pylab.imshow(numpy.rot90(numpy.sum(psi_in_one.real,axis = 1)))
+    pylab.colorbar()
+    pylab.show()
+    '''
+    
     dif = [None,None,None,None]
+    difIm = [None,None,None,None]
     intdif = [None,None,None,None]
-
+    intdifIm = [None,None,None,None]
+    
     for i in range(4):
-        dif[i] = (numpy.abs(cuda[i] - BBM[i])/(.5*(numpy.abs(cuda[i]) + 
-                                                   numpy.abs(BBM[i]))))
+        dif[i] = (numpy.abs(cuda[i].real - BBM[i].real)/(.5*(numpy.abs(cuda[i].real) + 
+                                                   numpy.abs(BBM[i].real))))
         dif[i][(BBM[i].real==0.0) & (cuda[i].real==0.0)] = 0.0
         intdif[i] = numpy.log10(numpy.sum(dif[i],axis=1))
+        #intdif[i] = (numpy.sum(dif[i],axis=1))
 
+    for i in range(4):
+        difIm[i] = (numpy.abs(cuda[i].imag - BBM[i].imag)/(.5*(numpy.abs(cuda[i].imag) + 
+                                                   numpy.abs(BBM[i].imag))))
+        difIm[i][(BBM[i].imag==0.0) & (cuda[i].imag==0.0)] = 0.0
+        intdifIm[i] = numpy.log10(numpy.sum(difIm[i],axis=1))
+        #intdif[i] = (numpy.sum(difIm[i],axis=1))
     
-    print ''
+    print '--------psi values----------'
+    print pit
+    print '-----------------------------'
+    print psi_in_two
+    print '=================================='
+    
+    print '--------real diff values----------'
+    print pit[dif[1] > 1e-17]
+    print '------------------'
+    print psi_in_two[dif[1] > 1e-17]
+    print '=================================='
+    print '--------imag diff values----------'
+    print pit[difIm[1] > 1e-17]
+    print '------------------'
+    print psi_in_two[difIm[1] > 1e-17]
     print '___________________________________'
     print 'the maximum of the difference is: '
     print 'pio: ',numpy.max(dif[0])
@@ -382,21 +464,44 @@ def main():
     print 'poo: ',numpy.max(dif[2])
     print 'pot: ',numpy.max(dif[3])
     print '___________________________________'
-
+ 
+    pylab.colorbar()
+       
+    subplot(2,2,1)
+    pylab.title('pio')
     pylab.imshow(numpy.flipud(intdif[0].T),extent = extent, aspect = 'auto')
-    pylab.colorbar()
-    pylab.figure()
+
+    subplot(2,2,2)
+    pylab.title('pit')
     pylab.imshow(numpy.flipud(intdif[1].T),extent = extent, aspect = 'auto')
-    pylab.colorbar()
-    
-    
-    pylab.figure()
+
+    subplot(2,2,3)
+    pylab.title('poo')
     pylab.imshow(numpy.flipud(intdif[2].T),extent = extent, aspect = 'auto')
-    pylab.colorbar()
-    pylab.figure()
+
+    subplot(2,2,4)
+    pylab.title('pot')
     pylab.imshow(numpy.flipud(intdif[3].T),extent = extent, aspect = 'auto')
-    pylab.colorbar()
+
     
+    pylab.figure()
+    pylab.colorbar()  
+    subplot(2,2,1)
+    pylab.title('pio')
+    pylab.imshow(numpy.flipud(intdifIm[0].T),extent = extent, aspect = 'auto')
+
+    subplot(2,2,2)
+    pylab.title('pit')
+    pylab.imshow(numpy.flipud(intdifIm[1].T),extent = extent, aspect = 'auto')
+
+    subplot(2,2,3)
+    pylab.title('poo')
+    pylab.imshow(numpy.flipud(intdifIm[2].T),extent = extent, aspect = 'auto')
+
+    subplot(2,2,4)
+    pylab.title('pot')
+    pylab.imshow(numpy.flipud(intdifIm[3].T),extent = extent, aspect = 'auto')
+
     pylab.show()
     
 # Note: may want to try putting const arrays in texture memory rather
