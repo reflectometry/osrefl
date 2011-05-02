@@ -21,7 +21,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from pylab import figure,show,imshow, draw, delaxes,cla,subplot,setp,plot
 from pylab import figlegend,legend,xlim
 from copy import copy
-
+import sys
 # Disable interactive mode so that plots are only updated on show() or draw().
 # Note that the interactive function must be called before selecting a backend
 # or importing pyplot, otherwise it will have no effect.
@@ -61,10 +61,12 @@ class MultiViewFrame(wx.Frame):
     '''
     This is the main Frame used to collect the Panels
     '''
-    def __init__(self,parent):
-        wx.Frame.__init__(self,parent,title = "Plot Comparison Application")
+    def __init__(self,parent, pos = (20,20), size = (1920,1280)):
+
+        wx.Frame.__init__(self,parent,title = "Plot Comparison Application",pos=pos,size=size)
 
         return
+    
 
 class ParentVisPanel(wx.Panel):
     '''
@@ -95,7 +97,7 @@ class MultiViewPanel(wx.Panel):
 
         wx.Panel.__init__(self,parent,id,style = wx.BORDER_SUNKEN)
 
-        FIGPROPS = dict(figsize = (7.0,(7.0/1.618)),dpi = 128)
+        FIGPROPS = dict(figsize = (5.0,(5.0/1.618)),dpi = 64)
         #self.SetBackgroundColour('red')
         ADJUSTPROPS = dict(left = 0.1, bottom = 0.1, right = 0.97,
                            top = 0.94, wspace = 0.01, hspace = 0.01 )
@@ -188,7 +190,7 @@ class MultiViewPanel(wx.Panel):
         multiViewSizer = wx.BoxSizer(wx.HORIZONTAL)
         multiViewVert = wx.BoxSizer(wx.VERTICAL)
 
-        multiViewSizer.Add(self.plotCanvas,3,wx.EXPAND|wx.RIGHT|wx.LEFT,
+        multiViewSizer.Add(self.plotCanvas,1,wx.EXPAND|wx.RIGHT|wx.LEFT,
                                                             border = 1)
         multiViewVert.Add(multiViewSizer,1,wx.EXPAND|wx.TOP|wx.BOTTOM,
                                                             border = 1)
@@ -321,7 +323,7 @@ class slicePanel(wx.Panel):
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_SUNKEN)
 
-        self.sliceFigure = Figure(frameon = True,figsize =(12,3))
+        self.sliceFigure = Figure(frameon = True,figsize =(2,3))
         self.sliceFigure.set_facecolor('.82')
         self.sliceCanvas = FigureCanvas(self, -1, self.sliceFigure)
         self.sliceCanvas.SetAutoLayout(False)
@@ -336,7 +338,7 @@ class slicePanel(wx.Panel):
         self.sliceAxis = self.sliceFigure.add_axes([0.1,0.2,0.8,0.7])
 
         sliceSizer = wx.BoxSizer(wx.VERTICAL)
-        sliceSizer.Add(self.sliceCanvas,-1,wx.EXPAND|wx.RIGHT|wx.LEFT,
+        sliceSizer.Add(self.sliceCanvas,1,wx.EXPAND|wx.RIGHT|wx.LEFT,
                                                                     border = 1)
         self.SetSizer(sliceSizer)
         return
@@ -409,8 +411,9 @@ class PlotCtrler(object):
     '''
     def __init__(self, app,plotInfo):
         self.plotInfo = plotInfo
-
-        self.Frame = MultiViewFrame(None)
+        
+        pos,size = self.window_placement(1920,1280)
+        self.Frame = MultiViewFrame(None,pos,size)
 
         menuBar = wx.MenuBar()
         file = wx.Menu()
@@ -483,7 +486,7 @@ class PlotCtrler(object):
 
         self.vertSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.vertSizer.Add(self.notePan,0,wx.EXPAND|wx.LEFT|wx.RIGHT,border = 1)
+        self.vertSizer.Add(self.notePan,2,wx.EXPAND|wx.LEFT|wx.RIGHT,border = 1)
         self.vertSizer.Add(self.plotContrSizer,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
 
@@ -491,8 +494,7 @@ class PlotCtrler(object):
 
         self.slicePan.sliceCanvas.Bind(wx.EVT_RIGHT_DOWN,self.sliceHome)
         self.parPanel.Fit()
-        self.Frame.SetClientSize(self.parPanel.GetSize())
-        self.Frame.SetMinSize(self.parPanel.GetSize())
+
         self.Frame.Show(True)
 
         self.notePan.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
@@ -510,6 +512,43 @@ class PlotCtrler(object):
                             self.dataMatch.reset)
 
         return
+    
+    def window_placement(self, desired_width, desired_height):
+        """
+        Determines the position and size of a window such that it fits on the
+        user's screen without obstructing (or being obstructed by) the task bar.
+        The returned size is bounded by the desired width and height passed in,
+        but it may be smaller if the screen is too small.  Usually the returned
+        position (upper left coordinates) will result in centering the window
+        on the screen excluding the task bar area.  However, for very large
+        monitors it will be placed on the left side of the screen.
+        """
+
+        # WORKAROUND: When running Linux and using an Xming (X11) server on a
+        # PC with a dual monitor configuration, the reported display count may
+        # be 1 (instead of 2) with a display size of both monitors combined.
+        # (For example, on a target PC with an extended desktop consisting of
+        # two 1280x1024 monitors, the reported monitor size was 2560x1045.)
+        # To avoid displaying the window across both monitors, we check for
+        # screen 'too big'.  If so, we assume a smaller width which means the
+        # application will be placed towards the left hand side of the screen.
+        
+        x, y, w, h = wx.Display().GetClientArea() # size excludes task bar
+        #print "*** x, y, w, h", x, y, w, h
+        xpos, ypos = x, y
+        h -= 20  # to make room for Mac window decorations
+        if len(sys.argv) > 1 and '--platform' in sys.argv[1:]:
+            j, k = wx.DisplaySize()  # size includes task bar area
+            print "*** Reported screen size including taskbar is %d x %d"%(j, k)
+            print "*** Reported screen size excluding taskbar is %d x %d"%(w, h)
+
+        if w > 1920: w = 1280  # display on left side, not centered on screen
+        if w > desired_width:  xpos = x + (w - desired_width)/2
+        if h > desired_height: ypos = y + (h - desired_height)/2
+
+        # Return the suggested position and size for the application frame.
+        return (xpos, ypos), (min(w, desired_width), min(h, desired_height))
+
 
     def OnPageChanged(self, event):
         self.getCurrPage(event)
