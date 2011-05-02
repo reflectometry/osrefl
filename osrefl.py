@@ -6,7 +6,7 @@
 # Author: Christopher Metting
 
 """
-This script starts the DiRefl Direct Inversion Reflectometry application.
+This script starts the OsRefl Off-Specular Reflectometry application.
 """
 
 import os
@@ -29,7 +29,17 @@ except:
         *** place this module in the top-level directory of the package."""
 
 if __name__ == "__main__":
-    #import osrefl.examples.AuFit
-    #osrefl.someplace.AuFit.main()
-    print os.path.join('examples', 'AuFit.py')
-    execfile(os.path.join('examples', 'AuFit.py'))
+    if len(sys.argv) == 1:
+        file = os.path.join('examples', 'AuFit.py')
+    else:
+        file = sys.argv[1]
+
+    try:
+        f = open(file)
+        f.close()
+    except:
+        print "*** Script not found:", file
+        sys.exit()
+
+    print "Executing script", file, "...\n"
+    execfile(file)
