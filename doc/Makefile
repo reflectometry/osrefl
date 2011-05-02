@@ -2,6 +2,7 @@
 #
 
 # You can set these variables from the command line.
+PYTHON	     ?= python
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
@@ -29,8 +30,13 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
+	-rm -rf api
 
-html:
+api: genmods.py
+	-rm -rf api
+	$(PYTHON) genmods.py
+
+html: api
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
