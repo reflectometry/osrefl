@@ -19,7 +19,7 @@ import sys, os
 #sys.path.append(os.path.abspath('.'))
 
 # -- General configuration -----------------------------------------------------
-sys.path.append(os.path.abspath(os.path.dirname('../')))
+sys.path.append(os.path.abspath(os.path.dirname('../..')))
 
 sys.path.append(os.path.abspath('_extensions'))
 # Add any Sphinx extension module names here, as strings. They can be extensions
@@ -200,7 +200,7 @@ htmlhelp_basename = 'sphinx_trydoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'sphinx_try.tex', u'sphinx\\_try Documentation',
-   u'nikunj', 'manual'),
+   u'metting, nikunj', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
