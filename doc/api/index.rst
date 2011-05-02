@@ -13,6 +13,5 @@ Reference
 
 .. toctree::
 
-   sample_prep.rst
-   scatter.rst
-   andrload.rst
+   test.rst
+   mif_creator.rst

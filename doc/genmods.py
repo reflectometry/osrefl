@@ -49,10 +49,17 @@ def genfiles(package, package_name, modules, dir='api'):
         f.write(INDEX_TEMPLATE%locals())
     
 modules=[
-    ('sample_prep', 'Model Creation'),
-    ('scatter', 'Calculations'),
-    ('andrload', 'Data Load')
+
+    ('test', 'Model Creation'),
+    #('scatter', 'Calculations'),
+    #('andrload', 'Data Load'),
+    #('omfLoader','.omf File Loader'),
+    ('mif_creator','.mif File Creator')
+    #('sample_prep', 'Model Creation'),
+    #('scatter', 'Calculations'),
+    #('andrload', 'Data Load')
+
     ]
-package='src'
+package='osrefl'
 package_name='Reference'
 genfiles(package, package_name, modules)
