@@ -682,11 +682,8 @@ class PlotCtrler(object):
     def getSliceEnd(self,event):
         self.currPage.box.draw_rubberband(self,0.0,0.0,0.0,0.0)
         #self.currPage.plotCanvas.mpl_disconnect(self.moveEvt)
-        if hasattr(self, self.moveEvt):
-            print "*** Has attribute"
+        if hasattr(self, 'moveEvt'):
             self.currPage.plotCanvas.mpl_disconnect(self.moveEvt)
-        else:
-            print "*** Does not have attribute"
 
         if self.plotInfo.selecting == True:
 

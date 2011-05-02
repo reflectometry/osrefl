@@ -72,7 +72,7 @@ class rebinned_data():
     # ask which filenames to work with
     #self.inFileNames = self.ChooseInputFiles()
     if (len(filenames) < 1):
-      self.get_load_params_gui(None, -1, 'Get filenames to work with', self)
+      self.get_load_params_gui(None, -1, 'Select Data Files', self)
     print 'names: ' + str(self.inFileNames)
     #self.get_filenames_gui(None, -1, 'Get filenames to work with')
 
@@ -684,7 +684,13 @@ class rebinned_data():
 
   def ChooseInputFiles(self,event = None):
       filenames_out = []
-      dlg = wx.FileDialog(None, "Choose a file", '', "", "I*.*", wx.FD_MULTIPLE)
+      #dlg = wx.FileDialog(None, "Choose a file", '', "", "I*.*", wx.FD_MULTIPLE)
+      dlg = wx.FileDialog(None,
+                          message="Choose Files",
+                          defaultDir=os.getcwd(),
+                          defaultFile="",
+                          wildcard="I*.*",
+                          style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR)
       if dlg.ShowModal() == wx.ID_OK:
         short_filenames=dlg.GetFilenames()
         files_dir = dlg.GetDirectory()
@@ -698,7 +704,8 @@ class rebinned_data():
     def __init__(self, parent, id, title, caller):
       # initialize the outer namespace here:
       self.caller = caller
-      wx.Dialog.__init__(self, parent, wx.ID_ANY, title, size=(600,300), style = wx.DEFAULT_DIALOG_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
+      wx.Dialog.__init__(self, parent, wx.ID_ANY, title, size=(600,300),
+        style = wx.DEFAULT_DIALOG_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
 
       #-- I think you need a panel if you're going to have more than one control in your frame.
       panel = wx.Panel(self, -1)
@@ -722,7 +729,8 @@ class rebinned_data():
       filenames_string = ''
       for fn in self.caller.inFileNames:
         filenames_string += str(fn) + '\n'
-      self.filenames_label = wx.TextCtrl(panel, -1, filenames_string, size=wx.Size(600,100), style=wx.TE_MULTILINE | wx.TE_DONTWRAP | wx.TE_READONLY )
+      self.filenames_label = wx.TextCtrl(panel, -1, filenames_string,
+        size=wx.Size(600,100), style=wx.TE_MULTILINE | wx.TE_DONTWRAP | wx.TE_READONLY )
 
       sizer_buttons = wx.FlexGridSizer(rows=1,cols=2, hgap=5,vgap=5)
       sizer_buttons.Add(btn_SaveExit)
@@ -777,7 +785,13 @@ class rebinned_data():
       self.ShowModal()
 
     def ChooseInputFile(self,e=None):
-      dlg = wx.FileDialog(self, "Choose a file", '', "", "I*.*", wx.FD_MULTIPLE)
+      #dlg = wx.FileDialog(self, "Choose a file", '', "", "I*.*", wx.FD_MULTIPLE)
+      dlg = wx.FileDialog(None,
+                          message="Choose Files",
+                          defaultDir=os.getcwd(),
+                          defaultFile="",
+                          wildcard="I*.*",
+                          style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR)
       if dlg.ShowModal() == wx.ID_OK:
         self.filenames=dlg.GetFilenames()
         self.dirname=dlg.GetDirectory()
