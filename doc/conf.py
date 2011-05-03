@@ -31,7 +31,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.plot_directive',
               #'inheritance_diagram',
-              'dollarmath',
+              #'dollarmath',
              ]
 
 html_theme = 'default'
