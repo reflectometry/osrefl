@@ -3,8 +3,19 @@ Introduction
 *************
 This is an instruction manual on how to use the current infrastructure developed to model off-specular neutron scattering data. The manual covers the basic attributes of the software as well as how to build and model a specific sample.
 
+Installing the Software
+############
 
-To Begin...
+There are many scientific libraries which are needed to run this code. All of the libraries are free and can easily be installed simultaniously by going to `Link text <http://www.pythonxy.com/>`_ and installing their product. In addition, if a Cuda compatable Nvidia GPU device is available, pyCuda must also be installed which may be downloaded at `Link text <http://mathema.tician.de/software/pycuda>`_. 
+
+Once the package is obtained from the repository and the previous prerequisites are installed, there is a small set of C code that must be compiled. Once the software is in the desired location, open up a command line prompt (either a terminal in linux or command prompt in windows). Change the directory to the top level (first) osrefl folder and type:
+::
+
+	python setup.py build_ext --inplace
+
+This will build the C code in the appropriate place and allow the software to run.
+
+To Begin Modeling
 ############
 This documentation provides instructions on how to write a simple model script. The first requirement is the import statements. Only two import statements are needed for the script to run. They should look like:
 ::
