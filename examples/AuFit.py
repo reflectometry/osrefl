@@ -47,7 +47,7 @@ q_space = Au_measurments.space
 
 
 test_data = Calculator(lattice,beam,q_space,unit)
-test_data.BA()
+test_data.SMBAfft()
 #test_data.results[test_data.results < 1.0e-15] = 1.0e-15
 test_data.resolution_correction()
 test_data.corrected_results *=scale
