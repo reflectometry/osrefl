@@ -14,7 +14,7 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-import wavefunction_kernel
+import wavefunction_kernel,smba_wave_driver
 import osrefl.viewers.view
 import czt
 
@@ -287,7 +287,8 @@ def cudaBA(cell,Q,lattice,beam,precision = 'float32',refract = False):
     
     return normalize(intensity, cell, Q, lattice).real
 
-def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
+def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True,
+            proc = 'cpu'):
     '''
     Overview:
         It may be true that the SMBA can be solved by using a czt transform and
@@ -311,14 +312,13 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     '''
     
     from scipy.interpolate import RectBivariateSpline
-    from sample_prep import Q_space
-    #from pylab import *
-    
+    from osrefl.model.sample_prep import Q_space
+
     stack = cell.inc_sub
     #stack = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
     
     psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_kernel.wave(stack, Q.q_list[0], Q.q_list[1], 
+                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
                          Q.q_list[2],beam.wavelength,cell.step[2],
                          precision=precision))
     
@@ -362,7 +362,8 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
                 form_factor[:,ii,iii].imag = interpImag
     else:
         form_factor = BA_FT(cell.unit,cell.step,Q)
-        
+    
+     
     scatProc = [None]*4
     scatProc[0] = psi_in_one*form_factor*psi_out_one
     scatProc[1] = psi_in_one*form_factor*psi_out_two
