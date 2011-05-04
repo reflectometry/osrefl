@@ -341,7 +341,22 @@ class Calculator(object):
         self.results = approximations.SMBA(self.feature,
                                         self.space,self.lattice, self.probe)
         return
+    
+    
+    def SMBAfft(self,refract = True, precision = 'float32',proc = 'cpu'):
+        '''
+        **Overview:**
 
+            This is a Python implementation of the SMBA using an fft to solve
+        the scattering potential.
+        '''
+        self.results = approximations.SMBAfft(self.feature,
+                                        self.space,self.lattice, self.probe,
+                                        precision=precision,refract = refract,
+                                        proc = proc)
+        return
+    
+    
     def cudaMagBA(self,precision = 'float32', refract = 'False'):
         self.results = approximations.cudaMagBA(self.feature,self.space,
                                      self.lattice, self.probe,self.omf,
