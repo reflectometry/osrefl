@@ -4,15 +4,15 @@
 
 import Queue
 import threading
-from pycuda import gpuarray
-import pycuda.driver as cuda
-from pycuda.compiler import SourceModule
+#from pycuda import gpuarray
+#import pycuda.driver as cuda
+#from pycuda.compiler import SourceModule
 import numpy
 import numpy.linalg as linalg
-import approximations,sample_prep
+import osrefl.theory.approximations,osrefl.model.sample_prep
 import time
 
-cuda.init()
+#cuda.init()
 
 def readfile(name):
     file = open(name)
@@ -50,7 +50,7 @@ def loadkernelsrc(name, precision='float32', defines={}):
 
 
 
-def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', proc = 'gpu'):
+def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', proc = 'cpu'):
     
     '''
     Overview:
@@ -86,8 +86,7 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', pr
     
     #Make sure there is a Cuda Device and, if not, use the python calculation
     
-
-
+    '''
     stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in 
                               stack, Qx, Qy, Qz]
 
@@ -98,16 +97,16 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', pr
     else:
         wavelength = numpy.float64(wavelength)
         deltaz = numpy.float64(deltaz)
-        
+    '''   
     cplx = 'complex64' if precision=='float32' else 'complex128'
-    
+    '''
     if gpu is not None:
         numgpus = 1
         gpus = [gpu]
     else:
         numgpus = cuda.Device.count()
         gpus = range(numgpus)
-        
+    '''    
     size = [len(v) for v in Qx,Qy,Qz]
     
     psi_in_one = numpy.zeros(size,dtype=cplx)
@@ -117,8 +116,8 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', pr
     
     qx_refract =  numpy.zeros(size,dtype=precision)
     
-    if cuda.Device > 0 and proc == 'gpu':
-        
+    #if cuda.Device > 0 and proc == 'gpu':
+    if proc == 'gpu':   
         print 'Cuda Device Detected... Calculating wavefunction on GPU'
     
         work_queue = Queue.Queue()
@@ -134,24 +133,24 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32', pr
         for T in threads: T.join()
         
     else:
+        '''
         if cuda.Device == 0: print 'No Cuda Device Detected...'
         print 'Calculating wavefunction with Python'
-        
+        '''
         if proc == 'cpu': print 'CPU Calculation Selected'
         
         from approximations import SMBA_wavecalcMultiK,QxQyQz_to_k
-        from numpy import array,asarray,reshape
-        
+        from numpy import array,asarray,reshape,shape,repeat
+    
         for q in Qx,Qy,Qz: q = asarray(q)
         
-        Qx.reshape([len(Qx),1,1])
-        
-        Qx = array(Qx.reshape(len(Qx),1,1), dtype = precision)
-        Qy = array(Qy.reshape(1,len(Qy),1), dtype = precision)
-        Qz = array(Qz.reshape(1,1,len(Qz)), dtype = precision)
+        Qx = asarray(Qx.reshape(len(Qx),1,1), dtype = precision)
+        Qy = asarray(Qy.reshape(1,len(Qy),1), dtype = precision)
+        Qz = asarray(Qz.reshape(1,1,len(Qz)), dtype = precision)
         
         kin,kout = QxQyQz_to_k(Qx,Qy,Qz,wavelength)
-        
+        qx_refract = Qx.repeat(shape(Qy)[1],axis =1)
+        qx_refract = qx_refract.repeat(shape(Qz)[2],axis =2)
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
                                    SMBA_wavecalcMultiK(qx_refract,deltaz, 
                                                stack, wavelength,kin, kout))
