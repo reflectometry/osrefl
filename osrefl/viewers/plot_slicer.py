@@ -214,11 +214,12 @@ class MouseReadPan(wx.Panel):
         self.readoutLabel.SetLabel('    X              Y             Z ')
 
         self.readoutData = wx.StaticText(self,-1)
+        '''
         newFont = self.readoutData.GetFont()
         newFont.SetPointSize(8)
         self.readoutData.SetFont(newFont)
         self.readoutData.SetLabel('  ')
-
+        '''
         self.readSizer = wx.BoxSizer(wx.VERTICAL)
         self.readSizer.Add(self.readoutLabel)
         self.readSizer.Add(self.readoutData)
@@ -258,17 +259,17 @@ class ZlimPan(wx.Panel):
         self.vminLab = wx.StaticText(self,-1,'   v min')
         self.vmaxLab = wx.StaticText(self,-1,'   v max')
 
-
+        '''
         newFont = self.vminLab.GetFont()
         newFont.SetPointSize(10)
 
         self.vminLab.SetFont(newFont)
         self.vmaxLab.SetFont(newFont)
-
-        self.vminBox = wx.TextCtrl(self, 1,size = (10, 20))
-        self.vmaxBox = wx.TextCtrl(self, 2,size = (10, 20))
-        self.submit = wx.Button(self,3, 'Submit',(10, 10))
-        self.reset = wx.Button(self,4, 'Reset',(10, 10))
+        '''
+        self.vminBox = wx.TextCtrl(self, 1,size = (7, 10))
+        self.vmaxBox = wx.TextCtrl(self, 2,size = (7, 10))
+        self.submit = wx.Button(self,3, 'Submit',(5, 5))
+        self.reset = wx.Button(self,4, 'Reset',(5, 5))
 
         self.butSize = wx.BoxSizer(wx.HORIZONTAL)
         self.panSize = wx.BoxSizer(wx.VERTICAL)
@@ -282,12 +283,12 @@ class ZlimPan(wx.Panel):
                                                                     border = 1)
         self.labVal.Add(self.vmaxLab,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
 
-        self.enterVal.Add(self.vminBox,1,wx.RIGHT|wx.LEFT,border = 1)
-        self.enterVal.Add(self.vmaxBox,1,wx.RIGHT|wx.LEFT,border = 1)
+        self.enterVal.Add(self.vminBox,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
+        self.enterVal.Add(self.vmaxBox,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
 
         self.panSize.Add(self.labVal,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
         self.panSize.Add(self.enterVal,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
-        self.panSize.Add(self.butSize,1,wx.EXPAND|wx.ALL,border = 1)
+        self.panSize.Add(self.butSize,1,wx.EXPAND|wx.RIGHT|wx.LEFT,border = 1)
         self.SetSizer(self.panSize)
 
         self.Fit()
@@ -323,7 +324,7 @@ class slicePanel(wx.Panel):
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_SUNKEN)
 
-        self.sliceFigure = Figure(frameon = True,figsize =(2,3))
+        self.sliceFigure = Figure(frameon = True)#,figsize =(2,3))
         self.sliceFigure.set_facecolor('.82')
         self.sliceCanvas = FigureCanvas(self, -1, self.sliceFigure)
         self.sliceCanvas.SetAutoLayout(False)
@@ -376,15 +377,16 @@ class dataScale(wx.Panel):
     '''
     def __init__(self,parent):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
-        self.submit = wx.Button(self,13, 'Submit',(10, 10))
-        self.reset = wx.Button(self,12, 'Reset',(10, 10))
-        self.scaleFactor = wx.TextCtrl(self, 11,size = (10, 10))
+        self.submit = wx.Button(self,13, 'Submit')#,(10, 10))
+        self.reset = wx.Button(self,12, 'Reset')#,(10, 10))
+        self.scaleFactor = wx.TextCtrl(self, 11)#,size = (10, 10))
         self.scaleFactorLabel = wx.StaticText(self,1,'Theory Scaling Factor')
+        '''
         newFont = self.scaleFactorLabel.GetFont()
         newFont.SetPointSize(10)
 
         self.scaleFactorLabel.SetFont(newFont)
-
+        '''
         self.horScaleSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.horSize = wx.BoxSizer(wx.HORIZONTAL)
         self.vertSize = wx.BoxSizer(wx.VERTICAL)
@@ -478,7 +480,7 @@ class PlotCtrler(object):
         self.toolSizer.Add(self.dataMatch,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
 
-
+        
         self.plotContrSizer.Add(self.slicePan,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                                 border = 1)
         self.plotContrSizer.Add(self.toolSizer,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
@@ -486,7 +488,7 @@ class PlotCtrler(object):
 
         self.vertSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.vertSizer.Add(self.notePan,2,wx.EXPAND|wx.LEFT|wx.RIGHT,border = 1)
+        self.vertSizer.Add(self.notePan,1,wx.EXPAND|wx.LEFT|wx.RIGHT,border = 1)
         self.vertSizer.Add(self.plotContrSizer,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
 
@@ -576,7 +578,7 @@ class PlotCtrler(object):
 
         if self.dataMatch.scaleFactor.GetValue() != '':
             self.plotInfo.data[self.plotInfo.type == 'Theory'] = (
-                  self.plotInfo.preservedData[self.plotInfo.type == 'Theory']*
+                  self.plotInfo.data[self.plotInfo.type == 'Theory']*
                   float(self.dataMatch.scaleFactor.GetValue()))
             self.plotInfo.initVlim()
             curPage = self.notePan.GetSelection()
