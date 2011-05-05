@@ -596,7 +596,7 @@ class Calculator(object):
             titles = ['uncorrected','corrected']
 
         extent = self.space.getExtent()
-        magPlotSlicer.MultiView([self.results,self.corrected_results],
+        MultiView([[self.results,'Theory'],[self.corrected_results,'Theory']],
                   [self.space.q_step[0],self.space.q_step[2]],
                   [self.space.points[0],self.space.points[2]],
                   titles=titles,extent= extent,
@@ -622,7 +622,7 @@ class Calculator(object):
             titles = ['uncorrected']
             self.results = [self.results]
         extent = self.space.getExtent()
-        magPlotSlicer.MultiView(self.results,
+        MultiView(self.results,
           [self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
@@ -646,7 +646,7 @@ class Calculator(object):
             titles = ['uncorrected']
 
         extent = self.space.getExtent()
-        magPlotSlicer.MultiView([self.corrected_results],
+        MultiView([self.corrected_results],
           [self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
@@ -656,7 +656,7 @@ class Calculator(object):
     def generalCompare(self,otherData,titles):
         extent = self.space.getExtent()
         data = self.corrected_data + otherData
-        magPlotSlicer.MultiView([self.corrected_results,],
+        MultiView([self.corrected_results],
           [self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
