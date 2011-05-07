@@ -363,7 +363,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True,
     else:
         form_factor = BA_FT(cell.unit,cell.step,Q)
     
-    ''' 
+    
     scatProc = [None]*4
     scatProc[0] = psi_in_one*form_factor*psi_out_one
     scatProc[1] = psi_in_one*form_factor*psi_out_two
@@ -371,7 +371,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True,
     scatProc[3] = psi_in_two*form_factor*psi_out_two
     
     form_factor = scatProc[0]+scatProc[1]+scatProc[2]+scatProc[3]
-    '''
+    
     form_factor = complete_formula(form_factor,cell.step,Q)
     
     structure_factor = lattice.gauss_struc_calc(Q)
