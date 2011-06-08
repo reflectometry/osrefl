@@ -8,8 +8,8 @@
 import approximations
 import osrefl.viewers.view as view
 from osrefl.viewers.plot_slicer import MultiView
-import osrefl.loaders.scale as scale
-import osrefl.model.sample_prep as sample_prep
+import osrefl.loaders.scale
+import osrefl.model.sample_prep
 import resolution
 
 from numpy import shape, cos, sin, size, nonzero, min, max,real, shape, log
@@ -138,7 +138,7 @@ class Calculator(object):
                          self.lattice, self.probe)
         return
 
-    def cudaBA(self,precision = 'float32', refract = 'False'):
+    def cudaBA(self,precision = 'float32', refract = True):
         r'''
         **Overview:**
 
@@ -192,7 +192,7 @@ class Calculator(object):
                                      self.lattice, self.probe,precision,refract)
         return
 
-    def cudaSMBA(self,precision = 'float32', refract = 'False'):
+    def cudaSMBA(self,precision = 'float32', refract = True):
         r'''
         **Overview**
 
@@ -326,7 +326,8 @@ class Calculator(object):
 
         '''
         self.results = approximations.cudaSMBA(self.feature,self.space,
-                                           self.lattice, self.probe,precision)
+                                           self.lattice, self.probe,precision,
+                                           refract)
         return
 
     def SMBA(self):
@@ -342,22 +343,19 @@ class Calculator(object):
                                         self.space,self.lattice, self.probe)
         return
     
-    
-    def SMBAfft(self,refract = True, precision = 'float32',proc = 'cpu'):
+    def SMBAfft(self,precision = 'float32',refract = True):
         '''
         **Overview:**
-
-            This is a Python implementation of the SMBA using an fft to solve
-        the scattering potential.
+            
+            
         '''
+
         self.results = approximations.SMBAfft(self.feature,
-                                        self.space,self.lattice, self.probe,
-                                        precision=precision,refract = refract,
-                                        proc = proc)
+                                        self.space,self.lattice, 
+                                        self.probe,precision,refract)
         return
     
-    
-    def cudaMagBA(self,precision = 'float32', refract = 'False'):
+    def cudaMagBA(self,precision = 'float32', refract = True):
         self.results = approximations.cudaMagBA(self.feature,self.space,
                                      self.lattice, self.probe,self.omf,
                                      precision,refract)
@@ -461,15 +459,15 @@ class Calculator(object):
                                                    self.lattice, self.probe)
         return
 
-    def DWBA(self):
+    def DWBA(self,refract = True):
         '''
         **Overview:**
 
-            *UNDER CONSTRUCTION*
 
         '''
-        self.results = approximations.DWBA(self.feature,
-                                        self.space,self.lattice, self.probe)
+        from DWBA import *
+        self.results = DWBA_form(self.feature,self.lattice,
+                                 self.probe,self.space)
         return
 
     def resolution_correction(self):
@@ -592,12 +590,20 @@ class Calculator(object):
         if size(self.results) == 4:
             titles = ['++,uncor','--,uncor','+-,uncor','-+,uncor',
                       '++,cor','--,cor','+-,cor','-+,cor']
+            data = [[self.results[0],'Theory'],[self.results[1],'Theory'],
+                    [self.results[2],'Theory'],[self.results[3],'Theory'],
+                    [self.corrected_results[0],'Theory'],
+                    [self.corrected_results[1],'Theory'],
+                    [self.corrected_results[2],'Theory'],
+                    [self.corrected_results[3],'Theory']]
         else:
             titles = ['uncorrected','corrected']
 
+            data = [[self.results,'Theory1'],[self.corrected_results,'Theory2']]
+        
+        
         extent = self.space.getExtent()
-        MultiView([[self.results,'Theory'],[self.corrected_results,'Theory']],
-                  [self.space.q_step[0],self.space.q_step[2]],
+        MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
                   [self.space.points[0],self.space.points[2]],
                   titles=titles,extent= extent,
                   axisLabel = ['qx(A^-1)','qz(A^-1)'])
@@ -617,13 +623,16 @@ class Calculator(object):
         '''
         if (shape(self.results)[0]) == 4:
             titles = ['++ (uncor)','-- (uncor)','+- (uncor)','-+ (uncor)']
-
+            data = [[self.results[0],'Theory'],
+                    [self.results[1],'Theory'],
+                    [self.results[2],'Theory'],
+                    [self.results[3],'Theory']]
         else:
             titles = ['uncorrected']
-            self.results = [self.results]
+            data = [[self.results,'Theory']]
+            
         extent = self.space.getExtent()
-        MultiView(self.results,
-          [self.space.q_step[0],self.space.q_step[2]],
+        MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
           axisLabel = ['qx(A^-1)','qz(A^-1)'])
@@ -642,12 +651,16 @@ class Calculator(object):
         '''
         if (shape(self.results)[0]) == 4:
             titles = ['++ (cor)','-- (cor)','+- (cor)','-+ (cor)']
+            data = [[self.corrected_results[0],'Theory'],
+                    [self.corrected_results[1],'Theory'],
+                    [self.corrected_results[2],'Theory'],
+                    [self.corrected_results[3],'Theory']]
         else:
-            titles = ['uncorrected']
+            titles = ['Corrected']
+            data = [[self.corrected_results,'Theory']]
 
         extent = self.space.getExtent()
-        MultiView([self.corrected_results],
-          [self.space.q_step[0],self.space.q_step[2]],
+        MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
           axisLabel = ['qx(A^-1)','qz(A^-1)'])
@@ -656,7 +669,7 @@ class Calculator(object):
     def generalCompare(self,otherData,titles):
         extent = self.space.getExtent()
         data = self.corrected_data + otherData
-        MultiView([self.corrected_results],
+        MultiView([self.corrected_results,],
           [self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
@@ -746,37 +759,8 @@ class Calculator(object):
                 solved for by the calculation and produce a log plot of the
                 results.
         '''
-
-        view.qz_slice(self.results,self.space.minimums,self.space.maximums,
+        print self.space.minimums
+        print self.space.maximums
+        view.qz_slice(self.results,self.space.minimums[2],self.space.maximums[2],
                       qz,self.corrected_results)
-        return
-
-    def scale(self,data):
-        '''
-        **Overview:**
-
-            This method calls up a crude GUI that can be used to scale a model
-            to data. It is the first attempt at creating a fitting interface.
-
-        **Parameters**
-
-            *data:* (Data|angstroms**^-2)
-                The data set that is being modeled. This can be found in the
-                :class:`fit.Data`. It is recommended that the
-                :class:`sample_prep.Q_space` that is created in the
-                :class:`fit.Data` for an equal comparison.
-
-        '''
-        plotxmin = data.space.minimums[0]
-        plotxmax = data.space.maximums[0]
-        plotzmin = data.space.minimums[-1]
-        plotzmax = data.space.maximums[-1]
-
-        plot_extent = (plotxmin,plotxmax,plotzmin,plotzmax)
-
-        if self.corrected_results == None:
-            self.results = scale.fit_run(data.data,self.results,plot_extent)
-        else:
-            self.corrected_results = scale.fit_run(data.data,
-                                           self.corrected_results,plot_extent)
         return
