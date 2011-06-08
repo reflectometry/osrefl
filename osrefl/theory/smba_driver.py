@@ -8,10 +8,10 @@ from pycuda import gpuarray
 import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
 import numpy
-import approximations,wavefunction_thread
+import approximations,smba_wave_driver
 import time
 
-def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = 'False'):
+def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
     nqx = numpy.shape(Q.q_list[0])[0]
     nqy = numpy.shape(Q.q_list[1])[0]
     nqz = numpy.shape(Q.q_list[2])[0]
@@ -19,7 +19,7 @@ def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = 'False
     if refract == True:
         stack = cell.inc_sub
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(stack, Q.q_list[0], Q.q_list[1], 
+                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
                              Q.q_list[2],beam.wavelength,precision=precision))
         Q.qx_refract = qx_refract
     else:
@@ -44,7 +44,7 @@ def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = 'False
     
     return form_solution
     
-def cudaBA_form(cell,Q,lattice,beam,precision='float32', refract = 'False'):
+def cudaBA_form(cell,Q,lattice,beam,precision='float32', refract = True):
     '''
     Overview:
         Uses the cuda code to solve the Born Approximation for the scattering
@@ -84,8 +84,9 @@ def cudaBA_form(cell,Q,lattice,beam,precision='float32', refract = 'False'):
     if refract == True:
         stack = cell.inc_sub
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(stack, Q.q_list[0], Q.q_list[1], 
-                             Q.q_list[2],beam.wavelength,precision=precision))
+                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
+                             Q.q_list[2],beam.wavelength,cell.step[2],
+                             precision=precision))
         Q.qx_refract = qx_refract
     else:
         qx_refract = Q.q_list[0]
@@ -135,7 +136,7 @@ def cudaSMBA_form(cell,Q,lattice,beam,precision ='float32', refract = True):
     calculation will be. The choices here are generally float32 and float64.
     
     '''
-    
+
     nqx = numpy.shape(Q.q_list[0])[0]
     nqy = numpy.shape(Q.q_list[1])[0]
     nqz = numpy.shape(Q.q_list[2])[0]
@@ -143,8 +144,9 @@ def cudaSMBA_form(cell,Q,lattice,beam,precision ='float32', refract = True):
     if refract == True:
         stack = cell.inc_sub
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(stack, Q.q_list[0], Q.q_list[1], 
-                             Q.q_list[2],beam.wavelength,precision=precision))
+                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
+                             Q.q_list[2],beam.wavelength,cell.step[2],
+                             precision=precision))
         Q.qx_refract = qx_refract
     else:
         qx_refract = Q.q_list[0]
@@ -155,34 +157,10 @@ def cudaSMBA_form(cell,Q,lattice,beam,precision ='float32', refract = True):
     #stack = approximations.wavefunction_format(cell.unit,Q.q_step[2])
     stack = cell.inc_sub
     
-    ''' 
-    #For testing purposes. Allows for the circumventing of the  Cuda solved
-    #wavefunction solution by solving the wavefunction in Python. It also allows
-    #for comparison of the two solutions.
-    
-    q_v = Q.vectorize()
-
-    
-    ki,kf = approximations.QxQyQz_to_k(q_v[0],q_v[1],q_v[2],beam.wavelength)
-    
-    psi_in_one = numpy.zeros([nqx,nqy,nqz],'complex')
-    psi_in_two = numpy.zeros([nqx,nqy,nqz],'complex')
-    psi_out_one = numpy.zeros([nqx,nqy,nqz],'complex')
-    psi_out_two = numpy.zeros([nqx,nqy,nqz],'complex')
-    
-    for i in range (nqx):
-        print i
-        for ii in range (nqy):
-            for iii in range(nqz):
-
-                    psi_in_one[i,ii,iii],psi_in_two[i,ii,iii],psi_out_one[i,ii,iii],psi_out_two[i,ii,iii],qx_refract[i,ii,iii] = approximations.SMBA_wavecalc(Q.q_list[0][i],Q.q_step[2], stack, beam.wavelength, ki[i,ii,iii],kf[i,ii,iii])          
-    
-    
-    '''
-    
     psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(stack, Q.q_list[0], Q.q_list[1], 
-                         Q.q_list[2],beam.wavelength,precision=precision))
+                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
+                         Q.q_list[2],beam.wavelength,cell.step[2],
+                         precision=precision))
     
     print 'WAVEFUNCTION CALCULATED'
     
@@ -224,13 +202,13 @@ def loadformkernelsrc(name, precision='float32', defines={}):
     if precision == 'float32':
         typedefs = '''
 #define HAVE_CUDA
-#include <cufloat.h>
+#include <lib/cufloat.h>
 
         '''
     else:
         typedefs = '''
 #define HAVE_CUDA
-#include <cudouble.h>
+#include <lib/cudouble.h>
         '''
     src = defines+typedefs+src
  
@@ -349,7 +327,7 @@ class MagFormThread(threading.Thread):
         '''
         self.dev = cuda.Device(self.gpu)
         self.ctx = self.dev.make_context()
-        self.cudamod = loadformkernelsrc("mag_smba_kernel.c",
+        self.cudamod = loadformkernelsrc("lib/mag_smba_kernel.c",
                                          precision=self.precision)
         
         self.cudaBorn = self.cudamod.get_function("cudaBorn")
@@ -529,7 +507,7 @@ class FormThread(threading.Thread):
         '''
         self.dev = cuda.Device(self.gpu)
         self.ctx = self.dev.make_context()
-        self.cudamod = loadformkernelsrc("smba_kernel.c",
+        self.cudamod = loadformkernelsrc("lib/smba_kernel.c",
                                          precision=self.precision)
         
         self.cudaBorn = self.cudamod.get_function("cudaBorn")
