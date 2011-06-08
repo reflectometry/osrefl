@@ -130,17 +130,18 @@ def qz_slice(intensity,mins,maxs,q_slice = 0.0,second_intensity = None):
     This takes a qz slice from the uncorrected intensity plot and, if the
     resolution corrected plot exists, will also show the qz slice for that data
     '''
-    from pylab import plot, legend, title, xlabel, ylabel
+    from pylab import semilogy,plot, legend, title, xlabel, ylabel
     
     print shape(intensity)
     qz_array = linspace(mins[2],maxs[2],shape(intensity)[1])
     z_position = searchsorted(qz_array,q_slice)
 
-    graph = plot(log(intensity[z_position,:]),
+    graph = plot(log10(intensity[z_position,:].real),
                  xdata = qz_array,label = 'Uncorrected')
 
     if (second_intensity != None):
-        plot(log(second_intensity[z_position,:]),
+        
+        plot(log10(second_intensity[z_position,:].real),
              xdata = qz_array,label= 'Corrected' )
         
     legend()
