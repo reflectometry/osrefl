@@ -14,7 +14,7 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-import wavefunction_kernel,smba_wave_driver
+import wavefunction_kernel
 import osrefl.viewers.view
 import czt
 
@@ -252,7 +252,7 @@ def mag_func(strucUnit,omf, q, qn, magCell):
         return form_factor[0],form_factor[1],form_factor[2],form_factor[3]
 
 
-def cudaBA(cell,Q,lattice,beam,precision = 'float32',refract = False):
+def cudaBA(cell,Q,lattice,beam,precision = 'float32',refract = True):
     '''
     Overview:
         This calculation uses the Cuda version of the scattering calculator to
@@ -278,17 +278,19 @@ def cudaBA(cell,Q,lattice,beam,precision = 'float32',refract = False):
     from smba_driver import cudaBA_form
     form_factor = cudaBA_form(cell,Q,lattice,beam, 
                               precision = precision,refract = refract)
-    
+    if refract == True:
+        strucRefract = True
+    else:
+        strucRefract = False
+        
+    structure_factor = lattice.gauss_struc_calc(Q,strucRefract)
     #structure_factor = lattice.struc_calc(Q)
-    structure_factor = lattice.gauss_struc_calc(Q)
     
     intensity = (structure_factor)**2 * abs(form_factor)**2
-    #intensity = abs(form_factor)**2
     
     return normalize(intensity, cell, Q, lattice).real
 
-def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True,
-            proc = 'cpu'):
+def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     '''
     Overview:
         It may be true that the SMBA can be solved by using a czt transform and
@@ -311,74 +313,86 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True,
     needed to apply beam dependent corrections to the data.
     '''
     
-    from scipy.interpolate import RectBivariateSpline
-    from osrefl.model.sample_prep import Q_space
+    from scipy.interpolate import RectBivariateSpline, interp1d
+    from ..model.sample_prep import Q_space
+    from smba_wave_driver import wave
+    #from pylab import *
 
     stack = cell.inc_sub
     #stack = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
     
+    #This is stupid. I don't have a function that produces a refraction
+    #so I reuse the psi calculation twice. This needs to be fixed
     psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1], 
-                         Q.q_list[2],beam.wavelength,cell.step[2],
-                         precision=precision))
-    
-    
-    '''
-    psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = interpWaveCalc(
-                                                    cell,Q,beam)
-    '''
+                wave(stack, Q.q_list[0], Q.q_list[1], 
+                     Q.q_list[2],beam.wavelength,cell.step[2],
+                     precision=precision))
+    Q.qx_refract = qx_refract
+
     if refract == True:
+        scat = zeros(Q.points, dtype = 'complex')
         
-        Q.qx_refract = qx_refract
-    
-        form_factor = zeros(Q.points, dtype = 'complex')
+        qxMinTemp = Q.minimums[0]-(stack[0,-1]*beam.wavelength)-2*Q.q_step[0]
+        qxMaxTemp = Q.maximums[0]+(stack[0,-1]*beam.wavelength)+2*Q.q_step[0]
         
-        qxMinTemp = qx_refract.min()-2*Q.q_step[0]
-        qxMaxTemp = qx_refract.max()+2*Q.q_step[0]
-    
         newX = arange(qxMinTemp,qxMaxTemp,Q.q_step[0])
     
         newQ = Q_space([qxMinTemp,Q.minimums[1],Q.minimums[2]],
                        [qxMaxTemp,Q.maximums[1],Q.maximums[2]],
                        [size(newX),Q.points[1],Q.points[2]])
         
-        temp_form_factor = BA_FT(cell.unit,cell.step,newQ)
-    
-        for ii in range (size(Q.q_list[1])):
-            realSplineFunc = RectBivariateSpline(newQ.q_list[0],
-                                 newQ.q_list[2],temp_form_factor.real[:,ii,:])
-            
-            imagSplineFunc = RectBivariateSpline(newQ.q_list[0],
-                                 newQ.q_list[2],temp_form_factor.imag[:,ii,:])
-            
-            for iii in range(size(Q.q_list[2])):
-                
-                interpReal = realSplineFunc.ev(qx_refract[:,ii,iii],
-                                       (Q.q_list[2][iii]).repeat(Q.points[0]))
-                interpImag = imagSplineFunc.ev(qx_refract[:,ii,iii],
-                                       (Q.q_list[2][iii]).repeat(Q.points[0]))
-    
-                form_factor[:,ii,iii].real = interpReal
-                form_factor[:,ii,iii].imag = interpImag
-    else:
-        form_factor = BA_FT(cell.unit,cell.step,Q)
-    
-    
-    scatProc = [None]*4
-    scatProc[0] = psi_in_one*form_factor*psi_out_one
-    scatProc[1] = psi_in_one*form_factor*psi_out_two
-    scatProc[2] = psi_in_two*form_factor*psi_out_one
-    scatProc[3] = psi_in_two*form_factor*psi_out_two
-    
-    form_factor = scatProc[0]+scatProc[1]+scatProc[2]+scatProc[3]
-    
-    form_factor = complete_formula(form_factor,cell.step,Q)
-    
-    structure_factor = lattice.gauss_struc_calc(Q)
-    
-    intensity = abs(structure_factor)**2 * abs(form_factor)**2
+        form_factor = zeros(newQ.points, dtype = 'complex')
+       
+        psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
+                        wave(stack, newQ.q_list[0], newQ.q_list[1], 
+                             newQ.q_list[2],beam.wavelength,cell.step[2],
+                             precision=precision))
 
-    return normalize(intensity, cell, Q, lattice)
+        temp_form_factor = BA_FT(cell.unit,cell.step,newQ)
+
+        scatProc = [None]*4
+        scatProc[0] = psi_in_one*temp_form_factor*psi_out_one
+        scatProc[1] = psi_in_one*temp_form_factor*psi_out_two
+        scatProc[2] = psi_in_two*temp_form_factor*psi_out_one
+        scatProc[3] = psi_in_two*temp_form_factor*psi_out_two
+        
+        temp_form_factor = scatProc[0]+scatProc[1]+scatProc[2]+scatProc[3]
+        
+        temp_form_factor = complete_formula(temp_form_factor,cell.step,newQ)
+        
+        structure_factor = lattice.gauss_struc_calc(newQ)
+
+        intensity = abs(structure_factor)**2 * abs(temp_form_factor)**2
+        
+        for ii in range (size(Q.q_list[1])):
+            for iii in range(size(Q.q_list[2])):
+                realSplineFunc = interp1d(newQ.q_list[0],intensity.real[:,ii,iii])
+                imagSplineFunc = interp1d(newQ.q_list[0],intensity.imag[:,ii,iii])
+    
+                interpReal = realSplineFunc(Q.qx_refract[:,ii,iii])
+                interpImag = imagSplineFunc(Q.qx_refract[:,ii,iii])
+    
+                scat[:,ii,iii].real = interpReal
+                scat[:,ii,iii].imag = interpImag
+    else:
+
+        form_factor = BA_FT(cell.unit,cell.step,Q)
+
+        scatProc = [None]*4
+        scatProc[0] = psi_in_one*form_factor*psi_out_one
+        scatProc[1] = psi_in_one*form_factor*psi_out_two
+        scatProc[2] = psi_in_two*form_factor*psi_out_one
+        scatProc[3] = psi_in_two*form_factor*psi_out_two
+        
+        form_factor = scatProc[0]+scatProc[1]+scatProc[2]+scatProc[3]
+        
+        form_factor = complete_formula(form_factor,cell.step,Q)
+        
+        structure_factor = lattice.gauss_struc_calc(Q)
+        
+        scat = abs(structure_factor)**2 * abs(form_factor)**2
+
+    return normalize(scat, cell, Q, lattice).real
 
 
     
@@ -407,10 +421,16 @@ def cudaSMBA(cell,Q,lattice,beam,precision = 'float32', refract = True):
     
     from smba_driver import cudaSMBA_form
 
-    form_factor = cudaSMBA_form(cell,Q,lattice,beam, precision = precision)
+    form_factor = cudaSMBA_form(cell,Q,lattice,beam, precision = precision, 
+                                refract = refract)
 
     #structure_factor = lattice.struc_calc(Q)
-    structure_factor = lattice.gauss_struc_calc(Q)
+    if refract == True:
+        strucRefract = True
+    else:
+        strucRefract = False
+        
+    structure_factor = lattice.gauss_struc_calc(Q,strucRefract)
     
     intensity = abs(structure_factor)**2 * abs(form_factor)**2
 
@@ -456,7 +476,7 @@ def SMBA(cell,Q,lattice,beam):
     complete_formula(form_factor,cell.step,Q)
     #structure_factor = lattice.struc_calc(Q)
     structure_factor = lattice.gauss_struc_calc(Q)
-    intensity = (structure_factor) * abs(form_factor)**2
+    intensity = (structure_factor)**2 * abs(form_factor)**2
     
     intensity = normalize(intensity,cell, Q, lattice)
     
@@ -892,13 +912,10 @@ def DWBA(cell,Q,lattice,beam):
     This function solves the Distorted Wave Born Approximation.
     
     '''
-    
-    #form_factor = DWBA_form(cell,Q,lattice,beam)
-    structure_factor = calc_struc(cell,Q,lattice)
-    intensity = (structure_factor**2)# * abs(form_factor)**2
+    print 'using what I think it is using'
+    scattering = DWBA_form(cell,Q,lattice,beam)
 
-
-    return normalize(intensity, cell, Q, lattice)
+    return sum(abs(scattering)**2,axis=1)
 
 
 def part_mag_func(qx,qy,arg):
