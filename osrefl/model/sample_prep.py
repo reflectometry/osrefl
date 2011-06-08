@@ -2094,7 +2094,7 @@ class Lattice(object):
         '''
         sigma = args[0]
         diff_space = args[1]
-        orders = args[3]
+        orders = int(args[3])
 
         closePeak = round(qx/diff_space)*diff_space
 
@@ -2286,7 +2286,7 @@ class Rectilinear(Lattice):
         print 'STRUCTURE FACTOR WITH COHERENCE LENGTH CALCULATED'
         return structure_factor
 
-    def gauss_struc_calc(self,Q):
+    def gauss_struc_calc(self,Q,strucRefract = False):
         '''
         **Overview:**
 
@@ -2310,7 +2310,7 @@ class Rectilinear(Lattice):
         qxlen = size(Q.q_list[0])
         qylen = size(Q.q_list[1])
         qzlen = size(Q.q_list[2])
-        structure_factor = zeros(Q.points)
+        structure_factor = zeros(Q.points,dtype = 'complex')
         #m = int(((sqrt(log(gaussCutoff)/(-2.0 * pi * sigma**2)))/Q.q_step[0]-.05)+1)
 
         orders = 7.0
@@ -2318,7 +2318,8 @@ class Rectilinear(Lattice):
         structure_factor = zeros(Q.points)
         norm =self.gauss_normalize(args)
 
-        if  Q.qx_refract == None:
+        if  (strucRefract==False or Q.qx_refract == None):
+            print 'Stucture Factor is not being refracted'
             for i in range(qxlen):
                     a = Q.q_list[0][i] - (qspace/2.)
                     b = Q.q_list[0][i] + (qspace/2.)
@@ -2327,7 +2328,7 @@ class Rectilinear(Lattice):
                     structure_factor[i,:,:] = avg*norm
 
         else:
-
+            print 'Stucture Factor is being refracted'
             avg_refract = average(Q.qx_refract,axis = 1)
 
             for i in range(qxlen):
@@ -2339,7 +2340,7 @@ class Rectilinear(Lattice):
                     structure_factor[i,:,ii] = avg*norm
 
         print 'STRUCTURE FACTOR WITH COHERENCE LENGTH CALCULATED'
-        return structure_factor
+        return asarray(structure_factor,dtype = 'complex')
 
 
     def struc_calc(self,Q):
@@ -2779,7 +2780,7 @@ class Q_space(Space):
           (array|angstroms)
           
         '''
-        from approximations import QxQyQz_to_k
+        from ..theory.approximations import QxQyQz_to_k
         vecQ = self.vectorize()
         self.kin,self.kout = QxQyQz_to_k(vecQ[0],vecQ[1],vecQ[2],wavelength)
         return
