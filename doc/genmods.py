@@ -60,7 +60,7 @@ modules=[
 
     ('model.sample_prep', 'Model Creation'),
     ('theory.scatter', 'Calculations'),
-    ('loader.andr_load', 'Data Load'),
+    ('loaders.andr_load', 'Data Load'),
     ('model.omf_loader','.omf File Loader'),
 
     ]
