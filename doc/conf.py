@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# sphinx_try documentation build configuration file, created by
+# OsRefl documentation build configuration file, created by
 # sphinx-quickstart on Thu Jul 08 11:18:37 2010.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -186,7 +186,7 @@ html_static_path = ['_static']
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'sphinx_trydoc'
+htmlhelp_basename = 'osrefl'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -200,8 +200,8 @@ htmlhelp_basename = 'sphinx_trydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'sphinx_try.tex', u'sphinx\\_try Documentation',
-   u'metting, nikunj', 'manual'),
+  ('index', 'OsRefl.tex', u'OsRefl Documentation',
+   u'Christopher Metting', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

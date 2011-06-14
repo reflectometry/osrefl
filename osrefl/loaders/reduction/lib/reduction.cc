@@ -3,8 +3,8 @@
 #include <iostream>
 #include <iomanip>
 #include <Python.h>
-#include <rebin.h>
-#include <rebin2D.h>
+#include "rebin.h"
+#include "rebin2D.h"
 
 
 #define INVECTOR(obj,buf,len)										\
