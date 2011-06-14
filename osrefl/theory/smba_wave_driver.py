@@ -10,16 +10,6 @@ import numpy.linalg as linalg
 import approximations
 from ..model.sample_prep import *
 import time
-
-try:
-    from pycuda import gpuarray
-    import pycuda.driver as cuda
-    from pycuda.compiler import SourceModule
-    cuda.init()
-    cudaFind = True
-except:
-    print 'Pycuda or Cuda not installed Reverting to CPU calculation'
-    cudaFind = False
   
 def readfile(name):
     file = open(name)
@@ -94,10 +84,18 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
     
     #Make sure there is a Cuda Device and, if not, use the python calculation
     
-
-
-    stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in 
-                              stack, Qx, Qy, Qz]
+    try:
+        from pycuda import gpuarray
+        import pycuda.driver as cuda
+        from pycuda.compiler import SourceModule
+        cuda.init()
+        cudaFind = True
+    except:
+        print 'Pycuda or Cuda not installed Reverting to CPU calculation'
+        cudaFind = False
+    
+        stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in 
+                                  stack, Qx, Qy, Qz]
 
     
     if precision == 'float32': 
@@ -109,12 +107,6 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
         
     cplx = 'complex64' if precision=='float32' else 'complex128'
     
-    if gpu is not None:
-        numgpus = 1
-        gpus = [gpu]
-    else:
-        numgpus = cuda.Device.count()
-        gpus = range(numgpus)
         
     size = [len(v) for v in Qx,Qy,Qz]
     
@@ -128,7 +120,14 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
     if cudaFind ==True and proc == 'gpu':
         
         print 'Cuda Device Detected... Calculating wavefunction on GPU'
-    
+
+        if gpu is not None:
+            numgpus = 1
+            gpus = [gpu]
+        else:
+            numgpus = cuda.Device.count()
+            gpus = range(numgpus)
+            
         work_queue = Queue.Queue()
         for qxi,qx in enumerate(Qx): work_queue.put(qxi)
     
