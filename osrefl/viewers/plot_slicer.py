@@ -212,11 +212,11 @@ class MouseReadPan(wx.Panel):
         wx.Panel.__init__(self,parent,style = wx.BORDER_RAISED)
         self.readoutLabel = wx.StaticText(self,-1)
         self.readoutLabel.SetLabel('    X              Y             Z ')
-
         self.readoutData = wx.StaticText(self,-1)
         newFont = self.readoutData.GetFont()
         newFont.SetPointSize(8)
         self.readoutData.SetFont(newFont)
+        self.readoutLabel.SetFont(newFont)
         self.readoutData.SetLabel('  ')
 
         self.readSizer = wx.BoxSizer(wx.VERTICAL)
@@ -260,7 +260,7 @@ class ZlimPan(wx.Panel):
 
 
         newFont = self.vminLab.GetFont()
-        newFont.SetPointSize(10 )
+        newFont.SetPointSize(8)
 
         self.vminLab.SetFont(newFont)
         self.vmaxLab.SetFont(newFont)
@@ -269,7 +269,10 @@ class ZlimPan(wx.Panel):
         self.vmaxBox = wx.TextCtrl(self, 2,size = (10, 20))
         self.submit = wx.Button(self,3, 'Submit',(10, 10))
         self.reset = wx.Button(self,4, 'Reset',(10, 10))
-
+        
+        self.vminBox.SetFont(newFont)
+        self.vmaxBox.SetFont(newFont)
+        
         self.butSize = wx.BoxSizer(wx.HORIZONTAL)
         self.panSize = wx.BoxSizer(wx.VERTICAL)
         self.labVal = wx.BoxSizer(wx.HORIZONTAL)
@@ -381,7 +384,7 @@ class dataScale(wx.Panel):
         self.scaleFactor = wx.TextCtrl(self, 11,size = (10, 10))
         self.scaleFactorLabel = wx.StaticText(self,1,'Theory Scaling Factor')
         newFont = self.scaleFactorLabel.GetFont()
-        newFont.SetPointSize(10)
+        newFont.SetPointSize(8)
 
         self.scaleFactorLabel.SetFont(newFont)
 
@@ -467,15 +470,15 @@ class PlotCtrler(object):
         self.plotContrSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.toolSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.toolSizer.Add(self.readOut,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+        self.toolSizer.Add(self.readOut,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
-        self.toolSizer.Add(self.orientation,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+        self.toolSizer.Add(self.orientation,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
-        self.toolSizer.Add(self.scale,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+        self.toolSizer.Add(self.scale,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
-        self.toolSizer.Add(self.zlim,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+        self.toolSizer.Add(self.zlim,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
-        self.toolSizer.Add(self.dataMatch,0,wx.EXPAND|wx.LEFT|wx.RIGHT,
+        self.toolSizer.Add(self.dataMatch,1,wx.EXPAND|wx.LEFT|wx.RIGHT,
                            border = 1)
 
 
