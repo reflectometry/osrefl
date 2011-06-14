@@ -115,7 +115,7 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
     psi_out_one = numpy.zeros(size,dtype=cplx)
     psi_out_two = numpy.zeros(size,dtype=cplx)
     
-    qx_refract =  numpy.zeros(size,dtype=precision)
+    #qx_refract =  numpy.zeros(size,dtype=precision)
     
     if cudaFind ==True and proc == 'gpu':
         
@@ -151,13 +151,16 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
         
         for q in Qx,Qy,Qz: q = asarray(q)
         
-        Qx.reshape([len(Qx),1,1])
+        
         
         Qx = array(Qx.reshape(len(Qx),1,1), dtype = precision)
         Qy = array(Qy.reshape(1,len(Qy),1), dtype = precision)
         Qz = array(Qz.reshape(1,1,len(Qz)), dtype = precision)
         
         kin,kout = QxQyQz_to_k(Qx,Qy,Qz,wavelength)
+        
+        qx_refract = Qx.repeat((shape(Qy))[1],axis=1)
+        qx_refract = qx_refract.repeat((shape(Qz))[2],axis=2)
         
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
                                    SMBA_wavecalcMultiK(qx_refract,deltaz, 
