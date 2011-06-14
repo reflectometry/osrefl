@@ -465,9 +465,12 @@ class Calculator(object):
 
 
         '''
-        from DWBA import *
-        self.results = DWBA_form(self.feature,self.lattice,
-                                 self.probe,self.space)
+        from DWBA import DWBA_form
+        from numpy import sum
+        results = asarray(DWBA_form(self.feature,self.lattice,
+                                 self.probe,self.space,refract = refract))
+        print shape(results)
+        self.results = sum((abs(results)**2),axis=1)
         return
 
     def resolution_correction(self):
