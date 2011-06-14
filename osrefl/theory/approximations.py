@@ -842,7 +842,22 @@ def exp_part(qx,qy,qz,d):
         e = ex * ey * ez
         
         return e
-         
+
+def BAres(cell,Q,lattice,beam):
+    flipCell = zeros(shape(cell.unit))
+    for i in range(cell.n[2]):
+        flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
+    
+    Vres = flipCell - (SLDArray[:,0]).reshape((1,1,cell.n[2]))
+    
+    rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
+    rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
+    
+    ftwRef = Vfac*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
+    intensity =abs(structure_factor)**2 * abs(form_factor)**2
+    return normalize(intensity, cell, Q, lattice)
+    
+    
 def BA(cell,Q,lattice,beam):
     '''
     Overview:
@@ -873,7 +888,6 @@ def BA(cell,Q,lattice,beam):
     #structure_factor = lattice.struc_calc(Q)
     structure_factor = lattice.gauss_struc_calc(Q)
     
-    #intensity =abs(form_factor)**2#abs(structure_factor)**2 * abs(form_factor)**2
     intensity =abs(structure_factor)**2 * abs(form_factor)**2
     return normalize(intensity, cell, Q, lattice)
     
@@ -904,19 +918,6 @@ def thetaBA(cell,theta,lattice,beam):
     formfactor *= x_comp*y_comp*z_comp
     structure_factor = lattice.theta_struc_calc(theta)
     return abs(formfactor)**2 * abs(structure_factor)**2
-
-
-    
-def DWBA(cell,Q,lattice,beam):
-    '''
-    This function solves the Distorted Wave Born Approximation.
-    
-    '''
-    print 'using what I think it is using'
-    scattering = DWBA_form(cell,Q,lattice,beam)
-
-    return sum(abs(scattering)**2,axis=1)
-
 
 def part_mag_func(qx,qy,arg):
     recip = [None,None,None,None]
