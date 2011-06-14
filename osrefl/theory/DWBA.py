@@ -57,10 +57,10 @@ def DWBA_form(cell,lattice,beam,q,refract = True):
         
     else:
         scat = scatCalc(cell,lattice,beam,q)
-    
+    '''
     imshow(log10(rot90(sum(((abs(scat)**2)).real,axis=1))), extent = q.getExtent(), aspect = 'auto')
     show()
-    
+    '''
     return(scat) 
 
 def scatCalc(cell,lattice,beam,q):
@@ -95,58 +95,8 @@ def scatCalc(cell,lattice,beam,q):
     z = cell.value_list[2].reshape((1,1,cell.n[2]))
 
     SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
-    
 
-
-    #negkiWavePar = dwbaWavefunction(q.kin,flipud(SLDArray))
-    poskiWavePar = dwbaWavefunction(q.kin,SLDArray)
-    negkfWavePar = dwbaWavefunction(-q.kout,(SLDArray))
-    #poskfWavePar = dwbaWavefunction(-q.kout,flipud(SLDArray))
-
-    pcl = sqrt(4*pi*SLDArray[:,0]).reshape(1,1,cell.n[2])
-
-    pio = poskiWavePar.c
-    pit = poskiWavePar.d
-    k_inl =poskiWavePar.kz_l
-    poo = negkfWavePar.c
-    pot = negkfWavePar.d
-    k_outl =negkfWavePar.kz_l
-    
-
-    for i in range(cell.n[2]):
-        '''
-        pio[i][q.kin<0.0] = negkiWavePar.c[i][q.kin<0.0]
-        pit[i][q.kin<0.0] = negkiWavePar.d[i][q.kin<0.0]
-        
-        pio[i][q.kout<0.0] = poskfWavePar.c[i][q.kout<0.0]
-        pit[i][q.kout<0.0] = poskfWavePar.d[i][q.kout<0.0]
-        '''
-        #wave vector transfers inside the sample
-        pil[i]=sqrt(asarray((q.kin**2)-(pcl[:,:,i]**2),dtype = 'complex'))
-        pfl[i]=sqrt(asarray((q.kout**2)-(pcl[:,:,i]**2),dtype = 'complex'))
-
-        #Equations directly after eq (18)
-        q_piopoo[i] = -pfl[i] - pil[i]
-        q_piopot[i] = -pfl[i] + pil[i]
-        q_pitpoo[i] = pfl[i] - pil[i]
-        q_pitpot[i] = pfl[i] + pil[i]
-        
-
-    pio = asarray(pio)
-    pit = asarray(pit)
-    poo = asarray(poo)
-    pot = asarray(pot)
-    
-    pil = asarray(pil)
-    pfl = asarray(pfl)
-    
-    k_inl = asarray(k_inl)
-    k_outl = asarray(k_outl)
-    
-    q_piopoo = asarray(q_piopoo)
-    q_piopot = asarray(q_piopot)
-    q_pitpoo = asarray(q_pitpoo)
-    q_pitpot = asarray(q_pitpot)
+    pcl = sqrt(4*pi*SLDArray[:,0])
     
     flipCell = zeros(shape(cell.unit))
     
@@ -154,6 +104,7 @@ def scatCalc(cell,lattice,beam,q):
         flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
     
     Vres = flipCell - (SLDArray[:,0]).reshape((1,1,cell.n[2]))
+    
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
     
@@ -161,7 +112,52 @@ def scatCalc(cell,lattice,beam,q):
 
     for i in range(size(q.q_list[0])):
         print 'qx number: ', i, ' calculating'
+
         for ii in range(size(q.q_list[1])):
+            poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
+            negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
+            pio = poskiWavePar.c
+            pit = poskiWavePar.d
+            k_inl =poskiWavePar.kz_l
+            poo = negkfWavePar.c
+            pot = negkfWavePar.d
+            k_outl =negkfWavePar.kz_l
+            
+            for l in range(cell.n[2]):
+                '''
+                pio[i][q.kin<0.0] = negkiWavePar.c[i][q.kin<0.0]
+                pit[i][q.kin<0.0] = negkiWavePar.d[i][q.kin<0.0]
+                
+                pio[i][q.kout<0.0] = poskfWavePar.c[i][q.kout<0.0]
+                pit[i][q.kout<0.0] = poskfWavePar.d[i][q.kout<0.0]
+                '''
+                #wave vector transfers inside the sample
+                pil[l]=sqrt(asarray((q.kin[i,ii,:]**2)-(pcl[l]**2),dtype = 'complex'))
+                pfl[l]=sqrt(asarray((q.kout[i,ii,:]**2)-(pcl[l]**2),dtype = 'complex'))
+        
+                #Equations directly after eq (18)
+                q_piopoo[l] = -pfl[l] - pil[l]
+                q_piopot[l] = -pfl[l] + pil[l]
+                q_pitpoo[l] = pfl[l] - pil[l]
+                q_pitpot[l] = pfl[l] + pil[l]
+                
+            pil = asarray(pil)
+            pfl = asarray(pfl)
+            
+            q_piopoo = asarray(q_piopoo)
+            q_piopot = asarray(q_piopot)
+            q_pitpoo = asarray(q_pitpoo)
+            q_pitpot = asarray(q_pitpot)
+            
+
+            pio = asarray(pio)
+            pit = asarray(pit)
+            poo = asarray(poo)
+            pot = asarray(pot)
+            
+            k_inl = asarray(k_inl)
+            k_outl = asarray(k_outl)
+            
             #Equation 20-
             laux = (-1j / q.q_list[0][i]) * (exp(1j *q.q_list[0][i] * cell.step[0]) - 1.0)
             lauy = (-1j / q.q_list[1][ii]) * (exp(1j *q.q_list[1][ii] * cell.step[1]) - 1.0)
@@ -184,20 +180,23 @@ def scatCalc(cell,lattice,beam,q):
                 
                 ft = ftwRef.copy()
                 
-                pioSel = pio[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                pitSel = pit[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                pooSel = poo[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                potSel = pot[:,i,ii,iii].reshape((1,1,cell.n[2]))
+                pioSel = pio[:,iii].reshape((1,1,cell.n[2]))
+                pitSel = pit[:,iii].reshape((1,1,cell.n[2]))
+                pooSel = poo[:,iii].reshape((1,1,cell.n[2]))
+                potSel = pot[:,iii].reshape((1,1,cell.n[2]))
                 
-                q_piopoo_sel = q_piopoo[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                q_piopot_sel = q_piopot[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                q_pitpoo_sel = q_pitpoo[:,i,ii,iii].reshape((1,1,cell.n[2]))
-                q_pitpot_sel = q_pitpot[:,i,ii,iii].reshape((1,1,cell.n[2]))
-
-                scat_PioPoo = pioSel * exp(1j*pil[:,i,ii,iii]*z)*ft*exp(1j*pfl[:,i,ii,iii]*z) * pooSel
-                scat_PioPot = pioSel * exp(1j*pil[:,i,ii,iii]*z)*ft*exp(-1j*pfl[:,i,ii,iii]*z)*potSel
-                scat_PitPoo = pitSel * exp(-1j*pil[:,i,ii,iii]*z)*ft*exp(1j*pfl[:,i,ii,iii]*z) *pooSel
-                scat_PitPot = pitSel * exp(-1j*pil[:,i,ii,iii]*z)*ft*exp(-1j*pfl[:,i,ii,iii]*z)* potSel
+                q_piopoo_sel = q_piopoo[:,iii].reshape((1,1,cell.n[2]))
+                q_piopot_sel = q_piopot[:,iii].reshape((1,1,cell.n[2]))
+                q_pitpoo_sel = q_pitpoo[:,iii].reshape((1,1,cell.n[2]))
+                q_pitpot_sel = q_pitpot[:,iii].reshape((1,1,cell.n[2]))
+                
+                pil_sel = pil[:,iii].reshape((1,1,cell.n[2]))
+                pfl_sel = pfl[:,iii].reshape((1,1,cell.n[2]))
+                         
+                scat_PioPoo = pioSel * exp(1j*pil_sel*z)*ft*exp(1j*pfl_sel*z) * pooSel
+                scat_PioPot = pioSel * exp(1j*pil_sel*z)*ft*exp(-1j*pfl_sel*z)*potSel
+                scat_PitPoo = pitSel * exp(-1j*pil_sel*z)*ft*exp(1j*pfl_sel*z) *pooSel
+                scat_PitPot = pitSel * exp(-1j*pil_sel*z)*ft*exp(-1j*pfl_sel*z)* potSel
                 
                 scat_PioPoo *= (-1j / q_piopoo_sel) * (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0)
                 scat_PioPoo[isnan(scat_PioPoo)] = cell.step[2]
@@ -273,7 +272,6 @@ class dwbaWavefunction:
         nz[0] = sqrt( complex(1) - 4 * pi * SLD_inc / k0z**2 )
         nz[-1] = sqrt( complex(1) - 4 * pi * SLD_sub / k0z**2 )
 
-        print 'Calculating reflectivity'
         for l in range(1, self.layerCount-1):
 
             #leaving off the incident medium and substrate from sum
@@ -337,7 +335,7 @@ class dwbaWavefunction:
         M22[-1] = zeros(shape(kz),dtype='complex')
         
         z_interface = 0.0
-        print 'Retracing wave to find solution inside sample'
+
         for l in range(1,self.layerCount-1):
             ## this algorithm works all the way into the substrate
 
