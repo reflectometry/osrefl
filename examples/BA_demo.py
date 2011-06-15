@@ -4,11 +4,13 @@
 # Author: Christopher Metting
 
 #Starting Date:6/12/2009
-from sample_prep import *
-import approximations,view, scatter
+from osrefl.model.sample_prep import *
 from numpy import log,abs, min, max
 from pylab import figure, show, subplot, imshow
-
+from osrefl.loaders.andr_load import *
+from osrefl.theory.scatter import *
+from osrefl.theory import approximations, scatter
+from osrefl.viewers import view
 
 # Variables used to define the parameters of multiple Ellipse objects without
 #redefining each individually.
@@ -58,10 +60,12 @@ information about a single unit cell.
 '''
 
 kathryns_non_mag_unit = GeomUnit(Dxyz = [9000.0,4500.0,None],
-                                 n = [30,30,30], scene = test)
+                                 n = [20,20,20], scene = test)
 
+kathryns_non_mag_unit = kathryns_non_mag_unit.buildUnit()
+kathryns_non_mag_unit.add_media()
 
-q_space = Q_space([-.001,-0.002,0.0002],[.001,.002,0.3],[200,200,200])
+q_space = Q_space([-.001,-0.002,0.0002],[.001,.002,0.3],[100,25,50])
 lattice = Rectilinear([20,20,1],kathryns_non_mag_unit)
 
 beam = Beam(5.0,None,None,0.05,None)
@@ -73,17 +77,19 @@ BA for a single, non-magnetic system
 sample = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 
-sample.BA()
+sample.DWBA(refract = False)
 
 sample.resolution_correction()
-sample.view_uncorrected()
-figure()
-sample.view_corrected()
+
+sample.viewCorUncor()
 
 '''
 ********* INSERT SAVE FOR sample HERE**********
 '''
-show()
+
+
+
+
 
 
 
