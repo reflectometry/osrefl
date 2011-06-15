@@ -34,7 +34,7 @@
 #define MyAppURL "http://www.reflectometry.org/danse/"
 ; Use a batch file to launch osrefl.exe to setup a custom environment.
 #define MyAppCLIFileName "launch.bat"
-#define MyIconFileName "OSlog.ico"
+#define MyIconFile "osrefl.exe"
 #define MyIconPath = "icon\OSlog.ico"
 #define MyReadmeFileName "README.txt"
 #define MyLicenseFileName "LICENSE.txt"
@@ -84,7 +84,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 ; This script assumes that the output from the previously run py2exe packaging process is in .\dist\...
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 Source: "dist\*"; Excludes: "examples,doc"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-;Source: "dist\examples\*"; DestDir: "{userdocs}\{#MyAppName}\examples"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\examples\*"; DestDir: "{userdocs}\{#MyAppName}\examples"; Flags: ignoreversion recursesubdirs createallsubdirs
 ;Source: "dist\doc\examples\*"; DestDir: "{userdocs}\{#MyAppName}\examples"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; The following Pascal function checks for the presence of the VC++ 2008 DLL folder on the target system
@@ -112,11 +112,11 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 ; environment as starting a command window using the run dialog box from the Windows start menu and
 ; entering a command such as "cmd" or "cmd /k <file-to-execute>".
 ;
-Name: "{group}\Launch {#MyAppName}"; Filename: "{app}\{#MyAppCLIFileName}"; IconFilename: "{app}\{#MyIconPath}"; WorkingDir: "{userdocs}\{#MyAppName}"; Flags: runmaximized
+Name: "{group}\Launch {#MyAppName}"; Filename: "{app}\{#MyAppCLIFileName}"; IconFilename: "{app}\{#MyIconFile}"; WorkingDir: "{userdocs}\{#MyAppName}"; Flags: runmaximized
 Name: "{group}\{cm:ProgramOnTheWeb,{#MyAppName}}"; Filename: "{#MyAppURL}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#MyAppName}{#Space}{#MyAppVersion}"; Filename: "{app}\{#MyAppCLIFileName}"; Tasks: desktopicon; WorkingDir: "{userdocs}\{#MyAppName}"; IconFilename: "{app}\{#MyIconPath}"; Flags: runmaximized
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}{#Space}{#MyAppVersion}"; Filename: "{app}\{#MyAppCLIFileName}"; Tasks: quicklaunchicon; WorkingDir: "{userdocs}\{#MyAppName}"; IconFilename: "{app}\{#MyIconPath}"; Flags: runmaximized
+Name: "{commondesktop}\{#MyAppName}{#Space}{#MyAppVersion}"; Filename: "{app}\{#MyAppCLIFileName}"; Tasks: desktopicon; WorkingDir: "{userdocs}\{#MyAppName}"; IconFilename: "{app}\{#MyIconFile}"; Flags: runmaximized
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}{#Space}{#MyAppVersion}"; Filename: "{app}\{#MyAppCLIFileName}"; Tasks: quicklaunchicon; WorkingDir: "{userdocs}\{#MyAppName}"; IconFilename: "{app}\{#MyIconFile}"; Flags: runmaximized
 
 [Run]
 ;;;Filename: "{app}\{#MyAppGUIFileName}"; Description: "{cm:LaunchProgram,{#MyAppName} GUI}"; WorkingDir: "{userdocs}\{#MyAppName}"; Flags: nowait postinstall skipifsilent

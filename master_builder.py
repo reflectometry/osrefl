@@ -223,13 +223,13 @@ def create_archive(version=None):
         # name of the file varies depending on what package is used to import
         # setup, so its copy is made optional while we are making setup changes.
         shutil.move(os.path.join("dist", PKG_NAME+"-"+str(version)+".zip"),
-                    os.path.join(TOP_DIR, APP_NAME+"-"+str(version)+"-source.zip"))
+                    os.path.join(TOP_DIR, PKG_NAME+"-"+str(version)+"-source.zip"))
         shutil.move(os.path.join("dist", PKG_NAME+"-"+str(version)+".tar.gz"),
-                    os.path.join(TOP_DIR, APP_NAME+"-"+str(version)+"-source.tar.gz"))
+                    os.path.join(TOP_DIR, PKG_NAME+"-"+str(version)+"-source.tar.gz"))
         listing = os.path.join(SRC_DIR, PKG_NAME+".egg-info", "SOURCES.txt")
         if os.path.isfile(listing):
             shutil.copy(listing,
-                os.path.join(TOP_DIR, APP_NAME+"-"+str(version)+"-source-list.txt"))
+                os.path.join(TOP_DIR, PKG_NAME+"-"+str(version)+"-source-list.txt"))
 
 
 def install_package():
@@ -303,7 +303,7 @@ def create_windows_installer(version=None):
     f.close()
 
     # Run the Inno Setup Compiler to create a Win32 installer/uninstaller.
-    # Override the output specification in <APP_NAME>.iss to put the executable
+    # Override the output specification in installer.iss to put the executable
     # and the manifest file in the top-level directory.
     exec_cmd('"%s" /Q /O%s installer.iss' %(INNO, TOP_DIR))
 

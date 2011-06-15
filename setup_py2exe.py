@@ -217,6 +217,7 @@ if sys.version_info >= (2, 6):
 
 # Specify required packages to bundle in the executable image.
 packages = ['numpy', 'scipy', 'matplotlib', 'pytz',
+            'osrefl'
             ]
 
 # Specify files to include in the executable image.
@@ -257,7 +258,7 @@ class Target():
 clientCLI = Target(
     name = 'OsRefl',
     description = 'OsRefl CLI application',
-    script = os.path.join('bin', 'osrefl.py'),  # module to run on application start
+    script = 'osrefl.py',  # module to run on application start
     dest_base = 'osrefl',  # file name part of the exe file to create
     icon_resources = [(1, os.path.join('icon', 'OSlog.ico'))],  # also need to specify in data_files
     bitmap_resources = [],
