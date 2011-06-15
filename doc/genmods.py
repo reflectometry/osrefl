@@ -40,9 +40,9 @@ def genfiles(package, package_name, modules, dir='api'):
     genfiles creates rest documents for the set of modules given  the modules
     list. Each module is a pair of the module and the title seen in the
     documentation.
-    
+
     package as well as all local variables (including the function parameters)
-    are being used as substitution names in the MODULE_TEMPLATE through 
+    are being used as substitution names in the MODULE_TEMPLATE through
     the %local() function.
     '''
     if not os.path.exists(dir):
@@ -55,7 +55,7 @@ def genfiles(package, package_name, modules, dir='api'):
     rsts = "\n   ".join(module+'.rst' for module,name in modules)
     with open(os.path.join(dir,'index.rst'),'w') as f:
         f.write(INDEX_TEMPLATE%locals())
-    
+
 modules=[
 
     ('model.sample_prep', 'Model Creation'),

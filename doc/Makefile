@@ -27,6 +27,7 @@ help:
 	@echo "  changes   to make an overview of all changed/added/deprecated items"
 	@echo "  linkcheck to check all external links for integrity"
 	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
+	@echo "  install   to upload the docs to the distribution site"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -100,3 +101,9 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+install:
+	ssh reflectometry.org rm -rf web/danse/docs/osrefl
+	scp -r _build/html reflectometry.org:web/danse/docs/osrefl
+	scp _build/html/*.pdf reflectometry.org:web/danse/download
+	      
