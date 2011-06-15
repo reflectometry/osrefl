@@ -47,16 +47,15 @@ q_space = Au_measurments.space
 
 
 test_data = Calculator(lattice,beam,q_space,unit)
-test_data.SMBAfft()
+test_data.DWBA(refract = False)
 #test_data.results[test_data.results < 1.0e-15] = 1.0e-15
 test_data.resolution_correction()
-test_data.corrected_results *=scale
+
 #test_data.results[Au_measurments.data==0.0]=0.0
 
 
 #Masking
 artre = min(test_data.corrected_results[nonzero(test_data.corrected_results)])
-print artre
 
 test_data.corrected_results[test_data.corrected_results == 0.0] = artre
 test_data.corrected_results[test_data.corrected_results == NaN] = artre
@@ -71,3 +70,4 @@ save('data.npy',Au_measurments.data)
 #test_data[0].fitCompare(Au_measurments,extraData,titles = ['data','curve = 0','curve = 25','curve = 56','curve = 75','curve = 100'])
 test_data.fitCompare(Au_measurments,titles = ['data','Au-56% Curve'])
 #test_data.scale(Au_measurments)
+
