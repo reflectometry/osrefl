@@ -5,6 +5,7 @@
 # if they are, then don't open GUI interface
 from math import *
 import sys
+import os, pickle
 #from Tkinter import *
 #from .reduction import *
 from .reduction import load as icp_load
@@ -12,7 +13,6 @@ from numpy import *
 from pylab import imshow,cm,colorbar,hot,show,xlabel,ylabel
 #from qxqz_data_array_class import *
 from matplotlib.widgets import  RectangleSelector
-import os, pickle
 
 # Note that the following import can be done three ways: as as standard import,
 # as a relative import, or as an import that explicitly references the root

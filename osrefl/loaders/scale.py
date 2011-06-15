@@ -2,9 +2,7 @@
 from numpy import *
 
 import matplotlib
-from matplotlib.widgets import RectangleSelector
-from matplotlib.blocking_input import BlockingInput
-from ginput_rect import *
+from ginput_rect import ginput_rect
 
 # Disable interactive mode so that plots are only updated on show() or draw().
 # Note that the interactive function must be called before selecting a backend

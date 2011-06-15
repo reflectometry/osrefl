@@ -6,7 +6,7 @@
 #Starting Date:6/5/2009
 from numpy import size,array,shape,indices, searchsorted, linspace
 from numpy import log, log10, abs, min, max, nonzero,isnan
-from zoom_colorbar import *
+from .zoom_colorbar import *
 import sys,copy
 
 from numpy import roll

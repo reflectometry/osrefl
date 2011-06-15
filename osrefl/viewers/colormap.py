@@ -1,7 +1,8 @@
-def show_colormap():
-	from pylab import cm, subplot, imshow, rc, arange, ones, figure, connect, subplots_adjust, axis, title, get_cmap, show, draw, close, ioff, ion
-	from numpy import outer
+from pylab import cm, subplot, imshow, rc, arange, ones, figure, connect, subplots_adjust, axis, title, get_cmap, show, draw, close, ioff, ion
+from numpy import outer
 
+
+def show_colormap():
 	ioff()
 	rc('text', usetex=False)
 	a=outer(arange(0,1,0.01),ones(10))
@@ -30,9 +31,6 @@ def change_colormap(image):
 	displays a plot of all colormaps in cm module.  Click on one to 
 	change the image colormap to the selection '''
 	
-	from pylab import cm, subplot, imshow, rc, arange, ones, figure, connect, subplots_adjust, axis, title, get_cmap, show, draw, close, ioff, ion
-	from numpy import outer
-
 	ioff()
 	rc('text', usetex=False)
 	a=outer(arange(0,1,0.01),ones(10))

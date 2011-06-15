@@ -2,14 +2,14 @@
 # Authors: Paul Kienzle, Christopher Metting
 #03/23/2010
 
+import time
 import Queue
 import threading
 
 import numpy
 import numpy.linalg as linalg
-import approximations
+from . import approximations
 from ..model.sample_prep import *
-import time
   
 def readfile(name):
     file = open(name)

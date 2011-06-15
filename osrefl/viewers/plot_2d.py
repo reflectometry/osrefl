@@ -19,7 +19,7 @@ import matplotlib.cbook as cbook
 import matplotlib
 #from binned_data_class3 import plottable_2d_data
 #from wxrebin3 import rebinned_data
-import __main__
+#import __main__
 
 class MyNavigationToolbar(NavigationToolbar2WxAgg):
   """

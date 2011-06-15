@@ -5,6 +5,8 @@
 
 #Starting Date:3/12/2009
 
+import copy, re, string
+
 from numpy import array, asarray, arange, linspace, append, empty, zeros, ones
 from numpy import rot90, flipud,fliplr, repeat, nonzero,radians
 from numpy import float, int, round, float32
@@ -12,9 +14,8 @@ from numpy import shape, size, hstack, concatenate, reshape, abs,repeat
 from numpy import abs, pi, min, max, exp, sum, log, cos,sin,arccos,arctan,arcsin
 from numpy import round, average,sqrt
 from scipy.integrate import quad
-import calculations, omf_loader, image_util
+from . import calculations, omf_loader, image_util
 from ..viewers import view
-import copy, re, string
 
 
 class Unit_Cell(object):

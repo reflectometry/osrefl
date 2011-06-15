@@ -14,9 +14,9 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-import wavefunction_kernel
+from . import wavefunction_kernel
 import osrefl.viewers.view
-import czt
+from . import czt
 
 
 def partial_magnetic_BA(struc_cell,mag_cell,Q,lattice,beam):

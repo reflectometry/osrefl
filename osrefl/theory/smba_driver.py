@@ -2,14 +2,16 @@
 # Authors: Paul Kienzle, Christopher Metting
 #03/23/2010
 
+import time
 import Queue
 import threading
+
 from pycuda import gpuarray
 import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
 import numpy
-import approximations,smba_wave_driver
-import time
+
+from . import approximations,smba_wave_driver
 
 def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
     nqx = numpy.shape(Q.q_list[0])[0]

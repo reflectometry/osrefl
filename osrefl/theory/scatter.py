@@ -4,18 +4,19 @@
 # Author: Christopher Metting
 
 #Starting Date:6/19/2009
-#import approximations, view, scale, sample_prep, magPlotSlicer
-import approximations
-import osrefl.viewers.view as view
-from osrefl.viewers.plot_slicer import MultiView
-import osrefl.loaders.scale
-import osrefl.model.sample_prep
-import resolution
-
 from numpy import shape, cos, sin, size, nonzero, min, max,real, shape, log
 from numpy import isfinite, zeros,flipud,fliplr,array,asarray
 
 from pylab import subplot,figure
+
+#import approximations, view, scale, sample_prep, magPlotSlicer
+from . import approximations
+import osrefl.viewers.view as view
+from osrefl.viewers.plot_slicer import MultiView
+import osrefl.loaders.scale
+import osrefl.model.sample_prep
+from . import resolution
+
 
 class Calculator(object):
     '''

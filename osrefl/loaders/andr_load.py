@@ -6,10 +6,10 @@
 #Starting Date:9/21/2009
 
 from numpy import shape, searchsorted
-from wxrebin import *
+from .wxrebin import *
 from osrefl.model.sample_prep import *
 from osrefl.viewers.view import *
-from ginput_rect import *
+from .ginput_rect import ginput_rect
 
 
 class Data(object):
