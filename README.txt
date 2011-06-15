@@ -1,1 +1,1 @@
-<put readme info here>
+Off-specular reflectivity calculator
