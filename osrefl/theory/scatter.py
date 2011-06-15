@@ -343,19 +343,19 @@ class Calculator(object):
         self.results = approximations.SMBA(self.feature,
                                         self.space,self.lattice, self.probe)
         return
-    
+
     def SMBAfft(self,precision = 'float32',refract = True):
         '''
         **Overview:**
-            
-            
+
+
         '''
 
         self.results = approximations.SMBAfft(self.feature,
-                                        self.space,self.lattice, 
+                                        self.space,self.lattice,
                                         self.probe,precision,refract)
         return
-    
+
     def cudaMagBA(self,precision = 'float32', refract = True):
         self.results = approximations.cudaMagBA(self.feature,self.space,
                                      self.lattice, self.probe,self.omf,
@@ -604,8 +604,8 @@ class Calculator(object):
             titles = ['uncorrected','corrected']
 
             data = [[self.results,'Theory1'],[self.corrected_results,'Theory2']]
-        
-        
+
+
         extent = self.space.getExtent()
         MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
                   [self.space.points[0],self.space.points[2]],
@@ -634,7 +634,7 @@ class Calculator(object):
         else:
             titles = ['uncorrected']
             data = [[self.results,'Theory']]
-            
+
         extent = self.space.getExtent()
         MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
@@ -684,20 +684,20 @@ class Calculator(object):
     def fitCompare(self,other,extraCompare = None,titles = ['other','self']):
         '''
         **Overview:**
-            
+
             This method plots two different data sets on the sample window for
             an easy visual comparison of the data.
-        
+
         .. warning::
             This method is obsolete!
-            
+
         '''
         if extraCompare != None:
             data = [other.data, self.corrected_results]+extraCompare
         else:
             data = [[other.data,'Measured'],[self.corrected_results,'Theory']]
-            
-        extent = self.space.getExtent() 
+
+        extent = self.space.getExtent()
 
         MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],

@@ -49,14 +49,14 @@ class CZT:
     around a spiral with exponentially increasing radius.  Regardless,
     angle will increase linearly.
 
-    The chirp-z transform can be faster than an equivalent fft with 
-    zero padding.  Try it with your own array sizes to see.  It is 
-    theoretically faster for large prime fourier transforms, but not 
+    The chirp-z transform can be faster than an equivalent fft with
+    zero padding.  Try it with your own array sizes to see.  It is
+    theoretically faster for large prime fourier transforms, but not
     in practice.
 
     The chirp-z transform is considerably less precise than the
     equivalent zero-padded FFT, with differences on the order of 1e-7
-    from the direct transform rather than the on the order of 1e-15 as 
+    from the direct transform rather than the on the order of 1e-15 as
     seen with zero-padding.
 
     See zoomfft for a friendlier interface to partial fft calculations.
@@ -76,8 +76,8 @@ class CZT:
           The starting point in the complex plane.  The default is 1.
         w: complex or float
           If w is complex, it is the ratio between points in each step.
-          If w is float, it serves as a frequency scaling factor. for instance 
-          when assigning w=0.5, the result FT will span half of frequncy range 
+          If w is float, it serves as a frequency scaling factor. for instance
+          when assigning w=0.5, the result FT will span half of frequncy range
           (that fft would result) at half of the frequncy step size.
 
         Returns:
@@ -110,7 +110,7 @@ class CZT:
         x: array
           The signal to transform.
         axis: int
-          Array dimension to operate over.  The default is the final 
+          Array dimension to operate over.  The default is the final
           dimension.
 
         Returns:
@@ -171,8 +171,8 @@ class ZoomFFT(CZT):
         Sampling frequency is 1/dt, the time step between samples in the
         signal x.  The unit circle corresponds to frequencies from 0 up
         to the sampling frequency.  The default sampling frequency of 2
-        means that f1,f2 values up to the Nyquist frequency are in the 
-        range [0,1). For f1,f2 values expressed in radians, a sampling 
+        means that f1,f2 values up to the Nyquist frequency are in the
+        range [0,1). For f1,f2 values expressed in radians, a sampling
         frequency of 1/pi should be used.
 
         To plot the transform results use something like the following:
@@ -196,10 +196,10 @@ class ScaledFFT(CZT):
         """
         Scaled fft transform.
 
-        Similar to fft, where the frequency range is scaled and divided 
-        into m-1 equal steps.  Like the FFT, frequencies are arranged from 
-        0 to scale*Fs/2-delta followed by -scale*Fs/2 to -delta, where delta 
-        is the step size scale*Fs/m for sampling frequence Fs. The intended 
+        Similar to fft, where the frequency range is scaled and divided
+        into m-1 equal steps.  Like the FFT, frequencies are arranged from
+        0 to scale*Fs/2-delta followed by -scale*Fs/2 to -delta, where delta
+        is the step size scale*Fs/m for sampling frequence Fs. The intended
         use is in a convolution of two signals, each has its own sampling step.
 
         This is equivalent to:
@@ -263,8 +263,8 @@ def scaledfft(x, m=None, scale=1.0, axis=-1):
 
     Returns:
     -------
-      An array of the same rank of 'x', but with the size if 
-      the 'axis' dimension set to 'm'    
+      An array of the same rank of 'x', but with the size if
+      the 'axis' dimension set to 'm'
     """
     transform = ScaledFFT(x.shape[axis], m, scale)
     return transform(x,axis)
@@ -283,7 +283,7 @@ def czt(x, m=None, w=1.0, a=1, axis=-1):
       The starting point in the complex plane.  Default is 1.
     w: complex or float
       If w is complex, it is the ratio between points in each step.
-      If w is float, it is the frequency step scale (relative to the 
+      If w is float, it is the frequency step scale (relative to the
       normal dft frquency step).
     axis: int
       Array dimension to operate over.  Default is the final dimension.
@@ -297,9 +297,9 @@ def czt(x, m=None, w=1.0, a=1, axis=-1):
 
     See zoomfft for a friendlier interface to partial fft calculations.
 
-    If the transform needs to be repeated, use CZT to construct a 
-    specialized transform function which can be reused without 
-    recomputing constants. 
+    If the transform needs to be repeated, use CZT to construct a
+    specialized transform function which can be reused without
+    recomputing constants.
     """
     x = np.asarray(x)
     transform = CZT(x.shape[axis], m=m, w=w, a=a)
@@ -318,7 +318,7 @@ def zoomfft(x, f1, f2=None, m=None, Fs=2, axis=-1):
     Fs: float
       The sampling frequency.  With a sampling frequency of
       10kHz for example, the range f1 and f2 can be expressed in kHz.
-      The default sampling frequency is 2, so f1 and f2 should be 
+      The default sampling frequency is 2, so f1 and f2 should be
       in the range 0,1 to keep the transform below the Nyquist
       frequency.
     x : array
@@ -337,10 +337,10 @@ def zoomfft(x, f1, f2=None, m=None, Fs=2, axis=-1):
 
     To graph the magnitude of the resulting transform, use::
 
-	plot(linspace(f1,f2,m), abs(zoomfft(x,f1,f2,m))).
+        plot(linspace(f1,f2,m), abs(zoomfft(x,f1,f2,m))).
 
-    If the transform needs to be repeated, use ZoomFFT to construct 
-    a specialized transform function which can be reused without 
+    If the transform needs to be repeated, use ZoomFFT to construct
+    a specialized transform function which can be reused without
     recomputing constants.
     """
     x = np.asarray(x)
@@ -489,7 +489,7 @@ def test(demo=None,plots=[1,2,3]):
     if demo == 6:
         demo_scaledfft(x,0.25,200)
     _testscaled(x)
-  
+
 
 def demo_scaledfft(v, scale, m):
     import pylab
@@ -502,7 +502,7 @@ def demo_scaledfft(v, scale, m):
     pylab.plot(x, shift(abs(scaledfft(v))),'ro', label='x1 scaled fft')
     pylab.plot(xz, abs(zoomfft(v, -scale, scale*(m-2.)/m, m=m)),
                'bo',label='zoomfft')
-    pylab.plot(xz, shift(abs(scaledfft(v, m=m, scale=scale))), 
+    pylab.plot(xz, shift(abs(scaledfft(v, m=m, scale=scale))),
                'gx', label='x'+str(scale)+' scaled fft')
     pylab.gca().set_yscale('log')
     pylab.legend()
@@ -511,4 +511,3 @@ def demo_scaledfft(v, scale, m):
 if __name__ == "__main__":
     # Choose demo in [0,4] to show plot, or None for testing only
     test(demo=None)
-

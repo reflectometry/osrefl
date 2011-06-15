@@ -66,7 +66,7 @@ class MultiViewFrame(wx.Frame):
         wx.Frame.__init__(self,parent,title = "Plot Comparison Application",pos=pos,size=size)
 
         return
-    
+
 
 class ParentVisPanel(wx.Panel):
     '''
@@ -269,10 +269,10 @@ class ZlimPan(wx.Panel):
         self.vmaxBox = wx.TextCtrl(self, 2,size = (10, 20))
         self.submit = wx.Button(self,3, 'Submit',(10, 10))
         self.reset = wx.Button(self,4, 'Reset',(10, 10))
-        
+
         self.vminBox.SetFont(newFont)
         self.vmaxBox.SetFont(newFont)
-        
+
         self.butSize = wx.BoxSizer(wx.HORIZONTAL)
         self.panSize = wx.BoxSizer(wx.VERTICAL)
         self.labVal = wx.BoxSizer(wx.HORIZONTAL)
@@ -414,7 +414,7 @@ class PlotCtrler(object):
     '''
     def __init__(self, app,plotInfo):
         self.plotInfo = plotInfo
-        
+
         pos,size = self.window_placement(1920,1280)
         self.Frame = MultiViewFrame(None,pos,size)
 
@@ -515,7 +515,7 @@ class PlotCtrler(object):
                             self.dataMatch.reset)
 
         return
-    
+
     def window_placement(self, desired_width, desired_height):
         """
         Determines the position and size of a window such that it fits on the
@@ -535,7 +535,7 @@ class PlotCtrler(object):
         # To avoid displaying the window across both monitors, we check for
         # screen 'too big'.  If so, we assume a smaller width which means the
         # application will be placed towards the left hand side of the screen.
-        
+
         x, y, w, h = wx.Display().GetClientArea() # size excludes task bar
         #print "*** x, y, w, h", x, y, w, h
         xpos, ypos = x, y
@@ -783,7 +783,7 @@ class PlotCtrler(object):
         floorSliceData = asarray(copy(self.plotInfo.sliceData))
         floorSliceData[floorSliceData < self.plotInfo.vlimit[0]] = (
                                                     self.plotInfo.vlimit[0])
-        
+
         self.slicePan.updatePlot(floorSliceData,
                          self.plotInfo.sliceX,
                          self.plotInfo.titles,
@@ -901,7 +901,7 @@ class PlotInfo(object):
 
         self.data=[]
         self.type=[]
-        
+
         for i in range(len(rawData)):self.data.append(rawData[i][0])
         for i in range(len(rawData)):self.type.append(rawData[i][1])
 

@@ -31,41 +31,41 @@ liquid[2] = Layer(SLD = fillMediaSLD[2],thickness_value = feHight)
 for i in range(size(liquid)):
     Au = RoundedParPip(SLD = 4.506842e-6,dim=[3.75e4,3.75e4,feHight], curve = .56)
     Cr = Layer(SLD = 3.01e-6,thickness_value = 48.0)
-    
+
     liquid[i].on_top_of(Cr)
     Au.on_top_of(Cr)
-    
+
     scene = Scene([liquid[i],Cr])
     GeoUnit = GeomUnit(Dxyz = [10.0e4,10.0e4,700.0], n = [100,100,300],scene = scene, inc_sub = [liquid[i].SLD,2.7e-6])
     unit = GeoUnit.buildUnit()
     unit.add_media()
     #unit.viewSlice()
-    
-    
+
+
     lattice = Rectilinear([20.0,20.0,1.0],unit)
-    
+
     beam = Beam(5.0,.02,None,0.02,None)
     scale  = 1.7e4
     q_space = Q_space([-.0002,-0.002,0.00002],[.0002,.002,0.03],[200,50,200])
     #q_space = Au_measurments.space
-    
-    
+
+
     test_data = Calculator(lattice,beam,q_space,unit)
     test_data.BA()
-    #test_data.results[test_data.results < 1.0e-15] = 1.0e-15 
+    #test_data.results[test_data.results < 1.0e-15] = 1.0e-15
     test_data.resolution_correction()
     test_data.corrected_results *=scale
     #test_data.results[Au_measurments.data==0.0]=0.0
-    
-        
+
+
     #Masking
     artre = min(test_data.corrected_results[nonzero(test_data.corrected_results)])
-    
-    
+
+
     test_data.corrected_results[test_data.corrected_results == 0.0] = artre
     test_data.corrected_results[test_data.corrected_results == NaN] = artre
     #test_data.corrected_results[Au_measurments.data==0.0]=0.0
-    
+
     models[i] = test_data
 '''
 from numpy import save

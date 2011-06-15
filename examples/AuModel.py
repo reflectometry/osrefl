@@ -57,7 +57,7 @@ sample3.BA()
 print "time of BA",time.time()-t0
 '''
 '''
-sub = abs(sample.results - sample2.results)/(abs(sample.results + 1.0e-20)).real 
+sub = abs(sample.results - sample2.results)/(abs(sample.results + 1.0e-20)).real
 print max(sub)
 
 title('Relative Difference btwn Python64 and Cuda64')
@@ -69,11 +69,10 @@ imshow(flipud(log(sum(sub.real,axis = 1).T)),extent = extent, aspect = 'auto')
 colorbar()
 show()
 
-sub = abs(sample.results - sample2.results)/((abs(sample.results + sample2.results)/2.0)).real 
+sub = abs(sample.results - sample2.results)/((abs(sample.results + sample2.results)/2.0)).real
 print max(sub)
 '''
 '''
 sliceone = sum(sample.results,axis = 1)
 slicetwo = sum(sample2.results,axis = 1)
 '''
-

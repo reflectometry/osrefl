@@ -22,7 +22,7 @@ from __future__ import division
 
 import math
 import numpy
-__all__ = ['format_uncertainty', 'format_uncertainty_pm', 
+__all__ = ['format_uncertainty', 'format_uncertainty_pm',
            'format_uncertainty_compact']
 
 # These routines need work for +/- formatting::
@@ -51,7 +51,7 @@ __all__ = ['format_uncertainty', 'format_uncertainty_pm',
 def format_uncertainty_pm(value, uncertainty=None):
     """
     Given *value* v and *uncertainty* dv, return a string v +/- dv.
-    
+
     The returned string uses only the number of digits warranted by
     the uncertainty in the measurement.
 
@@ -65,9 +65,9 @@ def format_uncertainty_pm(value, uncertainty=None):
 def format_uncertainty_compact(value, uncertainty=None):
     """
     Given *value* v and *uncertainty* dv, return the compact
-    representation v(##), where ## are the first two digits of 
+    representation v(##), where ## are the first two digits of
     the uncertainty.
-    
+
     The returned string uses only the number of digits warranted by
     the uncertainty in the measurement.
 
@@ -83,8 +83,8 @@ class FormatUncertainty:
     Given *value* and *uncertainty*, return a concise string representation.
 
     This will either by the +/- form of :func:`format_uncertainty_pm` or
-    the compact form of :func:`format_uncertainty_compact` depending on 
-    whether *compact* is specified or whether *format_uncertainty.compact* 
+    the compact form of :func:`format_uncertainty_compact` depending on
+    whether *compact* is specified or whether *format_uncertainty.compact*
     is True or False.
     """
     compact = True
@@ -98,7 +98,7 @@ def _format_uncertainty(value,uncertainty,compact):
     """
     if numpy.isinf(value):
         return "inf" if value > 0 else "-inf"
-    
+
     if numpy.isnan(value):
         return "NaN"
 
@@ -112,11 +112,11 @@ def _format_uncertainty(value,uncertainty,compact):
             return "%g(inf)"%value
         else:
             return "%g +/- inf"%value
-    
+
     # Process sign
     sign = "-" if value < 0 else ""
     value = abs(value)
-    
+
     # Determine the number of digits in the value and the error
     # Note that uncertainty <= 0 is handled above
     err_place = int(math.floor(math.log10(uncertainty)))
@@ -131,7 +131,7 @@ def _format_uncertainty(value,uncertainty,compact):
         val_digits = val_place-err_place+2
         return "%s%.*g +/- %.2g"%(sign,val_digits,value,uncertainty)
 
-    # The remainder is for the v(dv) case 
+    # The remainder is for the v(dv) case
     err_str = "(%2d)"%int(uncertainty/10.**(err_place-1)+0.5)
     if err_place > val_place:
         # Degenerate case: error bigger than value
@@ -169,7 +169,7 @@ def _format_uncertainty(value,uncertainty,compact):
 def test():
     # Oops... renamed function after writing tests
     value_str = format_uncertainty_compact
-    
+
     # val_place > err_place
     assert value_str(1235670,766000) == "1.24(77)e6"
     assert value_str(123567.,76600) == "124(77)e3"
@@ -201,7 +201,7 @@ def test():
     assert value_str(12356700,764) == "12.3567(76)e6"
     assert value_str(123567000,7640) == "123.567(76)e6"
     assert value_str(1235670000,76400) == "1.23567(76)e9"
-    
+
     # val_place == err_place
     assert value_str(123567,764000) == "0.12(76)e6"
     assert value_str(12356.7,76400) == "12(76)e3"
@@ -282,7 +282,7 @@ def test():
     assert value_str(-numpy.inf,None) == "-inf"
     assert value_str(numpy.inf,None) == "inf"
     assert value_str(numpy.NaN,None) == "NaN"
-    
+
     # plus/minus form
     assert format_uncertainty_pm(-1.23567,0.765) == "-1.24 +/- 0.77"
     assert format_uncertainty_compact(-1.23567,0.765) == "-1.24(77)"
@@ -309,4 +309,3 @@ def test():
 
 
 if __name__ == "__main__": test()
-    

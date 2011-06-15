@@ -39,7 +39,7 @@ class BlockingRectangleSelector:
         self.x1,self.x2,self.y1,self.y2 = x1,x2,y1,y2
         print 'stopping event loop'
         self.ax.figure.canvas.stop_event_loop_default()
-        
+
 
     def select(self):
         """
@@ -51,10 +51,10 @@ class BlockingRectangleSelector:
         self.ax.figure.canvas.draw_idle()
         self.block()
         self.selector.set_active(False)
-        
+
         # Make sure the graph is redrawn next time the event loop is shown
         self.ax.figure.canvas.draw_idle()
-        
+
     def remove(self):
         """
         Remove the selector from the axes.
@@ -64,12 +64,12 @@ class BlockingRectangleSelector:
         """
         pylab.close('all')
 
-        
+
 
 def ginput_rect(ax=None,autoRemove = True):
     """
     Wait for user to select a region on the axes.
-    
+
     Returns x1,x2,y1,y2
     """
     s = BlockingRectangleSelector(ax=ax)
@@ -86,7 +86,7 @@ def demo():
 
     subplot(111)
     # If N is large one can see improvement by blitting!
-    N=100000                                   
+    N=100000
     x=10.0*arange(N)/(N-1)
 
     plot(x,sin(.2*pi*x),lw=3,c='b',alpha=.7)
@@ -99,8 +99,7 @@ def demo():
 
     axis([x1, x2, y1, y2])
     show()
-    
+
 
 if __name__ == "__main__":
     demo()
-

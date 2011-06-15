@@ -8,9 +8,10 @@
 """
 This script starts the OsRefl Off-Specular Reflectometry application.
 """
-
 import os
 import sys
+import matplotlib
+matplotlib.use('WXAgg')
 
 # Normally the inversion package will be installed, but if it is not installed,
 # augment sys.path to include the parent directory of the package.  This
