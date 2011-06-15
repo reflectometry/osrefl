@@ -7,8 +7,11 @@ Read this to have an idea how the modeling software works and how it can be used
 
 .. htmlonly::
 
-   :Release: |version|
+   :Release: |release|
    :Date: |today|
+
+   Printable manual: `OsRefl.pdf <../OsRefl.pdf>`_
+
 
 .. toctree::
    :maxdepth: 2

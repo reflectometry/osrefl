@@ -13,7 +13,8 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
+.PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes \
+	linkcheck doctest install
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -27,7 +28,7 @@ help:
 	@echo "  changes   to make an overview of all changed/added/deprecated items"
 	@echo "  linkcheck to check all external links for integrity"
 	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
-	@echo "  install   to upload the docs to the distribution site"
+	@echo "  install   to upload documentation to the web server (be sure to make html and pdf first)"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -106,4 +107,3 @@ install:
 	ssh reflectometry.org rm -rf web/danse/docs/osrefl
 	scp -r _build/html reflectometry.org:web/danse/docs/osrefl
 	scp _build/html/*.pdf reflectometry.org:web/danse/download
-	      
