@@ -71,8 +71,8 @@ def scatCalc(cell,lattice,beam,q):
 
     m = 1.674e-27
     h_bar = 6.62607e-14
+    h_bar = 1e-34
     Vfac = -m/(2*pi*h_bar**2)
-    #Vfac = 1
 
     q.getKSpace(beam.wavelength)
     scat = zeros(q.points,dtype = 'complex')
@@ -167,13 +167,14 @@ def scatCalc(cell,lattice,beam,q):
             if isnan(lauy):
                 lauy = cell.step[1]
 
+            #ftwRef = (Vfac)*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
             ftwRef = Vfac*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
             ftwRef *= laux
             ftwRef *= lauy
-
+            
             ftwRef *=SF[i,ii,0]
             ftwRef = ftwRef/(lattice.repeat[0]*lattice.repeat[1])
-
+        
             ftwRef = (SLDArray[:,0]).reshape((1,1,cell.n[2]))*ftwRef.reshape((1,1,cell.n[2]))
 
             for iii in range(size(q.q_list[2])):
