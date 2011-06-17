@@ -26,7 +26,7 @@ Au = [None]*1
 test_data = [None]*1
 #shape test
 stdDim=[3.9e4,3.75e4,550.0]
-Au = RoundedParPip(SLD = 4.506842e-6,dim=[3.75e4,3.75e4,630.0], curve = .56)
+Au = RoundedParPip(SLD = 4.506842e-6,dim=[5.e4,5.e4,630.0], curve = .56)
 Cr = Layer(SLD = 3.01e-6,thickness_value = 48.0)
 
 Au.on_top_of(Cr)
@@ -47,7 +47,8 @@ q_space = Au_measurments.space
 
 
 test_data = Calculator(lattice,beam,q_space,unit)
-test_data.DWBA(refract = False)
+#test_data.DWBA(refract = False)
+test_data.DWBA()
 #test_data.results[test_data.results < 1.0e-15] = 1.0e-15
 test_data.resolution_correction()
 
