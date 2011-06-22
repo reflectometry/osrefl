@@ -71,7 +71,7 @@ def scatCalc(cell,lattice,beam,q):
 
     m = 1.674e-27
     h_bar = 6.62607e-14
-    h_bar = 1e-34
+
     Vfac = -m/(2*pi*h_bar**2)
 
     q.getKSpace(beam.wavelength)
