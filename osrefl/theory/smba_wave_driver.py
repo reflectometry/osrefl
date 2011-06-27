@@ -10,7 +10,16 @@ import numpy
 import numpy.linalg as linalg
 from . import approximations
 from ..model.sample_prep import *
-
+try:
+    from pycuda import gpuarray
+    import pycuda.driver as cuda
+    from pycuda.compiler import SourceModule
+    cuda.init()
+    cudaFind = True
+except:
+    print 'Pycuda or Cuda not installed Reverting to CPU calculation'
+    cudaFind = False
+    
 def readfile(name):
     file = open(name)
     txt = file.read()
@@ -84,17 +93,7 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
 
     #Make sure there is a Cuda Device and, if not, use the python calculation
 
-    try:
-        from pycuda import gpuarray
-        import pycuda.driver as cuda
-        from pycuda.compiler import SourceModule
-        cuda.init()
-        cudaFind = True
-    except:
-        print 'Pycuda or Cuda not installed Reverting to CPU calculation'
-        cudaFind = False
-
-        stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in
+    stack, Qx, Qy, Qz = [numpy.asarray(v,precision) for v in
                                   stack, Qx, Qy, Qz]
 
 
@@ -118,6 +117,7 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
     #qx_refract =  numpy.zeros(size,dtype=precision)
 
     if cudaFind ==True and proc == 'gpu':
+        qx_refract = zeros([len(Qx),len(Qy),len(Qz)],dtype = 'complex')
 
         print 'Cuda Device Detected... Calculating wavefunction on GPU'
 
@@ -195,7 +195,6 @@ class WaveThread(threading.Thread):
         self.precision = Qx.dtype
 
     def run(self):
-
         self.dev = cuda.Device(self.gpu)
         self.ctx = self.dev.make_context()
         self.cudamod = loadkernelsrc("lib/smba_wave_kernel.cc",
