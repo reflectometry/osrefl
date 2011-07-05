@@ -124,7 +124,7 @@ class Unit_Cell(object):
         return
 
     def viewSlice(self):
-        from wxzslice import unitView
+        from .. viewers.wxzslice import unitView
         unitView(self.unit,
                  asarray([[0,self.Dxyz[0]],[0,self.Dxyz[1]],[0,self.Dxyz[2]]]),
                  self.step,self.n)
