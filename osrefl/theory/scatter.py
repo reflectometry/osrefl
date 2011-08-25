@@ -59,6 +59,12 @@ class Calculator(object):
         self.corrected_results = None
 
         return
+    def BAres(self):
+
+        self.results = approximations.BAres(self.feature,self.space,
+                                             self.lattice, self.probe)
+        print self.results
+        return
 
     def BA(self):
         r'''
