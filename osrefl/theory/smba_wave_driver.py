@@ -57,7 +57,7 @@ def loadkernelsrc(name, precision='float32', defines={}):
 
 
 def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
-          proc = 'gpu'):
+          proc = 'cpu'):
 
     '''
     Overview:
@@ -151,8 +151,6 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
 
         for q in Qx,Qy,Qz: q = asarray(q)
 
-
-
         Qx = array(Qx.reshape(len(Qx),1,1), dtype = precision)
         Qy = array(Qy.reshape(1,len(Qy),1), dtype = precision)
         Qz = array(Qz.reshape(1,1,len(Qz)), dtype = precision)
@@ -166,9 +164,8 @@ def wave(stack, Qx, Qy, Qz,wavelength, deltaz, gpu=None, precision='float32',
                                    SMBA_wavecalcMultiK(qx_refract,deltaz,
                                                stack, wavelength,kin, kout))
 
-
-
     return  psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract
+
 
 class WaveThread(threading.Thread):
     '''
