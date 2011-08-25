@@ -843,25 +843,117 @@ def exp_part(qx,qy,qz,d):
 
     return e
 
-def BAres(cell,Q,lattice,beam):
+def BAres(cell,q,lattice,beam):
+    from DWBA import dwbaWavefunction
+    from scipy.integrate import quad
+    m = 1.674e-27
+    h_bar = 6.62607e-14
+
+    Vfac = -m/(2*pi*h_bar**2)
+    ftwRef = zeros([q.points[0],q.points[0],cell.n[2]],dtype = 'complex')
+    scat = zeros(q.points,dtype = 'complex')
+    x = cell.value_list[0].reshape((cell.n[0],1,1))
+    y = cell.value_list[1].reshape((1,cell.n[1],1))
+    z = cell.value_list[2].reshape((1,1,cell.n[2]))
+    
     flipCell = zeros(shape(cell.unit))
+    SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
+    
     for i in range(cell.n[2]):
         flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
+    
+    flipCell2 = flipud(cell.unit)
 
     Vres = flipCell - (SLDArray[:,0]).reshape((1,1,cell.n[2]))
 
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
 
-    ftwRef = Vfac*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
-    intensity =abs(structure_factor)**2 * abs(form_factor)**2
-    return normalize(intensity, cell, Q, lattice)
+    SF = lattice.gauss_struc_calc(q)
+
+    for i in range(size(q.q_list[0])):
+        print 'qx number: ', i, ' calculating'
+
+        for ii in range(size(q.q_list[1])):
+            
+            #Equation 20-
+            laux = ((-1j / q.q_list[0][i]) * 
+                    (exp(1j *q.q_list[0][i] * cell.step[0]) - 1.0))
+            lauy = ((-1j / q.q_list[1][ii]) * 
+                    (exp(1j *q.q_list[1][ii] * cell.step[1]) - 1.0))
+
+            if isnan(laux):
+                laux = cell.step[0]
+            if isnan(lauy):
+                lauy = cell.step[1]
+                
+            #ftwRef = (Vfac)*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
+            ftHoldx = zeros([cell.n[0]], dtype = 'complex')
+            ftHoldy = zeros([cell.n[1]], dtype = 'complex')
+            ftwRef = zeros(cell.n,dtype = 'complex')
+            ftwCollector = zeros([size(q.q_list[0]),size(q.q_list[1]),cell.n[2]],dtype = 'complex')
+            for nz in range(cell.n[2]):
+                for nx in range(cell.n[0]):
+                    for ny in range(cell.n[1]):
+                        args = [x[nx,0,0],0,rhoTilOverRho[nx,ny,nz]]
+                        a = q.q_list[0][i] - (q.q_step[0]/2.)
+                        b = q.q_list[0][i] + (q.q_step[0]/2.)
+                        
+                        ftHoldx = quad(ftIntegral,a,b,args)[0]/q.q_step[0]
+                        
+                        args = [y[0,ny,0],0,rhoTilOverRho[nx,ny,nz]]
+                        a = q.q_list[1][ii] - (q.q_step[1]/2.)
+                        b = q.q_list[1][ii] + (q.q_step[1]/2.)
+                        ftHoldy = quad(ftIntegral,a,b,args)[0]/q.q_step[1]
+
+                        ftwRef[nx,ny,nz] = ftHoldx * ftHoldy
+            
+            ftwCollector[i,ii,:] = (sum(sum(ftwRef,axis = 0),axis = 0)).reshape((1,1,cell.n[2]))
+
+            '''   
+            ftwRef[i,ii,:] = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
+                                   exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
+            '''
+            ftwCollector[i,ii,:] *= laux
+            ftwCollector[i,ii,:] *= lauy
+
+            
+            ftwCollector[i,ii,:] *=SF[i,ii,0]
+
+            ftwCollector[i,ii,:] = ftwCollector[i,ii,:]/(lattice.repeat[0]*lattice.repeat[1])
+            
+            ftwCollector[i,ii,:] = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
+                      ftwCollector[i,ii,:].reshape((1,1,cell.n[2])))
+
+    max_qxyz = (2*pi)/cell.step
+    scat = czt.zoomfft(ftwRef,q.minimums[2],q.maximums[2],q.points[2],
+                               max_qxyz[2],axis = 2)
+    
+    vecq = q.vectorize()
+    lauz = ((-1j / vecq[2]) * (exp(1j *vecq[2] * cell.step[2]) - 1.0))
+    scat *= lauz
+    intensity =sum(abs(scat)**2,axis=1)
+    
+    k_spec = q.q_list[2]/2.0
+    dwba_spec = dwbaWavefunction(k_spec,SLDArray)
+
+    locx = q.q_list[0].searchsorted(0.0)
+    locy = q.q_list[1].searchsorted(0.0)
+
+    scat[locx,locy,:] = dwba_spec.r
+    return intensity
+
+def ftIntegral(q,args):
+    d = args[0]
+    axis = args[1]
+    SLD = args[2]
+    return sum(exp(1j*q*d).real,axis = axis)
 
 
 def BA(cell,Q,lattice,beam):
     '''
     Overview:
-        Solves the Born Approximation for the off specular scattering using the
+        Solves the Born Approximation for the off-specular scattering using the
     chirp-z transform which allows for the direct selection of areas and
     spacings in reciprocal space.
 
@@ -973,13 +1065,13 @@ def normalize(raw_intensity, cell, Q, lattice):
     lattice:(Lattice) = A lattice object that holds all of the information
     needed to solve the structure factor of the scattering.
     '''
-
+    
     qz_array = Q.q_list[2].reshape(1,1,Q.points[2])
 
     raw_intensity *= (4.0 * pi / (qz_array * lattice.repeat[0] *
                                   cell.Dxyz[0] * lattice.repeat[1]*
                                   cell.Dxyz[1]))**2
-
+    
     raw_intensity = sum(raw_intensity,axis=1)
 
 
