@@ -67,14 +67,16 @@ def scatCalc(cell,lattice,beam,q):
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
     '''
+    
     #Front of Eq (20)
-
     m = 1.674e-27
     h_bar = 6.62607e-14
 
     Vfac = -m/(2*pi*h_bar**2)
 
+    
     q.getKSpace(beam.wavelength)
+    
     scat = zeros(q.points,dtype = 'complex')
 
     pio = [None]*cell.n[2]
@@ -93,27 +95,43 @@ def scatCalc(cell,lattice,beam,q):
     x = cell.value_list[0].reshape((cell.n[0],1,1))
     y = cell.value_list[1].reshape((1,cell.n[1],1))
     z = cell.value_list[2].reshape((1,1,cell.n[2]))
-
+    
+    #Averages the in-plane scattering length density and formats the new
+    #object as [SLD,Thickeness,Absorbtion] for each z layer
     SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
-
+    
+    #This is the calculation of the critical edge. It is needed for the
+    #calculation of p.
     pcl = sqrt(4*pi*SLDArray[:,0])
-
+    
+    #The cell is originally oriented so that the the bottom of the unit cell
+    #is located at the origin. This flips the cell so that the stack is ordered
+    #in the opposite direction.
     flipCell = zeros(shape(cell.unit))
 
     for i in range(cell.n[2]):
         flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
 
+    #This calculates the residual potential by taking the difference between
+    #the reference potential and the actual potential
     Vres = flipCell - (SLDArray[:,0]).reshape((1,1,cell.n[2]))
-
+    
+    #This is the rho used in eq. 20. The integration is the residual potential
+    #relative to the reference potential.
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
-
+    
+    #calculates the structure factor using the gaussian convolution.
     SF = lattice.gauss_struc_calc(q)
 
     for i in range(size(q.q_list[0])):
         print 'qx number: ', i, ' calculating'
 
         for ii in range(size(q.q_list[1])):
+            
+            #The next few lines calculate the c and d values for each layer.
+            #This is done by calculating the specular reflectivity and then
+            #tracing the final reflected intensity back into the sample.
             poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
             negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
             pio = poskiWavePar.c
@@ -124,18 +142,15 @@ def scatCalc(cell,lattice,beam,q):
             k_outl =negkfWavePar.kz_l
 
             for l in range(cell.n[2]):
-                '''
-                pio[i][q.kin<0.0] = negkiWavePar.c[i][q.kin<0.0]
-                pit[i][q.kin<0.0] = negkiWavePar.d[i][q.kin<0.0]
+                
+                #Solves the equation shown after eq. 11 on page 5.
+                pil[l]=sqrt(asarray((q.kin[i,ii,:]**2)-(pcl[l]**2),
+                                    dtype = 'complex'))
+                pfl[l]=sqrt(asarray((q.kout[i,ii,:]**2)-(pcl[l]**2),
+                                    dtype = 'complex'))
 
-                pio[i][q.kout<0.0] = poskfWavePar.c[i][q.kout<0.0]
-                pit[i][q.kout<0.0] = poskfWavePar.d[i][q.kout<0.0]
-                '''
-                #wave vector transfers inside the sample
-                pil[l]=sqrt(asarray((q.kin[i,ii,:]**2)-(pcl[l]**2),dtype = 'complex'))
-                pfl[l]=sqrt(asarray((q.kout[i,ii,:]**2)-(pcl[l]**2),dtype = 'complex'))
+                #Equations directly after eq (18).
 
-                #Equations directly after eq (18)
                 q_piopoo[l] = -pfl[l] - pil[l]
                 q_piopot[l] = -pfl[l] + pil[l]
                 q_pitpoo[l] = pfl[l] - pil[l]
@@ -149,7 +164,6 @@ def scatCalc(cell,lattice,beam,q):
             q_pitpoo = asarray(q_pitpoo)
             q_pitpot = asarray(q_pitpot)
 
-
             pio = asarray(pio)
             pit = asarray(pit)
             poo = asarray(poo)
@@ -158,25 +172,35 @@ def scatCalc(cell,lattice,beam,q):
             k_inl = asarray(k_inl)
             k_outl = asarray(k_outl)
 
-            #Equation 20-
-            laux = (-1j / q.q_list[0][i]) * (exp(1j *q.q_list[0][i] * cell.step[0]) - 1.0)
-            lauy = (-1j / q.q_list[1][ii]) * (exp(1j *q.q_list[1][ii] * cell.step[1]) - 1.0)
+            #Eq. 18
+            laux = ((-1j / q.q_list[0][i]) * 
+                    (exp(1j *q.q_list[0][i] * cell.step[0]) - 1.0))
+            lauy = ((-1j / q.q_list[1][ii]) * 
+                    (exp(1j *q.q_list[1][ii] * cell.step[1]) - 1.0))
 
             if isnan(laux):
                 laux = cell.step[0]
             if isnan(lauy):
                 lauy = cell.step[1]
-
-            #ftwRef = (Vfac)*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
-            ftwRef = Vfac*sum(sum(Vres * exp(1j*q.q_list[0][i]*x)*exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0)
+            
+            #Eq. 20
+            ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
+                       exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
+            
+            #Eq.17 for the x and y directions
             ftwRef *= laux
             ftwRef *= lauy
             
+            
+            #Eq.18 with the added structure factor.
             ftwRef *=SF[i,ii,0]
-            ftwRef = ftwRef/(lattice.repeat[0]*lattice.repeat[1])
-        
-            ftwRef = (SLDArray[:,0]).reshape((1,1,cell.n[2]))*ftwRef.reshape((1,1,cell.n[2]))
 
+            #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
+            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])
+            #Eq. 19
+            ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
+                      ftwRef.reshape((1,1,cell.n[2])))
+            
             for iii in range(size(q.q_list[2])):
 
                 ft = ftwRef.copy()
@@ -193,25 +217,37 @@ def scatCalc(cell,lattice,beam,q):
 
                 pil_sel = pil[:,iii].reshape((1,1,cell.n[2]))
                 pfl_sel = pfl[:,iii].reshape((1,1,cell.n[2]))
+                
+                #equation 15
+                scat_PioPoo = (pioSel * exp(1j*pil_sel*z)*ft*
+                               exp(1j*pfl_sel*z) * pooSel)
+                scat_PioPot = (pioSel * exp(1j*pil_sel*z)*ft*
+                               exp(-1j*pfl_sel*z)*potSel)
+                scat_PitPoo = (pitSel * exp(-1j*pil_sel*z)*ft*
+                               exp(1j*pfl_sel*z) *pooSel)
+                scat_PitPot = (pitSel * exp(-1j*pil_sel*z)*ft*
+                               exp(-1j*pfl_sel*z)* potSel)
 
-                scat_PioPoo = pioSel * exp(1j*pil_sel*z)*ft*exp(1j*pfl_sel*z) * pooSel
-                scat_PioPot = pioSel * exp(1j*pil_sel*z)*ft*exp(-1j*pfl_sel*z)*potSel
-                scat_PitPoo = pitSel * exp(-1j*pil_sel*z)*ft*exp(1j*pfl_sel*z) *pooSel
-                scat_PitPot = pitSel * exp(-1j*pil_sel*z)*ft*exp(-1j*pfl_sel*z)* potSel
-
-                scat_PioPoo *= (-1j / q_piopoo_sel) * (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0)
+                #equation 18
+                scat_PioPoo *= ((-1j / q_piopoo_sel) * 
+                                (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0))
                 scat_PioPoo[isnan(scat_PioPoo)] = cell.step[2]
 
-                scat_PioPot *= (-1j / q_piopot_sel) * (exp(1j *q_piopot_sel * cell.step[2]) - 1.0)
+                scat_PioPot *= ((-1j / q_piopot_sel) * 
+                                (exp(1j *q_piopot_sel * cell.step[2]) - 1.0))
                 scat_PioPot[isnan(scat_PioPot)] = cell.step[2]
 
-                scat_PitPoo *= (-1j / q_pitpoo_sel) * (exp(1j *q_pitpoo_sel *cell.step[2]) - 1.0)
+                scat_PitPoo *= ((-1j / q_pitpoo_sel) * 
+                                (exp(1j *q_pitpoo_sel *cell.step[2]) - 1.0))
                 scat_PitPoo[isnan(scat_PitPoo)] = cell.step[2]
 
-                scat_PitPot *= (-1j / q_pitpot_sel) * (exp(1j *q_pitpot_sel * cell.step[2]) - 1.0)
+                scat_PitPot *= ((-1j / q_pitpot_sel) * 
+                                (exp(1j *q_pitpot_sel * cell.step[2]) - 1.0))
                 scat_PitPot[isnan(scat_PitPot)] = cell.step[2]
-
-                scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + scat_PitPoo + scat_PitPot)
+                
+                #Exactly equation15
+                scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
+                                    scat_PitPoo + scat_PitPot)
 
 
     k_spec = q.q_list[2]/2.0
@@ -220,13 +256,13 @@ def scatCalc(cell,lattice,beam,q):
     locx = q.q_list[0].searchsorted(0.0)
     locy = q.q_list[1].searchsorted(0.0)
 
-    scat[locx,locy,:] = dwba_spec.r
+    #scat[locx,locy,:] = dwba_spec.r
 
-    '''
+    
     semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
     semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
     figure()
-    '''
+    
     return(scat)
 
 
@@ -348,8 +384,10 @@ class dwbaWavefunction:
 
 
             #Fine, This is c and d
-            self.c[l] = .5* exp(-1j*k0z*nz[l]*(z_interface))*(p + (pp/(1j*nz[l])))
-            self.d[l] = .5* exp(1j*k0z*nz[l]*(z_interface))*(p - (pp/(1j*nz[l])))
+            self.c[l] = (.5* exp(-1j*k0z*nz[l]*(z_interface))*
+                         (p + (pp/(1j*nz[l]))))
+            self.d[l] = (.5* exp(1j*k0z*nz[l]*(z_interface))*
+                         (p - (pp/(1j*nz[l]))))
 
             z_interface += thickness
 
