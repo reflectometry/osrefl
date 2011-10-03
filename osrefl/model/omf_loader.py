@@ -195,6 +195,7 @@ class Omf(object):
             Loads the data if the data values are represented in text form.
 
         '''
+        print 'loading text...'
         xlist = []
         ylist = []
         zlist = []
@@ -228,7 +229,7 @@ class Omf(object):
             the data.
 
         '''
-
+        print 'loading binary8...'
         if self.parameters['omfType'] == 'OVF 2.0':
             bitDir = '<f8'
 
@@ -262,6 +263,7 @@ class Omf(object):
             is in an 4-bit format, this loader can be used to extract the data.
 
         '''
+        print 'loading binary4...'
         if self.parameters['omfType'] == 'OVF 2.0':
             bitDir = '<f4'
 
@@ -446,7 +448,7 @@ class Omf(object):
         show()
 
     def view(self):
-        from wxzslice import momentView
+        from osrefl.viewers.wxzslice import momentView
         momentView(self)
 
 def _test():
