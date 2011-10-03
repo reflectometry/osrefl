@@ -22,7 +22,9 @@ def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
         stack = cell.inc_sub
         psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
                     smba_wave_driver.wave(stack, Q.q_list[0], Q.q_list[1],
-                             Q.q_list[2],beam.wavelength,precision=precision))
+                             Q.q_list[2],beam.wavelength,cell.step[2],
+                             precision=precision))
+
         Q.qx_refract = qx_refract
     else:
         qx_refract = Q.q_list[0]
@@ -38,7 +40,9 @@ def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
     psi =[psi_in_one,psi_in_two,psi_out_one,psi_out_two]
 
     magDensity = omf.ConvertRho()
-
+    print '******'
+    print magDensity[magDensity!=0.0]
+    print '******'
     form_solution = magForm(cell.unit,magDensity, cell.value_list[0],
                             cell.value_list[1], cell.value_list[2],Q.q_list[0],
                             Q.q_list[1],Q.q_list[2],psi,qx_refract, omf.mx,
