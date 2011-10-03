@@ -87,14 +87,14 @@ class ZMomentplot(wx.Panel):
         self.angle = ma.array(arctan2(-self.omf.my[:,:,z_layer],
                                  self.omf.mx[:,:,z_layer]),
                                   mask=(self.omf.M[:,:,z_layer] == 0.0))
-
-
+        self.angle[self.angle==360] = 0.0
+        print ma.getdata(self.angle)
         xmax = (float(self.omf.parameters['xnodes']) *
                 float(self.omf.parameters['xstepsize']) * 1.0e10)
 
         ymax = (float(self.omf.parameters['ynodes']) *
                 float(self.omf.parameters['ystepsize']) * 1.0e10)
-
+        
         self.extent = [0., xmax, 0., ymax]
 
         self.im = self.ax1.imshow(self.angle.T, origin='lower',
