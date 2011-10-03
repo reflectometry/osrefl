@@ -171,10 +171,10 @@ class Unit_Cell(object):
 
         return
 
-    def generateMIF(self,mifData = None):
+    def generateMIF(self,mifData = None,filename = None):
 
-        import mifCreator
-        mifCreator.create_mif(self,mifData)
+        import mif_creator
+        mif_creator.create_mif(self,mifData,filename)
         return
 
 class GrayImgUnit(object):
@@ -1228,6 +1228,10 @@ class RoundedParPip(Shape):
 
         mag_to_fill [calculations.parallel_point_test(self.center,
                       self.dim,x_points,y_points,z_points)==True] = self.Ms
+                      
+        mag_to_fill [calculations.ellipse_point_test(self.center,
+               [self.ovalParam[0],self.ovalParam[1],self.dim[2]],
+               x_points, y_points,z_points)==False] = 0.0
 
         return cell_to_fill, mag_to_fill
 
