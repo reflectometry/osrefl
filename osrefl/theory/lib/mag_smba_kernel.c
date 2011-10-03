@@ -47,6 +47,10 @@ cudaBorn(int nx, int ny, int nz, int nqx, int nqy, int nqz,
     Real qcy;
     Real qcz;
 
+    Real qca;
+    Real qcb;
+    Real qcc;
+
     qMag = sqrt(pow(Qx[qxi],2)+pow(Qy[qyi],2)+pow(Qz[qzi],2));
     qnx = Qx[qxi]/qMag;
     qny = Qy[qyi]/qMag;
@@ -65,11 +69,15 @@ cudaBorn(int nx, int ny, int nz, int nqx, int nqy, int nqz,
             	qcy = my[densityidx] - (qny*QdotM);
             	qcz = mz[densityidx] - (qnz*QdotM);
 
-            	ruu = density[densityidx] + qcx*magDensity[densityidx];
-            	rdd = density[densityidx] + qcx*magDensity[densityidx];
+            	qca = qcx * 0.0 + qcy * 1.0 + qcz * 0.0;
+            	qcb = qcx * 0.0 + qcy * 0.0 + qcz * 1.0;
+            	qcc = qcx * 1.0 + qcy * 0.0 + qcz * 0.0;
 
-            	rud = (qcy + I * qcz) * magDensity[densityidx];
-            	rdu = (qcy - I * qcz) * magDensity[densityidx];
+            	ruu = density[densityidx] + qca*magDensity[densityidx];
+            	rdd = density[densityidx] - qca*magDensity[densityidx];
+
+            	rud = (qcb + I * qcc) * magDensity[densityidx];
+            	rdu = (qcb - I * qcc) * magDensity[densityidx];
 
 				ft[0] = ruu*exp(I*qx_refract[idx]*x[xi])*exp(I*Qy[qyi]*y[yi])*exp(I*Qz[qzi]*z[zi]);
 				ft[1] = rdd*exp(I*qx_refract[idx]*x[xi])*exp(I*Qy[qyi]*y[yi])*exp(I*Qz[qzi]*z[zi]);
