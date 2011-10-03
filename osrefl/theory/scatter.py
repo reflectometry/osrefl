@@ -57,7 +57,7 @@ class Calculator(object):
         self.space = space
         self.results = None
         self.corrected_results = None
-
+        
         return
     def BAres(self):
 
@@ -520,14 +520,26 @@ class Calculator(object):
             self.corrected_results = fliplr(corrected_results.map_out)
 
         else:
-            corrected_results = resolution.Resolution_correction(
-                        self.results, [self.space.minimums[0],
+            if len(self.results)==4:
+                corrected_results = [None]*4
+                self.corrected_results = [None]*4
+                for i in range(4):
+                    corrected_results[i] = resolution.Resolution_correction(
+                        self.results[i], [self.space.minimums[0],
                                        self.space.maximums[0]],
                         [self.space.minimums[2],self.space.maximums[2]],
                         self.probe.angular_div, self.probe.wavelength_div,
                         self.probe.wavelength)
+                    self.corrected_results[i] = corrected_results[i].map_out
+            else:     
+                corrected_results = resolution.Resolution_correction(
+                            self.results, [self.space.minimums[0],
+                                           self.space.maximums[0]],
+                            [self.space.minimums[2],self.space.maximums[2]],
+                            self.probe.angular_div, self.probe.wavelength_div,
+                            self.probe.wavelength)
 
-            self.corrected_results = corrected_results.map_out
+                self.corrected_results = corrected_results.map_out
 
         return
 
@@ -659,7 +671,9 @@ class Calculator(object):
             * Altering of the color axis scale
 
         '''
+        print (len(self.results))
         if (shape(self.results)[0]) == 4:
+            print 'there are 4 crosssections'
             titles = ['++ (cor)','-- (cor)','+- (cor)','-+ (cor)']
             data = [[self.corrected_results[0],'Theory'],
                     [self.corrected_results[1],'Theory'],
@@ -687,24 +701,34 @@ class Calculator(object):
         return
 
 
-    def fitCompare(self,other,extraCompare = None,titles = ['other','self']):
+    def fitCompare(self,other,extraCompare = None,titles = ['other','self'],cross_section = 'All'):
         '''
         **Overview:**
 
             This method plots two different data sets on the sample window for
             an easy visual comparison of the data.
 
-        .. warning::
-            This method is obsolete!
 
         '''
+        
         if extraCompare != None:
-            data = [other.data, self.corrected_results]+extraCompare
+            data = [[other.data,'Measured']]
+            for extraData in [extraCompare]:
+                data.append([extraData.data,'Measured'])
+            
         else:
-            data = [[other.data,'Measured'],[self.corrected_results,'Theory']]
+            data = [[other.data,'Measured']]
 
+        if len(self.corrected_results) == 4:
+
+            for crossection in self.corrected_results:
+                data.append([crossection,'Theory'])
+
+        else:
+            data.append([self.corrected_results,'Theory'])
+        
         extent = self.space.getExtent()
-
+        print 'data',data
         MultiView(data,[self.space.q_step[0],self.space.q_step[2]],
           [self.space.points[0],self.space.points[2]],
           titles=titles,extent= extent,
