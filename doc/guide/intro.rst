@@ -6,15 +6,46 @@ This is an instruction manual on how to use the current infrastructure developed
 Installing the Software
 ########################
 
+There are many scientific libraries which are needed to run this code. All of the libraries are free and can easily be installed simultaniously by going to `Link pythonxy <http://www.pythonxy.com/>`_ and installing their product. In addition, if a Cuda compatable Nvidia GPU device is available, pyCuda must also be installed which may be downloaded at `Link pycuda <http://mathema.tician.de/software/pycuda>`_. Once these packages are installed, the osrefl package needs to be installed.
 
-There are many scientific libraries which are needed to run this code. All of the libraries are free and can easily be installed simultaniously by going to `Link pythonxy <http://www.pythonxy.com/>`_ and installing their product. In addition, if a Cuda compatable Nvidia GPU device is available, pyCuda must also be installed which may be downloaded at `Link pycuda <http://mathema.tician.de/software/pycuda>`_. 
+The software package may be downloaded at:
+http://www.reflectometry.org/danse/software.html
 
-Once the package is obtained from the repository and the previous prerequisites are installed, there is a small set of C code that must be compiled. Once the software is in the desired location, open up a command line prompt (either a terminal in linux or command prompt in windows). Change the directory to the top level (first) osrefl folder and type:
+A link to the source code may also be found on this site.
+
+Windows:
+	For a windows install, download the osrefl executable, double click to run it, and follow the on screen instructions.
+
+Linux:
+	Download the source code from the link on the reflectometery.org website or go to:
+
+http://danse.us/trac/reflectometry/browser/trunk/osrefl
+
+Once the software is in the desired location, open up a command line prompt (either a terminal in linux or command prompt in windows). Change the directory to the top level (first) osrefl folder and type:
 ::
 
 	python setup.py build_ext --inplace
 
 This will build the C code in the appropriate place and allow the software to run.
+
+Running Examples
+########################
+
+The examples included in this software are located in the top level osrefl folder in a folder called 'examples'. To run the default 
+example, change the directory to the top level osrefl folder and use the command:
+::
+
+    python osrefl.py
+
+This will run AuFit.py which is the model for an Au pillar system. This can easily be changed for any of the example file by:
+::
+    python osrefl.py examples/<filename>
+    
+For example:
+::
+    python osrefl.py examples/BA_demo.py
+
+This is also the procedure for running your own modeling scripts.
 
 To Begin Modeling
 ########################
@@ -27,9 +58,8 @@ This documentation provides instructions on how to write a simple model script. 
 sample_prep holds all of the code for creating a model. Scatter hold all of the information about the different approximations that can be used.
 
 
-
 Creating a Unit Cell
-#####################
+######################
 
 This section reviews how to create a model to be scattered off of. There are for main model creation tools; GeomUnit, K3D, OOMFUnit, and GrayImgUnit. Each of these can be used to produce a discretized unit cell.
 
@@ -144,17 +174,56 @@ Viewing
 To view the scattering, the user simply needs to script:
 ::
 
-	sample.view_uncorrected()
+	sample.viewUncor()
 
 to view the uncorrected scattering or:
 ::
  
-	sample.view_corrected()
+	sample.viewUncor()
 
-for the corrected data. Because there is no set convention for what the user will want to view, the script must have:
+To view both the corrected and uncorrected plots side-by-side use:
+
 ::
 
-	show()
+	sample.viewCorUncor()
 
 to view the output plots.
+Modeling Data
+#################
+In the examples folder is a python script called AuFit.py. This is an example of how to compare a fit to real data using this software. This will go through the steps taken in this file.
+
+Data Loading
+****************
+First, a model must be created as was shown in the previous section. The data included for this example was taken from Au pillars on a Si/Cr substrate. The data loading is all completed through GUI interfaces and only requires one line of code in the script. First, the data is loaded using the:
+
+::
+
+	Au_measurments = Data()
+
+call which is found in the osrefl.loaders.andr_load module.
+
+This call will bring up a file selector where multiple .cg1 data files may be loaded and combined. Use the "Choose input files" button to select the files. There is no error checking here to make sure the files are combined nicely so be sure that the selected data files are actually related to a single measurement. "The Main Beam center pixel" button is not used here. Hit the "Save and exit" button. Next, a screen will open to convert the data into qx and qz space plots. Enter the Qx range and the number of points to convert the x axis and the Qz range and number of points to convert the y axis. The X pixel value for Q=0 is the pixel on the detector for which Q=0 and is important for proper conversion. A good check for this is to view the resulting Q plot. The specular scattering should be straight along the Qx=0 line. If it starts to bend at high Qz values, then rerun the script and adjust the value accordingly.
+	The next window will be the data selection window. This allows the user to select a specific subset of their data to model. This is important as modeling can be long and areas that don't have data should not have models calculated for it.
+
+Model Building
+*******************
+
+	The models are build in the sample way as described in the model building section of this manual. One key additional command that is useful is:
+
+::
+
+	q_space = Au_measurments.space
+
+This command takes the q space values and point count from the selected data q space and uses it as the points to solve the model for. This is convenient for calculating models in the most effcient manner.
+
+Model/Data Interactor
+*************************
+
+	There is now a view and GUI interactor for the data and model. This can be used by:
+
+::
+
+	test_data.fitCompare(Au_measurments,titles = ['data','Model Label'])
+
+where the method is run on the model and given the data as a parameter. Other options can be found in the method description in this documentation.
 
