@@ -133,6 +133,10 @@ class MultiViewPanel(wx.Panel):
         if (viewCount == 1):
             col = 1
             row = 1
+        elif (viewCount == 5):
+            col = 3
+            row = 2
+            
         elif (viewCount%3.0 == 0.0):
             col = 3
             row =(int(viewCount/3.0))
@@ -902,9 +906,17 @@ class PlotInfo(object):
         self.data=[]
         self.type=[]
 
+
+        
         for i in range(len(rawData)):self.data.append(rawData[i][0])
         for i in range(len(rawData)):self.type.append(rawData[i][1])
 
+        print self.data
+        print self.type
+        
+        for dat in self.data:
+            print shape(dat)
+        
         self.data = asarray(self.data)
         self.type = asarray(self.type,dtype = object)
 
