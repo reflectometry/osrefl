@@ -88,7 +88,7 @@ def create_mif(unit, mifDataObj = None, filename = None):
     if mifDataObj.fieldCount == 1:
         print >>f, '        {',mifDataObj.H_strt_xyz[0],
         print >>f, mifDataObj.H_strt_xyz[1],mifDataObj.H_strt_xyz[2],
-        print >>f, mifDataObj.H_end_xyz[1],mifDataObj.H_end_xyz[1],
+        print >>f, mifDataObj.H_end_xyz[0],mifDataObj.H_end_xyz[1],
         print >>f, mifDataObj.H_end_xyz[2],mifDataObj.steps,'}'
 
     else:
