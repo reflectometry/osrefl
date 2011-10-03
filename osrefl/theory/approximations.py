@@ -227,18 +227,21 @@ def mag_func(strucUnit,omf, q, qn, magCell):
     qcx = omf.mx - asarray(qn[0]*QdotM)
     qcy = omf.my - asarray(qn[1]*QdotM)
     qcz = omf.mz - asarray(qn[2]*QdotM)
-
+    
+    qca = qcx * 0.0 + qcy * 1.0 + qcz * 0.0;
+    qcb = qcx * 0.0 + qcy * 0.0 + qcz * 1.0;
+    qcc = qcx * 1.0 + qcy * 0.0 + qcz * 0.0;
+    
     e = exp_part(q[0], q[1], q[2], strucUnit.value_list)
+    
+    ruu = (strucUnit.unit) + (qca*magCell)
+
+    rdd = (strucUnit.unit) - (qca*magCell)
 
 
-    ruu = (strucUnit.unit) + (qcx*magCell)
+    rud = (qcb + (1j*qcc)) * magCell
 
-    rdd = (strucUnit.unit) - (qcx*magCell)
-
-
-    rud = (qcy + (1j*qcz)) * magCell
-
-    rdu = (qcy - (1j*qcz)) * magCell
+    rdu = (qcb - (1j*qcc)) * magCell
 
     recip[0] = ruu * e
     recip[1] = rdd * e
