@@ -116,13 +116,14 @@ class neutron_wavefunction:
         # (kz[0] = k0z * nz[0] = kz_in)
         k0z = sqrt(self.kz_in**2 + 4 * pi * SLD_incident)
         nz = sqrt( complex(1) - 4 * pi * self.array_of_sld[:,0] / k0z**2 )
+        kz = nz * k0z
 
         # calculate the M matrix
         for layer_num in range(1, layer_num_total-1):
             #leaving off the incident medium and substrate from sum
             SLD,thickness,mu = array_of_sld[layer_num]
             nz[layer_num] = sqrt(( 1 - 4 * pi * SLD/ k0z**2 ))
-            kz = nz[layer_num] * self.kz_in[0]
+            kz = nz[layer_num] * k0z
             n = nz[layer_num]
             ml = array([[cos(kz * thickness), 1/n * sin(kz * thickness)],[-n * sin(kz * thickness), cos(kz * thickness)]])
             M_l[layer_num] = ml
@@ -141,6 +142,8 @@ class neutron_wavefunction:
         self.nz = nz
         self.M = M
         self.M_l = M_l
+        self.kz = kz
+        self.k0z = k0z
 
         # calculate r
 
@@ -168,6 +171,7 @@ class neutron_wavefunction:
         # calculate c, d for each layer
         kzlen = self.kz_in.shape[1]
         nz = self.nz
+        kz = self.kz
         M_l = self.M_l
         M = self.M
         layer_num_total = self.layer_num_total
@@ -186,21 +190,23 @@ class neutron_wavefunction:
 
 
         psi_l[0,:] = 1 + r
-        psi_prime_l[0,:] = 1j * nz[0] * (1 - r)
+        psi_prime_l[0,:] = 1j * kz[0] * (1 - r)
         z_interface = 0.
         p = (1 + r) #psi
-        pp = (1j * nz[0] * (1 - r)) #psi prime
+        pp = (1j * kz[0] * (1 - r)) #psi prime
         for l in range(1,layer_num_total):
             ## this algorithm works all the way into the substrate
             SLD,thickness,mu = array_of_sld[l]
             #print l, z_interface
 
-            c[l,:] = 0.5 * ( p + ( pp / (1j * nz[l]) ) ) * exp(-1j * self.kz_in[0] * nz[l] * z_interface)
-            d[l,:] = 0.5 * ( p - pp/(1j * nz[l]) ) * exp(1j * self.kz_in[0] * nz[l] * z_interface)
+            c[l,:] = 0.5 * ( p + ( pp / (1j * kz[l]) ) ) * exp(-1j * kz[l] * z_interface)
+            d[l,:] = 0.5 * ( p - pp/(1j * kz[l]) ) * exp(1j * kz[l] * z_interface)
             z_interface += thickness
 
-            p = M_l[l,0,0]*p + M_l[l,0,1]*pp
-            pp = M_l[l,1,0]*p + M_l[l,1,1]*pp
+            new_p = M_l[l,0,0]*p + M_l[l,0,1]*pp/self.k0z
+            new_pp = self.k0z*(M_l[l,1,0]*p + M_l[l,1,1]*pp/self.k0z)
+            p = new_p
+            pp = new_pp
             psi_l[l,:] = p
             psi_prime_l[l,:] = pp
             #p = p[0]
