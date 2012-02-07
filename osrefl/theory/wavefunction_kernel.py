@@ -4,7 +4,7 @@
 
 # first let's try calculating the reflectivity...
 
-from numpy import zeros, sqrt, pi, eye, array, dot, cos, sin, ndarray, ones, empty, exp, sum, indices
+from numpy import zeros, sqrt, pi, eye, array, dot, cos, sin, ndarray, ones, empty, exp, sum, indices, cumprod, real, prod, tensordot
 
 def calc_r(kz_in, array_of_sld):
     # array_of_sld is array of SLD, thickness, mu for each layer
@@ -68,7 +68,7 @@ def calc_r_born_2d_discrete(Qz, Qy, dz, dy, sld_z_y):
 
 
 class neutron_wavefunction:
-    from numpy import zeros, sqrt, pi, eye, array, dot, cos, sin, exp, complex, complex128
+    #from numpy import zeros, sqrt, pi, eye, array, dot, cos, sin, exp, complex, complex128
     """object contains wavefunction psi (complex) for a given scattering-length-density,
     and incoming k0z
     inputs: k0z, kfz, array_of_sld
@@ -81,7 +81,7 @@ class neutron_wavefunction:
     """
 
     def __init__(self, kz_in, array_of_sld):
-        from numpy import exp
+        #from numpy import exp
         """initialize the class with necessary input variables.
         kz_in is wavevector for incoming neutrons (in vacuum)
         array of sld is array of [SLD, thickness, mu] for each layer
@@ -89,87 +89,131 @@ class neutron_wavefunction:
         in the incident medium and substrate, only the SLD is used;
         mu and thickness are discarded"""
 
-        self.kz_in = kz_in
-        self.array_of_sld = array_of_sld
+        self.kz_in = array([kz_in]).flatten().astype(complex) # make even single values into arrays!
+        kzlen = len(self.kz_in)
+        self.kz_in.shape = (1, kzlen)
+        self.array_of_sld = array_of_sld.copy()
+        self.array_of_sld.shape = array_of_sld.shape + (1,)
 
-        layer_num_total = array_of_sld.shape[0]
+        SLD_incident = array_of_sld[0,0]
+        SLD_substrate = array_of_sld[-1,0] # take the sld from the last element of array_of_sld
+
+        layer_num_total = self.array_of_sld.shape[0]
         self.layer_num_total = layer_num_total
         self.total_thickness = sum(array_of_sld[1:-1,1])
 
-        M_l = zeros((layer_num_total,2,2), dtype=complex)
-        M = eye(2, dtype=complex)
-        nz = zeros((layer_num_total), dtype=complex)
+        M_l = zeros((layer_num_total,2,2,kzlen), dtype=complex)
+        M = empty(((2,2,kzlen)), dtype=complex)
+        M[0,0] = 1.0
+        M[0,1] = 0.0
+        M[1,0] = 0.0
+        M[1,1] = 1.0
+        nz = zeros((layer_num_total, kzlen), dtype=complex)
 
-        SLD_incident = array_of_sld[0,0]
+        #this next correction is only valid for side-entry of fronting layer:
+        # it assumes that kz_in is equal to kz_M (in laboratory frame)
+        # and we create a fake k0z that multiplies away correctly
+        # (kz[0] = k0z * nz[0] = kz_in)
+        k0z = sqrt(self.kz_in**2 + 4 * pi * SLD_incident)
+        nz = sqrt( complex(1) - 4 * pi * self.array_of_sld[:,0] / k0z**2 )
 
-       #this next correction is only valid for side-entry of fronting layer:
-       # it assumes that kz_in is equal to kz_M (in laboratory frame)
-       # and we create a fake k0z that multiplies away correctly
-       # (kz[0] = k0z * nz[0] = kz_in)
-        k0z = sqrt(complex(kz_in**2 + 4 * pi * SLD_incident))
-
-        nz = sqrt( complex(1) - 4 * pi * array_of_sld[:,0] / k0z**2 )
         # calculate the M matrix
         for layer_num in range(1, layer_num_total-1):
             #leaving off the incident medium and substrate from sum
             SLD,thickness,mu = array_of_sld[layer_num]
-
-            nz[layer_num] = sqrt(complex( 1 - 4 * pi * SLD/ k0z**2 ))
-            kz = nz[layer_num] * kz_in
+            nz[layer_num] = sqrt(( 1 - 4 * pi * SLD/ k0z**2 ))
+            kz = nz[layer_num] * self.kz_in[0]
             n = nz[layer_num]
-            M_l[layer_num] = array([[cos(kz * thickness), 1/n * sin(kz * thickness)],[-n * sin(kz * thickness), cos(kz * thickness)]])
-            M = dot(M_l[layer_num], M) # cumulative product moving right to left along M_j-1*M_j-2*...*M_1
+            ml = array([[cos(kz * thickness), 1/n * sin(kz * thickness)],[-n * sin(kz * thickness), cos(kz * thickness)]])
+            M_l[layer_num] = ml
+            M_new = M.copy()
+            # explicit dot product over first two axes:
+            M_new[0,0] = ml[0,0]*M[0,0] + ml[0,1]*M[1,0]
+            M_new[0,1] = ml[0,0]*M[0,1] + ml[0,1]*M[1,1]
+            M_new[1,0] = ml[1,0]*M[0,0] + ml[1,1]*M[1,0]
+            M_new[1,1] = ml[1,0]*M[0,1] + ml[1,1]*M[1,1]
+            M = M_new
+            #for i in range(kzlen):
+            #  M[:,:,i] = dot(ml[:,:,i], M[:,:,i]) # cumulative product moving right to left along M_j-1*M_j-2*...*M_1
 
+        #self.M_l_out = M_l_out
+        #M = prod(M_l[1:-1], axis=0)
         self.nz = nz
         self.M = M
         self.M_l = M_l
 
         # calculate r
-        SLD_substrate = array_of_sld[-1,0] # take the sld from the last element of array_of_sld
+
 
         # old r: don't know where I got it
         # r = (-1j * kfz * M[0,0] + k0z * kfz * M[0,1] + M[1,0] + 1j * k0z * M[1,1]) / (-M[1,0] + 1j * k0z * M[1,1] + 1j * kfz * M[0,0] + k0z * kfz * M[0,1])
         # r that I calculated myself for M above:
+
+        #r = (M[0,0,:] + 1j * nz[0,:] * M[0,1,:] + 1/(1j * nz[-1,:])*( -M[1,0,:] - 1j * nz[0,:] * M[1,1,:])) / (-M[0,0,:] + 1j * nz[0,:] * M[0,1,:] + 1/(1j * nz[-1,:])*( M[1,0,:] - 1j * nz[0,:] * M[1,1,:]))
         r = (M[0,0] + 1j * nz[0] * M[0,1] + 1/(1j * nz[-1])*( -M[1,0] - 1j * nz[0] * M[1,1])) / (-M[0,0] + 1j * nz[0] * M[0,1] + 1/(1j * nz[-1])*( M[1,0] - 1j * nz[0] * M[1,1]))
         self.r = r # make visible to the outside world
-        if nz[-1].real == 0:
-            self.t = complex(0)
-        else:
-            self.t = 1.0 + self.r
+        self.t = 1.0 + self.r
+        self.t[real(nz[-1]) == 0] = 0.0
+
+        #if nz[-1].real == 0:
+        #  self.t = complex(0)
+        #else:
+        #  self.t = 1.0 + self.r
 
         self.kz_transmitted = nz[-1] * k0z
 
-        # calculate c, d for each layer
-        c = zeros((layer_num_total), dtype=complex)
-        d = zeros((layer_num_total), dtype=complex)
-        psi_l = zeros((layer_num_total), dtype=complex)
-        psi_prime_l = zeros((layer_num_total), dtype=complex)
-        c[0] = 1 # incident beam has intensity 1
-        d[0] = r # reflected beam has intensity |r|**2
 
-        psi_l[0] = 1 + r
-        psi_prime_l[0] = 1j * nz[0] * (1 - r)
+    def calc_c_d(self):
+        """ calculate the coefficients of the upward and downward traveling waves in each layer """
+        # calculate c, d for each layer
+        kzlen = self.kz_in.shape[1]
+        nz = self.nz
+        M_l = self.M_l
+        M = self.M
+        layer_num_total = self.layer_num_total
+        array_of_sld = self.array_of_sld
+        if self.r is None:
+            self.calc_r()
+        r = self.r
+            
+        c = zeros((layer_num_total, kzlen), dtype=complex)
+        d = zeros((layer_num_total, kzlen), dtype=complex)
+        psi_l = zeros((layer_num_total, kzlen), dtype=complex)
+        psi_prime_l = zeros((layer_num_total, kzlen), dtype=complex)
+        
+        c[0,:] = 1.0 # incident beam has intensity 1
+        d[0,:] = r # reflected beam has intensity |r|**2
+
+
+        psi_l[0,:] = 1 + r
+        psi_prime_l[0,:] = 1j * nz[0] * (1 - r)
         z_interface = 0.
-        p = complex(1 + r) #psi
-        pp = complex(1j * nz[0] * (1 - r)) #psi prime
+        p = (1 + r) #psi
+        pp = (1j * nz[0] * (1 - r)) #psi prime
         for l in range(1,layer_num_total):
             ## this algorithm works all the way into the substrate
             SLD,thickness,mu = array_of_sld[l]
             #print l, z_interface
-            c[l] = 0.5 * ( p + ( pp / (1j * nz[l]) ) ) * exp(-1j * self.kz_in * nz[l] * z_interface)
-            d[l] = 0.5 * ( p - pp/(1j * nz[l]) ) * exp(1j * self.kz_in * nz[l] * z_interface)
+
+            c[l,:] = 0.5 * ( p + ( pp / (1j * nz[l]) ) ) * exp(-1j * self.kz_in[0] * nz[l] * z_interface)
+            d[l,:] = 0.5 * ( p - pp/(1j * nz[l]) ) * exp(1j * self.kz_in[0] * nz[l] * z_interface)
             z_interface += thickness
 
-            p,pp = dot(M_l[l], array([[p],[pp]]))
-            p = p[0]
-            pp = pp[0]
+            p = M_l[l,0,0]*p + M_l[l,0,1]*pp
+            pp = M_l[l,1,0]*p + M_l[l,1,1]*pp
+            psi_l[l,:] = p
+            psi_prime_l[l,:] = pp
+            #p = p[0]
+            #pp = pp[0]
 
         # fill final c,d
         self.c = c
         self.d = d
         self.d[-1] = 0.0
+        self.psi_l = psi_l
+        self.psi_prime_l = psi_prime_l
 
-        return None
+        return c, d
 
     def partial_layer_r(self, start_layer, end_layer):
         M = eye(2, dtype=complex)
