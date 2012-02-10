@@ -405,8 +405,12 @@ class dwbaWavefunction:
         return
 
 def _test():
-
-
+    # run from ipython by starting in root osrefl directory, 
+    # from osrefl.theory.DWBA import _test
+    # test()
+    # ...
+    from osrefl.model.sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
+    
     Au = Parallelapiped(SLD = 4.506842e-6,dim=[3.7e4,3.7e4,630.0])#, curve = .56)
     Cr = Layer(SLD = 3.01e-6,thickness_value = 48.0)
 
