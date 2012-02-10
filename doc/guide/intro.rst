@@ -6,7 +6,7 @@ This is an instruction manual on how to use the current infrastructure developed
 Installing the Software
 ########################
 
-There are many scientific libraries which are needed to run this code. All of the libraries are free and can easily be installed simultaniously by going to `Link pythonxy <http://www.pythonxy.com/>`_ and installing their product. In addition, if a Cuda compatable Nvidia GPU device is available, pyCuda must also be installed which may be downloaded at `Link pycuda <http://mathema.tician.de/software/pycuda>`_. Once these packages are installed, the osrefl package needs to be installed.
+There are many scientific libraries which are needed to run this code. All of the libraries are free and can easily be installed simultaniously by going to `pythonxy <http://www.pythonxy.com/>`_ and installing their product. In addition, if a Cuda compatable Nvidia GPU device is available, pyCuda must also be installed which may be downloaded at `pycuda <http://mathema.tician.de/software/pycuda>`_. Once these packages are installed, the osrefl package needs to be installed.
 
 The software package may be downloaded at:
 http://www.reflectometry.org/danse/software.html
@@ -188,7 +188,8 @@ To view both the corrected and uncorrected plots side-by-side use:
 	sample.viewCorUncor()
 
 to view the output plots.
-Modeling Data
+
+Modeling Data
 #################
 In the examples folder is a python script called AuFit.py. This is an example of how to compare a fit to real data using this software. This will go through the steps taken in this file.
 
