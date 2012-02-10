@@ -5,7 +5,7 @@
 
 #Starting Date:6/12/2009
 from osrefl.model.sample_prep import *
-from numpy import log,abs, min, max
+from numpy import log, abs, min, max
 from pylab import figure, show, subplot, imshow
 from osrefl.loaders.andr_load import *
 from osrefl.theory.scatter import *

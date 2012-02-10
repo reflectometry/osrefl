@@ -173,15 +173,22 @@ def scatCalc(cell,lattice,beam,q):
             k_outl = asarray(k_outl)
 
             #Eq. 18
-            laux = ((-1j / q.q_list[0][i]) * 
-                    (exp(1j *q.q_list[0][i] * cell.step[0]) - 1.0))
-            lauy = ((-1j / q.q_list[1][ii]) * 
-                    (exp(1j *q.q_list[1][ii] * cell.step[1]) - 1.0))
+            qx = q.q_list[0][i]
+            if qx != 0:
+                laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
+            else:
+                laux = complex(cell.step[0])
+                
+            qy = q.q_list[1][ii]
+            if qy != 0:
+                lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
+            else:
+                lauy = complex(cell.step[1])
 
-            if isnan(laux):
-                laux = cell.step[0]
-            if isnan(lauy):
-                lauy = cell.step[1]
+            #if isnan(laux):
+            #    laux = cell.step[0]
+            #if isnan(lauy):
+            #    lauy = cell.step[1]
             
             #Eq. 20
             ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
@@ -315,7 +322,7 @@ class dwbaWavefunction:
             SLD,thickness,mu = self.SLDArray[l]
 
             nz[l] = sqrt(complex(1) - 4 * pi * SLD/ k0z**2 )
-            kzl =( nz[l] * kz)
+            kzl =( nz[l] * k0z ) # edit: BBM 02/10/2012
             n = nz[l]
 
             M11[l] = asarray(cos(kzl * thickness),dtype = 'complex')
@@ -359,7 +366,7 @@ class dwbaWavefunction:
         self.d[0] = r # reflected beam has intensity |r|**2
 
         p = asarray(1.0 + r,dtype ='complex') #psi
-        pp = asarray(1j * nz[0] * (1 - r),dtype='complex') #psi prime
+        pp = asarray(1j * nz[0] * (1 - r),dtype='complex') #psi prime / k0z
 
         M11[0] = ones(shape(kz),dtype='complex')
         M12[0] = ones(shape(kz),dtype='complex')
