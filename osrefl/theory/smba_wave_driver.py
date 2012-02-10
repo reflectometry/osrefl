@@ -325,8 +325,11 @@ def main():
     This is a test to compare the results of the wave function calculation
     between the Cuda and Python calculations.
     '''
-    import wavefunction_BBM, approximations,pylab,numpy
+    import wavefunction_kernel, approximations,pylab,numpy
+    from ..model import sample_prep, image_util
     from pylab import subplot
+    
+    
     '''
     unit_size = (50,50,50)
     unit_metric = (1.0e5,1.0e5,2.5e3)
@@ -340,7 +343,7 @@ def main():
     unit[0:feature_size[0],0:feature_size[1],0:feature_size[2]] = 4.5e-6
     '''
     img = sample_prep.GrayImgUnit(filename =
-          '/home/mettingc/Downloads/sample1_sld.png',
+          'examples/data/sample1_sld.png',
           newres = numpy.array([200,400]))
 
     unit = img.unitBuild(Dxyz = [8480.0,8480.0,3500.0],

@@ -1347,7 +1347,13 @@ class smbaWavefunction:
             SLD,thickness,mu = array_of_sld[layer_num]
 
             nz[:][layer_num] = sqrt(complex( 1 - 4 * pi * SLD/ k0z**2 ))
-            kz = nz[:][layer_num] * kz_in
+            # THIS WAS INCORRECT:
+            # I believe that this should be kz = nz * k0z,
+            # not kz = nz * kz_in.
+            # This was a mistake carried over from my wavefunction.py library, 
+            # which was also incorrect. - BBM 2/10/2012
+            #kz = nz[:][layer_num] * kz_in
+            kz = nz[:][layer_num] * k0z
             n = nz[:][layer_num]
 
             M11 = cos(kz * thickness)

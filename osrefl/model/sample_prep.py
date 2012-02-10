@@ -210,14 +210,14 @@ class GrayImgUnit(object):
     def __init__(self,newres = None, filename = None):
         self.newres = newres
         if self.newres != None:
-            image = imageUtil.imageload(filename = filename)[:,:,0]
+            image = image_util.imageload(filename = filename)[:,:,0]
 
-            image = imageUtil.coursenRes(image,newres)
+            image = image_util.coursenRes(image,newres)
 
             self.image = flipud(image).T
 
         else:
-            self.image = (flipud(imageUtil.imageload(filename = filename)
+            self.image = (flipud(image_util.imageload(filename = filename)
                                                                     [:,:,0]).T)
         return
 
