@@ -1422,12 +1422,13 @@ def _test():
     show()
     '''
     from numpy import shape
-    from sample_prep import *
-    from scatter import *
-    from pylab import *
-    from omfLoader import *
+    import sample_prep
+    from sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
+    #from scatter import *
+    #from pylab import *
+    from omfLoader import Omf
     #magneticBA test
-    mag = Omf('/home/mettingc/Documents/test.omf')
+    mag = Omf('../../examples/data/test.omf')
     #mag.view()
 
 
