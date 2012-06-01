@@ -1,0 +1,92 @@
+
+============================Cylinder Sample====================================
+
+## Sample where Cylinders of Material A are cores of a block of Material B
+## Since this API uses the center of a shape as its anchor point, and 
+## adds cores to the center of the shell shape, multiple offsets are used
+## in order to orient the shape objects correctly in 3D space 
+
+core_dim =[200.0, 200.0, 300.0]
+
+MaterialB = Parallelapiped(SLD = 3.12e-6, dim = shell_dim, Ms = 1.0e-6)
+
+MaterialA = []
+
+## Offset x and y effectively move the starting point for cylinder placement
+## to the bottom right corner of the shell in the X-Y plane
+offsetx = -shell_dim[0] / 2
+offsety = -shell_dim[1] / 2
+## Offset z effectively changes the z-anchor point of the cylinder to the top face
+offsetz = -300.0
+
+## Used for offsetting each cylinder as the list is iterated
+offset_iterator = [offsetx, offsety, offsetz]
+
+## constants for incrementing the offsets
+x_increment = 1200.0
+y_increment = 600.0
+
+## Creates 3 similar columns of cylinders
+for x in range(3):
+    offset_iterator[1] = offsety
+    for y in range(6):
+        MaterialA.append(Ellipse(SLD = 2.0e-6, dim = core_dim, Ms = 2.162e-6))  
+        MaterialA[len(MaterialA)-1].is_core_of(MaterialB, offset_iterator)
+        offset_iterator[1] += y_increment 
+    offset_iterator[0] += x_increment
+
+
+## Sets new starting anchor position in the X-Y plane
+offsety += 300.0
+offsetx += 600.0
+
+offset_iterator = [offsetx, offsety, offsetz]        
+ 
+## Creates the other 3 similar columns of cylinders    
+for x in range(3):  
+    offset_iterator[1] = offsety
+    for y in range(5):
+        MaterialA.append(Ellipse(SLD = 2.0e-6, dim = core_dim, Ms = 2.162e-6))
+        MaterialA[len(MaterialA)-1].is_core_of(MaterialB, offset_iterator)
+        offset_iterator[1] += y_increment 
+    offset_iterator[0] += x_increment 
+    
+    
+=================================Rect Prisms Sample=================================
+
+core_dim =[3000.0, 200.0, 600.0]
+
+MaterialB = Parallelapiped(SLD = 3.12e-6, dim = shell_dim, Ms = 1.0e-6)
+
+MaterialA = []
+
+offsetx = 0.0
+offsety = -1400.0
+offsetz = 0.0
+
+offset_iterator = [offsetx, offsety, offsetz]
+
+for i in range(6):  
+    MaterialA.append(Parallelapiped(SLD = 2.0e-6, dim = core_dim, Ms = 1.0e-6))
+    MaterialA[i].is_core_of(MaterialB, offset_iterator)
+    ## 500.0 is used because increment is 300, but y-length of a prism is 200
+    offset_iterator[1] += 500.0
+    
+================================SawTooth Sample=====================================
+
+core_dim =[3000.0, 1000.0, 300.0] #Y coord of this seems to be very different than actual value
+
+MaterialB = Parallelapiped(SLD = 3.12e-6, dim = shell_dim, Ms = 1.0e-6)
+
+MaterialA = []
+
+offsetx = 0.0
+offsety = -1250.0
+offsetz = 0.0
+
+offset_iterator = [offsetx, offsety, offsetz]
+
+for i in range(6):  
+    MaterialA.append(TriangularPrism(SLD = 2.0e-6, dim = core_dim, Ms = 1.5e-6))
+    MaterialA[i].is_core_of(MaterialB, offset_iterator)
+    offset_iterator[1] += 500.0

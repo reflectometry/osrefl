@@ -14,52 +14,42 @@ from osrefl.viewers import view
 
 # Variables used to define the parameters of multiple Ellipse objects without
 #redefining each individually.
-shell_dim =[5500.0,3500.0,100.0]
-core_dim = [2000.0,2000.0,100.0]
+shell_dim =[3000.0, 3000.0, 400.0]
 
-'''
-each layer is defined by a set of parameters. These are the same parameters that
-will be used for fitting. The layer need at minimum a Scattering Length density
-and some dimension. 
-'''
-NiFe = Ellipse(SLD = 9.12e-6,dim = shell_dim, Ms = 2.162e-6)
-NiFe_mag = Ellipse(SLD = 2.162e-6,dim = core_dim)
-Cu = Ellipse(SLD = 6.54e-6,dim = shell_dim)
-Co = Ellipse(SLD = 2.26e-6,dim = shell_dim)
-Co_mag = Ellipse(SLD = 4.12e-6,dim = core_dim)
-Au = Ellipse(SLD = 4.5e-6,dim = shell_dim)
+core_dim =[3000.0, 1000.0, 300.0]
 
-#IrMn = Layer(SLD = -0.06585e-6,thickness_value = 40.0)
-IrMn = Layer(SLD = 6.585e-6,thickness_value = 40.0)
+MaterialB = Parallelapiped(SLD = 3.12e-6, dim = shell_dim, Ms = 1.0e-6)
 
-'''
-By using some built-in functions, we can specify the locations of shapes
-relative to one another
-'''
-#NiFe.on_top_of(IrMn)
-NiFe_mag.is_core_of(NiFe)
-Cu.on_top_of(NiFe)
-Co.on_top_of(Cu)
-Co_mag.is_core_of(Co)
-Au.on_top_of(Co)
+MaterialA = []
 
-'''
-once we are satisfied with the shapes that we have, we can create a scene.
-Although it has not been implemented yet, this will effectively tie the shapes
-to each other and create one main shape that will be used for the fitting
-'''
-#mag_ellips_scene = Scene([IrMn,NiFe,NiFe_mag,Cu,Co,Co_mag,Au])
-mag_ellips_scene = Scene([IrMn,NiFe,NiFe_mag,Cu])
-#non_mag_ellips_scene = Scene([IrMn,NiFe,Cu,Co,Au])
-non_mag_ellips_scene = Scene([IrMn,NiFe,Cu])
-core_ellips_scene = Scene([NiFe_mag,Co_mag])
-test = Scene([NiFe])
+offsetx = 0.0
+offsety = -1250.0 #- (core_dim[0] / 2 + core_dim[1] / 2)
+offsetz = 0.0
+
+offset_iterator = [offsetx, offsety, offsetz]
+
+for i in range(6):  
+    MaterialA.append(TriangularPrism(SLD = 2.0e-6, dim = core_dim, Ms = 1.5e-6))
+    MaterialA[i].is_core_of(MaterialB, offset_iterator)
+    offset_iterator[1] += 500.0
+    
+
+
+
+scenelist = []
+scenelist.append(MaterialB)
+#scenelist.append(MaterialA)
+for i in range(len(MaterialA)):
+    scenelist.append(MaterialA[i])
+
+test = Scene(scenelist)
+
 '''
 now we can create the unit_cell. This class contains all of the required
 information about a single unit cell.
 '''
 
-kathryns_non_mag_unit = GeomUnit(Dxyz = [9000.0,4500.0,None],
+kathryns_non_mag_unit = GeomUnit(Dxyz = [6500.0,4500.0,None],
                                  n = [20,20,20], scene = test)
 
 kathryns_non_mag_unit = kathryns_non_mag_unit.buildUnit()
@@ -77,7 +67,7 @@ BA for a single, non-magnetic system
 sample = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 
-sample.DWBA(refract = False)
+sample.SMBAfft(refract = False)
 
 sample.resolution_correction()
 
