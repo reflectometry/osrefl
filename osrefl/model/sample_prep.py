@@ -46,17 +46,16 @@ class CylinderSample(Sample):
         
         self.offset_iterator = [self.offsetx, self.offsety, self.offsetz]   
        
-    def Create(self):
+    def Create(self, core_SLD, core_Ms, shell_SLD, shell_Ms):
     
-        self.MaterialB = Parallelapiped(SLD = 3.12e-6, dim = self.shell_dim, Ms = 1.0e-6)
-        
         self.MaterialA = []
+        self.MaterialB = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
           
         ## Creates 3 similar columns of cylinders
         for x in range(3):
             self.offset_iterator[1] = self.offsety
             for y in range(6):
-                self.MaterialA.append(Ellipse(SLD = 2.0e-6, dim = self.core_dim, Ms = 2.162e-6))  
+                self.MaterialA.append(Ellipse(SLD = core_SLD, dim = self.core_dim, Ms = core_Ms))  
                 self.MaterialA[len(self.MaterialA)-1].is_core_of(self.MaterialB, self.offset_iterator)
                 self.offset_iterator[1] += self.y_increment 
             self.offset_iterator[0] += self.x_increment
@@ -111,14 +110,13 @@ class AlternatingSample(Sample):
         
         self.offset_iterator = [self.offsetx, self.offsety, self.offsetz]   
        
-    def Create(self):
+    def Create(self, core_SLD, core_Ms, shell_SLD, shell_Ms):
     
-        self.MaterialB = Parallelapiped(SLD = 3.12e-6, dim = self.shell_dim, Ms = 1.0e-6)
-        
         self.MaterialA = []
+        self.MaterialB = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
           
         for i in range(6):  
-            self.MaterialA.append(Parallelapiped(SLD = 2.0e-6, dim = self.core_dim, Ms = 1.0e-6))
+            self.MaterialA.append(Parallelapiped(SLD = core_SLD, dim = self.core_dim, Ms = core_Ms))
             self.MaterialA[i].is_core_of(self.MaterialB, self.offset_iterator)
             ## 500.0 is used because increment is 300, but y-length of a prism is 200
             self.offset_iterator[1] += self.y_increment
@@ -156,14 +154,13 @@ class TriPrismSample(Sample):
         
         self.offset_iterator = [self.offsetx, self.offsety, self.offsetz]   
        
-    def Create(self):
-    
-        self.MaterialB = Parallelapiped(SLD = 3.12e-6, dim = self.shell_dim, Ms = 1.0e-6)
-        
+    def Create(self, core_SLD, core_Ms, shell_SLD, shell_Ms):
+     
         self.MaterialA = []
+        self.MaterialB = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
           
         for i in range(6):  
-            self.MaterialA.append(TriangularPrism(SLD = 2.0e-6, dim = self.core_dim, Ms = 1.5e-6))
+            self.MaterialA.append(TriangularPrism(SLD = core_SLD, dim = self.core_dim, Ms = core_Ms))
             self.MaterialA[i].is_core_of(self.MaterialB, self.offset_iterator)
             self.offset_iterator[1] += self.y_increment
             

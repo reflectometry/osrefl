@@ -33,10 +33,10 @@ cylinder = CylinderSample(shell_dim = [3000.0, 3000.0, 500.0],
                           offset = [-1500.0, -1500.0, -300.0],
                           offset2 = [600.0, 300.0, 0])
 
-# Build the Samples
-alternating.Create()
-triprism.Create()
-cylinder.Create()
+# Build the Samples with different materials
+alternating.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
+triprism.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
+cylinder.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
 
 # Grab the scene object 
 triprismscene = triprism.getScene()
