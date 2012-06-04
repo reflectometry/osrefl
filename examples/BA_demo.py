@@ -12,69 +12,70 @@ from osrefl.theory.scatter import *
 from osrefl.theory import approximations, scatter
 from osrefl.viewers import view
 
-# Variables used to define the parameters of multiple Ellipse objects without
-#redefining each individually.
-shell_dim =[3000.0, 3000.0, 400.0]
 
-core_dim =[3000.0, 1000.0, 300.0]
+# Define the Samples
+alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 600.0], 
+                                core_dim = [3000.0, 200.0, 600.0],
+                                x_increment = 0.0,
+                                y_increment = 500.0,                          
+                                offset = [0.0, -1400.0, 0.0])
 
-MaterialB = Parallelapiped(SLD = 3.12e-6, dim = shell_dim, Ms = 1.0e-6)
+triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 600.0], 
+                                core_dim = [3000.0, 900.0, 300.0], # y seems to be off
+                                x_increment = 0.0,
+                                y_increment = 500.0,                          
+                                offset = [0.0, -1250.0, 0.0])
 
-MaterialA = []
+cylinder = CylinderSample(shell_dim = [3000.0, 3000.0, 500.0], 
+                          core_dim = [200.0, 200.0, 700.0],        # z seems to be off
+                          x_increment = 1200.0,
+                          y_increment = 600.0,
+                          offset = [-1500.0, -1500.0, -300.0],
+                          offset2 = [600.0, 300.0, 0])
 
-offsetx = 0.0
-offsety = -1250.0 #- (core_dim[0] / 2 + core_dim[1] / 2)
-offsetz = 0.0
+# Build the Samples
+alternating.Create()
+triprism.Create()
+cylinder.Create()
 
-offset_iterator = [offsetx, offsety, offsetz]
+# Grab the scene object 
+triprismscene = triprism.getScene()
+altscene = alternating.getScene()
+cylinderscene = cylinder.getScene()
 
-for i in range(6):  
-    MaterialA.append(TriangularPrism(SLD = 2.0e-6, dim = core_dim, Ms = 1.5e-6))
-    MaterialA[i].is_core_of(MaterialB, offset_iterator)
-    offset_iterator[1] += 500.0
-    
+# Define and build the Geometry Unit for the Cylinder sample
+triprismunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = triprismscene)
+triprismunit = triprismunit.buildUnit()
+triprismunit.add_media()
 
+altunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = altscene)
+altunit = altunit.buildUnit()
+altunit.add_media()
 
+cylinderunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = cylinderscene)
+cylinderunit = cylinderunit.buildUnit()
+cylinderunit.add_media()
 
-scenelist = []
-scenelist.append(MaterialB)
-#scenelist.append(MaterialA)
-for i in range(len(MaterialA)):
-    scenelist.append(MaterialA[i])
-
-test = Scene(scenelist)
+# View composition of the Geometry Unit
+triprismunit.viewSlice()
+altunit.viewSlice()
+cylinderunit.viewSlice()
 
 '''
-now we can create the unit_cell. This class contains all of the required
-information about a single unit cell.
-'''
 
-kathryns_non_mag_unit = GeomUnit(Dxyz = [6500.0,4500.0,None],
-                                 n = [20,20,20], scene = test)
-
-kathryns_non_mag_unit = kathryns_non_mag_unit.buildUnit()
-kathryns_non_mag_unit.add_media()
-
+# Define the Q space and Lattice structure
 q_space = Q_space([-.001,-0.002,0.0002],[.001,.002,0.3],[100,25,50])
-lattice = Rectilinear([20,20,1],kathryns_non_mag_unit)
+lattice = Rectilinear([20,20,1],altunit)
 
+# Define the Beam parameters 
 beam = Beam(5.0,None,None,0.05,None)
 
-'''
-This solves the structure
-BA for a single, non-magnetic system
-'''
-sample = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
-sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
+# Calculate the Scattering and display results 
+sample1 = scatter.Calculator(lattice,beam,q_space,altunit)
+sample1.SMBAfft(refract = False)
+sample1.resolution_correction()
+sample1.viewCorUncor()
 
-sample.SMBAfft(refract = False)
-
-sample.resolution_correction()
-
-sample.viewCorUncor()
-
-'''
-********* INSERT SAVE FOR sample HERE**********
 '''
 
 
