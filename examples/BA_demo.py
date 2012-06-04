@@ -21,7 +21,7 @@ alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 600.0],
                                 offset = [0.0, -1400.0, 0.0])
 
 triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 600.0], 
-                                core_dim = [3000.0, 900.0, 300.0], # y seems to be off
+                                core_dim = [3000.0, 700.0, 300.0], # y seems to be off
                                 x_increment = 0.0,
                                 y_increment = 500.0,                          
                                 offset = [0.0, -1250.0, 0.0])
@@ -43,16 +43,19 @@ triprismscene = triprism.getScene()
 altscene = alternating.getScene()
 cylinderscene = cylinder.getScene()
 
+# Define Resolution for Slice Drawing
+resolution = [200,200,200]
+
 # Define and build the Geometry Unit for the Cylinder sample
-triprismunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = triprismscene)
+triprismunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = resolution, scene = triprismscene)
 triprismunit = triprismunit.buildUnit()
 triprismunit.add_media()
 
-altunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = altscene)
+altunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = resolution, scene = altscene)
 altunit = altunit.buildUnit()
 altunit.add_media()
 
-cylinderunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = [150,150,150], scene = cylinderscene)
+cylinderunit = GeomUnit(Dxyz = [3000.0,3000.0,600.0], n = resolution, scene = cylinderscene)
 cylinderunit = cylinderunit.buildUnit()
 cylinderunit.add_media()
 
