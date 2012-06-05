@@ -351,18 +351,7 @@ def triangularprism_point_test(center,dim,x,y,z):
         less_equal(y,(center[0] + ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0)))
     
     '''
-    #a_angle = arctan(dim[2]/dim[0])
-    b_angle = arctan(dim[2]/dim[1])
-
-    low_height_lim = greater_equal(z,(center[2] - dim[2]/2))
-
-    #if stub == None:
-    up_height_lim =  less_equal(z,(center[2] + dim[2]/2))
-        
-    #else:
-    #    up_height_lim =  less_equal(z,(center[2] + stub/2))
-
-
+    theta = arctan((dim[2]/2.0)/dim[1])
 
     test_results = (
 
@@ -370,9 +359,9 @@ def triangularprism_point_test(center,dim,x,y,z):
         
         less_equal(x,(center[0] + dim[0])) *
         
-        less_equal((center[1] - ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0),y)*
+        less_equal((center[1] - ((center[2] + dim[2]/2)-z)/tan(theta)/2.0),y)*
         
-        less_equal(y,(center[1] + ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0)))
+        less_equal(y,(center[1] + ((center[2] + dim[2]/2)-z)/tan(theta)/2.0)))
 
     return test_results
 

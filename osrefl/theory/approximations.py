@@ -153,7 +153,7 @@ def magneticBA(struc_cell,Q,lattice,beam, omf):
     **Overview:**
 
         This calculation solves the Born Approximation for a magnetic sample
-        using an :class:`~omfLoader.Omf` object which hold the information about
+        using a(n) :class:`~omfLoader.Omf` object which hold the information about
         the magnetic moments in a sample.
 
     **Parameters:**
