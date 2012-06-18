@@ -5,9 +5,12 @@
 
 #Starting Date:6/12/2009
 
-from sample_prep import *
-#from . sample_prep import *
-import approximations,view, scatter
+from osrefl.model.sample_prep import *
+from osrefl.model.samples import *
+from osrefl.loaders.andr_load import *
+from osrefl.theory.scatter import *
+from osrefl.theory import approximations, scatter
+from osrefl.viewers import view
 from numpy import log,abs, min, max, amax,where, flipud
 from pylab import figure, show, subplot, imshow,colorbar,plot,title,xlabel,ylabel
 
@@ -19,12 +22,12 @@ Cr = Layer(SLD = 3.01e-6,thickness_value = 20.0)
 Au.on_top_of(Cr)
 scene = Scene([Au,Cr])
 
-GeoUnit = GeomUnit(Dxyz = [10.0e4,10.0e4, 2000.0], n = [50,51,52],scene = scene)#, inc_sub = [4.506842e-6,2.7e-6])
+GeoUnit = GeomUnit(Dxyz = [10.0e4,10.0e4, 2000.0], n = [150,150,150],scene = scene)#, inc_sub = [4.506842e-6,2.7e-6])
 unit = GeoUnit.buildUnit()
-#unit.add_media()
+unit.add_media()
 
-#unit.viewSlice()
-q_space = Q_space([-.0001,-0.001,0.00002],[.0001,0.001,0.04],[50,20,50])
+unit.viewSlice()
+q_space = Q_space([-.001,-0.001,0.002],[.001,0.001,0.1],[60,60,60])
 lattice = Rectilinear([20,20,1],unit)
 
 beam = Beam(5.0,None,None,0.05,None)

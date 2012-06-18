@@ -14,9 +14,9 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-from . import wavefunction_kernel
+from osrefl.theory import wavefunction_kernel
 import osrefl.viewers.view
-from . import czt
+from osrefl.theory import czt
 
 
 def partial_magnetic_BA(struc_cell,mag_cell,Q,lattice,beam):
@@ -300,7 +300,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     perturbing this by the wavefunctions. This calculation will solve the czt
     and then perturb it by the wave function.
 
-
+    
     Parameters:
 
     cell(float:3D array|angstroms^2) = The structural scattering potential
@@ -958,7 +958,7 @@ def BA(cell,Q,lattice,beam):
     Overview:
         Solves the Born Approximation for the off-specular scattering using the
     chirp-z transform which allows for the direct selection of areas and
-    spacings in reciprocal space.
+    spacings in reciprocal space.+-
 
     Parameters:
 
@@ -983,7 +983,7 @@ def BA(cell,Q,lattice,beam):
     #structure_factor = lattice.struc_calc(Q)
     structure_factor = lattice.gauss_struc_calc(Q)
 
-    intensity =abs(structure_factor)**2 * abs(form_factor)**2
+    intensity = abs(form_factor)**2 * abs(structure_factor)**2
     return normalize(intensity, cell, Q, lattice)
 
 
@@ -1094,11 +1094,10 @@ def BA_FT(total_rho,step,Q):
     Q:(q_space) = A Q_space object that holds all of the information about the
     desired q space output.
 
-    lattice:(Lattice) = A lattice object that holds all of the information
-    needed to solve the structure factor of the scattering.
     '''
 
     form_factor = trip_czt(total_rho, step, Q.points, Q.minimums, Q.maximums)
+
     return form_factor
 
 
@@ -1202,24 +1201,27 @@ def trip_czt(unit,stepSpace,q_points,q_mins,q_maxs):
     Chirp-z transform.
 
     unit = The matrix representation of the unit cell
+    
     q_points = the number of points that q will be solved for in the x,y and z
     direction
+    
     q_mins = the minimum q values for the x, y, and z direction
+    
     q_max = the maximum q values for the x, y, and z direction
+    
     '''
 
-
-    frequancy = (2*pi)/stepSpace
+    frequency = (2*pi)/stepSpace
 
     intermediate_matrix_one = czt.zoomfft(unit,q_mins[0],q_maxs[0],q_points[0],
-                                          frequancy[0],axis = 0)
+                                          frequency[0],axis = 0)
 
     intermediate_matrix_two = czt.zoomfft(intermediate_matrix_one,q_mins[1],
-                                          q_maxs[1],q_points[1],frequancy[1],
+                                          q_maxs[1],q_points[1],frequency[1],
                                           axis=1)
 
     czt_result = czt.zoomfft(intermediate_matrix_two,q_mins[2],
-                             q_maxs[2],q_points[2],frequancy[2],axis=2)
+                             q_maxs[2],q_points[2],frequency[2],axis=2)
 
     return czt_result
 
@@ -1422,13 +1424,13 @@ def _test():
     show()
     '''
     from numpy import shape
-    import sample_prep
-    from sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
+    from osrefl.model import *
+    from osrefl.model.sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
     #from scatter import *
     #from pylab import *
-    from omfLoader import Omf
+    #from osrefl.loaders.omfLoader import Omf
     #magneticBA test
-    mag = Omf('../../examples/data/test.omf')
+    #mag = Omf('../../examples/data/test.omf')
     #mag.view()
 
 

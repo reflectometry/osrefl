@@ -949,7 +949,7 @@ class PlotInfo(object):
 
     def initVlim(self):
 
-        self.vlimit= [amax(self.data[0])*1.0e-20,amax(self.data)]
+        self.vlimit= [amax(self.data[0])*2.0e-20,amax(self.data)]
         return
 
 

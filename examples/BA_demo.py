@@ -11,98 +11,98 @@ from pylab import figure, show, subplot, imshow
 from osrefl.loaders.andr_load import *
 from osrefl.theory.scatter import *
 from osrefl.theory import approximations, scatter
+from osrefl.theory.approximations import *
 from osrefl.viewers import view
+import numpy as np
 
+# Variables used to define the parameters of multiple Ellipse objects without
+#redefining each individually.
+shell_dim =[5500.0,3500.0,100.0]
+core_dim = [2000.0,2000.0,100.0]
 
-# Define the Samples
-alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0], 
-                                core_dim = [3000.0, 200.0, 500.0],
-                                x_increment = 0.0,
-                                y_increment = 500.0,                          
-                                offset = [0.0, -1400.0, 0.0])
+'''
+each layer is defined by a set of parameters. These are the same parameters that
+will be used for fitting. The layer need at minimum a Scattering Length density
+and some dimension. 
+'''
+NiFe = Ellipse(SLD = 9.12e-6,dim = shell_dim, Ms = 2.162e-6)
+NiFe_mag = Ellipse(SLD = 2.162e-6,dim = core_dim)
+Cu = Ellipse(SLD = 6.54e-6,dim = shell_dim)
+Co = Ellipse(SLD = 2.26e-6,dim = shell_dim)
+Co_mag = Ellipse(SLD = 4.12e-6,dim = core_dim)
+Au = Ellipse(SLD = 4.5e-6,dim = shell_dim)
 
-triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 400.0], 
-                          core_dim = [3000.0, 500.0, 300.0], # z seems to be off
-                          x_increment = 0.0,
-                          y_increment = 500.0,                          
-                          offset = [0.0, -1250.0, 0.0])
+#IrMn = Layer(SLD = -0.06585e-6,thickness_value = 40.0)
+IrMn = Layer(SLD = 6.585e-6,thickness_value = 40.0)
 
-cylinder = CylinderSample(shell_dim = [3000.0, 3000.0, 500.0], 
-                          core_dim = [200.0, 200.0, 300.0], 
-                          x_increment = 1200.0,
-                          y_increment = 600.0,
-                          offset = [-1500.0, -1500.0, -100.0],
-                          offset2 = [600.0, 300.0, 0.0])
+'''
+By using some built-in functions, we can specify the locations of shapes
+relative to one another
+'''
+#NiFe.on_top_of(IrMn)
+NiFe_mag.is_core_of(NiFe)
+Cu.on_top_of(NiFe)
+Co.on_top_of(Cu)
+Co_mag.is_core_of(Co)
+Au.on_top_of(Co)
 
-# Build the Samples with different materials
-print("\nBuilding Samples...")
-alternating.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, 
-                   shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
-triprism.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, 
-                shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
-cylinder.Create(core_SLD = 2.0e-6, core_Ms = 2.162e-6, 
-                shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
-print("...")
-# Grab the scene object 
-altscene = alternating.getScene()
-triprismscene = triprism.getScene()
-cylinderscene = cylinder.getScene()
+'''
+once we are satisfied with the shapes that we have, we can create a scene.
+Although it has not been implemented yet, this will effectively tie the shapes
+to each other and create one main shape that will be used for the fitting
+'''
+#mag_ellips_scene = Scene([IrMn,NiFe,NiFe_mag,Cu,Co,Co_mag,Au])
+mag_ellips_scene = Scene([IrMn,NiFe,NiFe_mag,Cu])
+#non_mag_ellips_scene = Scene([IrMn,NiFe,Cu,Co,Au])
+non_mag_ellips_scene = Scene([IrMn,NiFe,Cu])
+core_ellips_scene = Scene([NiFe_mag,Co_mag])
+test = Scene([NiFe])
+'''
+now we can create the unit_cell. This class contains all of the required
+information about a single unit cell.
+'''
 
-# Define Resolution for Slice Drawing
-resolution = [200,200,200]
+kathryns_non_mag_unit = GeomUnit(Dxyz = [9000.0,9000.0,None],
+                                 n = [20,20,20], scene = mag_ellips_scene)
 
-xyz = [9000.0, 9000.0, 600.0]
+kathryns_non_mag_unit = kathryns_non_mag_unit.buildUnit()
+kathryns_non_mag_unit.add_media()
 
-# Define and build the Geometry Unit for the different samples
-print("Creating Geometry Units...")
-altunit = GeomUnit(Dxyz = xyz, n = resolution, scene = altscene)
-altunit = altunit.buildUnit()
-altunit.add_media()
-print("...")
-triprismunit = GeomUnit(Dxyz = xyz, n = resolution, scene = triprismscene)
-triprismunit = triprismunit.buildUnit()
-triprismunit.add_media()
-print("...")
-cylinderunit = GeomUnit(Dxyz = xyz, n = resolution, scene = cylinderscene)
-cylinderunit = cylinderunit.buildUnit()
-cylinderunit.add_media()
-print("...")
-# Define the Q space
-q_space = Q_space([-.001,-0.002,0.0002],[.001,.002,0.3],[100,25,50])
+q_space = Q_space([-.01,-0.002,0.0002],[.01,.002,0.3],[100,100,50])
+lattice = Rectilinear([1,1,1],kathryns_non_mag_unit)
 
-#define the lattice Structures of each unit
-print("Creating Lattice Structures...")
-altlattice = Rectilinear([20,20,1],altunit)
-triprismlattice = Rectilinear([20,20,1],triprismunit)
-cylinderlattice = Rectilinear([20,20,1],cylinderunit)
-
-# Define the Beam parameters 
 beam = Beam(5.0,None,None,0.05,None)
 
-# Calculate the Scattering and display results 
-print("Calculating Sample 1...")
-sample1 = scatter.Calculator(altlattice,beam,q_space,altunit)
-sample1.SMBAfft(refract = False)
-sample1.resolution_correction()
+'''
+This solves the structure
+BA for a single, non-magnetic system
+'''
+sample = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
+#sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 
-print("\nCalculating Sample 2...")
-sample2 = scatter.Calculator(triprismlattice,beam,q_space,triprismunit)
-sample2.BA()
-sample2.resolution_correction()
+#sample.BA()
 
-print("\nCalculating Sample 3...")
-sample3 = scatter.Calculator(cylinderlattice,beam,q_space,cylinderunit)
-sample3.DWBA(refract = False)
-sample3.resolution_correction()
 
-# View Results
-print("\nViewing Results...")
-altunit.viewSlice()
-sample1.viewCorUncor()
+raw_intensity = abs(BA_FT(kathryns_non_mag_unit.unit, kathryns_non_mag_unit.step, q_space))**2 
 
-triprismunit.viewSlice()
-sample2.viewCorUncor()
+qz_array = q_space.q_list[2].reshape(1,1,q_space.points[2])
 
-cylinderunit.viewSlice()
-sample3.viewCorUncor()
+raw_intensity *= (4.0 * pi / (qz_array * kathryns_non_mag_unit.Dxyz[0] * kathryns_non_mag_unit.Dxyz[1]))**2
+    
+sample.results = sum(raw_intensity,axis=1).astype('float64')
+
+#sample.resolution_correction()
+
+sample.viewUncor()
+
+'''
+********* INSERT SAVE FOR sample HERE**********
+'''
+
+
+
+
+
+
+
 

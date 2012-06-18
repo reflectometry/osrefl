@@ -74,13 +74,13 @@ class Calculator(object):
             This Born Approximation calculation is written entirely in Python
             and assumes that the scattered beam is so small that the transmitted
             beam is essentially t=1. This makes for a simple calculation,
-            however, it does not allows for the capturing of the dynamically
+            however, it does not allows for the capturing of the dynamic
             effects seen in real scattering.
 
             Because of the simplistic nature of this calculation. Some tricks
             can be used to speed up the calculation. This version of the BA
-            calculation uses a chirp-z transform (CZT) to solve the Form Factor.
-            The chirp-z is essentially a FFT which allows for solving the
+            calculation utilizes the chirp-z transform (CZT) to solve the Form Factor.
+            The chirp-z is essentially an FFT which allows for solving the
             transform anywhere on the sphere. With this, we can solve for any Q
             range without wasting any resources calculating for areas we don't
             need.
@@ -635,7 +635,7 @@ class Calculator(object):
         '''
         **Overview:**
 
-            Uses the magPlotSlicer.py module to view  the uncorrected models.
+            Uses the magPlotSlicer.py module to view the uncorrected models.
             This module includes tools for:
 
             * Slice averaging for the data vertically and horizontally
