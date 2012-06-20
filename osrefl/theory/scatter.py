@@ -16,6 +16,7 @@ from osrefl.viewers.plot_slicer import MultiView
 import osrefl.loaders.scale
 import osrefl.model.sample_prep
 from . import resolution
+import numpy as np
 
 
 class Calculator(object):
@@ -57,6 +58,8 @@ class Calculator(object):
         self.space = space
         self.results = None
         self.corrected_results = None
+        self.anglexvals = None
+        self.anglezvals = None
         
         return
     def BAres(self):
@@ -479,6 +482,13 @@ class Calculator(object):
         print shape(results)
         self.results = sum((abs(results)**2),axis=1)
         return
+    
+    def toAngular(self, incident_angle, intensity):
+        
+        data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)
+        self.results = data[0]
+        self.anglexvals = data[1]
+        self.anglezvals = data[2]
 
     def resolution_correction(self):
         '''
@@ -689,6 +699,45 @@ class Calculator(object):
           titles=titles,extent= extent,
           axisLabel = ['qx(A^-1)','qz(A^-1)'])
         return
+    
+    def viewAngular(self):
+        '''
+        **Overview:**
+
+            Uses the magPlotSlicer.py module to view the uncorrected models in real space.
+            This module includes tools for:
+
+            * Slice averaging for the data vertically and horizontally
+            * Viewing linear and log plots of both 2D slices and 3D image plots
+            * Altering of the color axis scale
+
+        '''
+        
+        x_values = self.anglexvals
+        z_values = self.anglezvals
+        
+        titles = ['uncorrected']
+        data = [[self.results,'Theory']]
+
+        xstep = (x_values[size(x_values)-1] - x_values[0]) / size(x_values)
+        zstep = (z_values[size(z_values)-1] - z_values[0]) / size(z_values)
+        
+        xmin = x_values[0] * 1e13
+        xmax = x_values[size(x_values)-1] * 1e13              
+        zmin = z_values[0] * 1e13
+        zmax = z_values[size(z_values)-1] * 1e13
+        
+        xmin = xmin.tolist()
+        xmax = xmax.tolist()      
+        zmin = zmin.tolist()
+        zmax = zmax.tolist()
+    
+        extent = asarray([xmin, xmax, zmin, zmax])
+        
+        MultiView(data,[xstep,zstep],
+          [x_values,z_values],
+          titles=titles,extent= extent,
+          axisLabel = ['in-plane angle(10^-13 rads)','angle of reflection(10^-13 rads)'])
 
     def generalCompare(self,otherData,titles):
         extent = self.space.getExtent()

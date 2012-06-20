@@ -2838,12 +2838,12 @@ class Q_space(Space):
         self.qx_refract = None
         self.kin = None
         self.kout = None
-        print 'Q List: '
+        #print 'Q List: '
 
         for i in range(3):
             self.q_list[i] = linspace(self.minimums[i],self.maximums[i],
                                       self.points[i])
-            print self.q_list[i]
+            #print self.q_list[i]
 
         return
 

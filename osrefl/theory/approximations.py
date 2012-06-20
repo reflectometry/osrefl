@@ -17,7 +17,7 @@ from numpy import *
 from osrefl.theory import wavefunction_kernel
 import osrefl.viewers.view
 from osrefl.theory import czt
-
+import numpy as np
 
 def partial_magnetic_BA(struc_cell,mag_cell,Q,lattice,beam):
 
@@ -862,6 +862,8 @@ def BAres(cell,q,lattice,beam):
     flipCell = zeros(shape(cell.unit))
     SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
     
+    
+    
     for i in range(cell.n[2]):
         flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
     
@@ -980,7 +982,6 @@ def BA(cell,Q,lattice,beam):
     #form_factor = complete_formula(form_factor,cell.step,Q)
 
     #structure_factor = describes the scattering off of the lattice
-    #structure_factor = lattice.struc_calc(Q)
     structure_factor = lattice.gauss_struc_calc(Q)
 
     intensity = abs(form_factor)**2 * abs(structure_factor)**2
@@ -1110,7 +1111,6 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     Parameters:
 
-
     '''
 
     qx = asarray(qx)
@@ -1139,7 +1139,42 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     return kz_in, kz_out
 
+def QxQyQz_to_angle(space, alphai, raw_intensity, wavelength):
 
+    alphai = math.radians(alphai)
+    
+    intensity = sum(raw_intensity,axis=1).astype('float64')
+    
+    # Wave Vector Calculator
+    kvec = ((2 * pi) / (wavelength * 1e-9))
+    
+    xsize = size(space.q_list[0])
+    zsize = size(space.q_list[2])
+    
+    # Grab equally spaced intervals  
+    xvals = np.linspace(space.q_list[0][0], space.q_list[0][xsize-1], xsize)
+    zvals = np.linspace(space.q_list[2][0], space.q_list[2][zsize-1], zsize)
+    
+    for xstep in range(xsize):
+        
+        iptheta = math.degrees(math.atan((xvals[xstep])/kvec))
+        
+        for zstep in range(zsize):
+        
+            alphaf = math.degrees(math.atan(zvals[zstep] / kvec))
+    
+            kiz = kvec * sin(alphai)
+            kfz = kvec * sin(alphaf)
+            
+            kix = kvec * cos(alphai)        
+            kfx = kvec * cos(alphaf)
+            
+            angular_intensity[iptheta][alphaf] = intensity[xstep][zstep] 
+            
+    x_values = np.arctan(xvals / kvec)
+    z_values = np.arctan(zvals / kvec)
+         
+    return angular_intensity, x_values, z_values
 
 def complete_formula(czt_result, step, Q):
     '''

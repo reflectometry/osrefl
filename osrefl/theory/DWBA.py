@@ -205,10 +205,11 @@ def scatCalc(cell,lattice,beam,q):
             
             
             #Eq.18 with the added structure factor.
-            #ftwRef *=SF[i,ii,0]
+            ftwRef *=SF[i,ii,0]
 
             #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
-            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])
+            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
+            
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
