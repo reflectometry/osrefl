@@ -722,10 +722,10 @@ class Calculator(object):
         xstep = (x_values[size(x_values)-1] - x_values[0]) / size(x_values)
         zstep = (z_values[size(z_values)-1] - z_values[0]) / size(z_values)
         
-        xmin = x_values[0] * 1e13
-        xmax = x_values[size(x_values)-1] * 1e13              
-        zmin = z_values[0] * 1e13
-        zmax = z_values[size(z_values)-1] * 1e13
+        xmin = x_values[0]
+        xmax = x_values[size(x_values)-1]              
+        zmin = z_values[0]
+        zmax = z_values[size(z_values)-1]
         
         xmin = xmin.tolist()
         xmax = xmax.tolist()      
@@ -737,7 +737,7 @@ class Calculator(object):
         MultiView(data,[xstep,zstep],
           [x_values,z_values],
           titles=titles,extent= extent,
-          axisLabel = ['in-plane angle(10^-13 rads)','angle of reflection(10^-13 rads)'])
+          axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
 
     def generalCompare(self,otherData,titles):
         extent = self.space.getExtent()

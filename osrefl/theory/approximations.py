@@ -1141,12 +1141,12 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
 def QxQyQz_to_angle(space, alphai, raw_intensity, wavelength):
 
-    alphai = math.radians(alphai)
+    alphai = np.radians(alphai)
     
     intensity = sum(raw_intensity,axis=1).astype('float64')
     
     # Wave Vector Calculator
-    kvec = ((2 * pi) / (wavelength * 1e-9))
+    kvec = 2.0 * pi / wavelength
     
     xsize = size(space.q_list[0])
     zsize = size(space.q_list[2])
@@ -1157,22 +1157,23 @@ def QxQyQz_to_angle(space, alphai, raw_intensity, wavelength):
     
     for xstep in range(xsize):
         
-        iptheta = math.degrees(math.atan((xvals[xstep])/kvec))
+        iptheta = np.degrees(np.arcsin(xvals[xstep] / 2.0 * kvec))
         
         for zstep in range(zsize):
         
-            alphaf = math.degrees(math.atan(zvals[zstep] / kvec))
+            alphaf = np.degrees(np.arcsin(zvals[zstep] / 2.0 * kvec))
     
-            kiz = kvec * sin(alphai)
-            kfz = kvec * sin(alphaf)
-            
-            kix = kvec * cos(alphai)        
-            kfx = kvec * cos(alphaf)
+            #kiz = kvec * sin(alphai)
+            #kfz = kvec * sin(alphaf)   
+            #kix = kvec * cos(alphai)        
+            #kfx = kvec * cos(alphaf)
+                 
+            angular_intensity = intensity
             
             angular_intensity[iptheta][alphaf] = intensity[xstep][zstep] 
             
-    x_values = np.arctan(xvals / kvec)
-    z_values = np.arctan(zvals / kvec)
+    x_values = np.degrees(np.arcsin(xvals / 2.0 * kvec))
+    z_values = np.degrees(np.arcsin(zvals / 2.0 * kvec))
          
     return angular_intensity, x_values, z_values
 
