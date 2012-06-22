@@ -1163,11 +1163,6 @@ def QxQyQz_to_angle(space, alphai, raw_intensity, wavelength):
         
             alphaf = np.degrees(np.arcsin(zvals[zstep] / 2.0 * kvec))
     
-            #kiz = kvec * sin(alphai)
-            #kfz = kvec * sin(alphaf)   
-            #kix = kvec * cos(alphai)        
-            #kfx = kvec * cos(alphaf)
-                 
             angular_intensity = intensity
             
             angular_intensity[iptheta][alphaf] = intensity[xstep][zstep] 
