@@ -120,19 +120,19 @@ class Calculator(object):
                               self.space.type,"space type")
         return
     
-    def BA_StructureFactor(self):
-
+    def BA_FormFactor(self):
+        
         raw_intensity = approximations.BA_FT(self.feature.unit, self.feature.step, self.space)
         raw_intensity = abs(approximations.complete_formula(raw_intensity, self.feature.step, self.space))**2
-
+    
         qx_array = self.space.q_list[0].reshape(self.space.points[0],1,1)
         qy_array = self.space.q_list[1].reshape(1,self.space.points[1], 1)
         qz_array = self.space.q_list[2].reshape(1,1,self.space.points[2])
-
-        raw_intensity *= (4.0 * pi / (qz_array * qx_array * qy_array))**2
-
-        self.results = sum(raw_intensity,axis=1).astype('float64')
-        
+        # * qx_array * qy_array
+        raw_intensity *= (4.0 * pi / (qz_array))**2
+    
+        #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
+    
         return raw_intensity
 
     def longBA(self):

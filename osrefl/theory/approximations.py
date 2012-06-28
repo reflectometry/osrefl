@@ -988,6 +988,38 @@ def BA(cell,Q,lattice,beam):
     return normalize(intensity, cell, Q, lattice)
 
 
+def BA_FF(cell,Q):
+    '''
+    Overview:
+        Solves the Born Approximation for the off-specular scattering using the
+    chirp-z transform. Calculates only the form factor.
+
+    Parameters:
+
+    cell(float:3D array|angstroms^2) = The structural scattering potential
+    of the feature being scattered off of.
+
+    Q:(q_space) = A Q_space object that holds all of the information about the
+    desired q space output.
+
+    beam:(Beam) = Holds all of the information about the experimental beam
+    needed to apply beam dependent corrections to the data.
+    '''
+    
+    raw_intensity = approximations.BA_FT(cell.unit, cell.step, Q)
+    raw_intensity = abs(approximations.complete_formula(raw_intensity, cell.step, Q))**2
+
+    qx_array = Q.q_list[0].reshape(Q.points[0],1,1)
+    qy_array = Q.q_list[1].reshape(1,Q.points[1], 1)
+    qz_array = Q.q_list[2].reshape(1,1,Q.points[2])
+
+    raw_intensity *= (4.0 * pi / (qz_array * qx_array * qy_array))**2
+
+    #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
+
+    return raw_intensity
+
+
 def thetaBA(cell,theta,lattice,beam):
     formfactor = zeros(theta.points)
     q = theta.q_calc(beam.wavelength)
@@ -1139,39 +1171,87 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     return kz_in, kz_out
 
-def QxQyQz_to_angle(space, alphai, raw_intensity, wavelength):
+def QxQyQz_to_angle(space, alphai, intensity, wavelength):  
+    
+    '''
+    Overview:
+        A Python implementation of the Q space to real (angular) space conversion.
+        
+    '''
+    
+    # convert angle to raidans
+    alphai = alphai * (pi / 180)
+    
+    # determine wave vector (k)
+    kvec = 2.0*pi/wavelength
+    
+    x = space.q_list[0]
+    y = space.q_list[1]
+    z = space.q_list[2]
+    
+    # upper and lowerbounds for reflected angle
+    alphaf_min = alphai
+    alphaf_max = alphai + alphai
 
-    alphai = np.radians(alphai)
+    # upper and lowerbounds for in-plane angle 
+    iptheta_max = arcsin((y[y.argmax()] / kvec))
+    iptheta_min = -iptheta_max
     
-    intensity = sum(raw_intensity,axis=1).astype('float64')
+    # grab equally spaced intervals between upper and lowerbound angles
+    alphaf = linspace(alphaf_min, alphaf_max, size(x))
+    iptheta = linspace(iptheta_min, iptheta_max, size(y))
     
-    # Wave Vector Calculator
-    kvec = 2.0 * pi / wavelength
+    # calculate the vertical axis q values
+    qx = kvec * (cos( alphaf ) - cos(  alphai) )
+    qz = kvec * (sin( alphaf ) - sin(  alphai) )
     
-    xsize = size(space.q_list[0])
-    zsize = size(space.q_list[2])
+    # calculate the horizontal axis q values
+    qy = kvec * sin( iptheta )
     
-    # Grab equally spaced intervals  
-    xvals = np.linspace(space.q_list[0][0], space.q_list[0][xsize-1], xsize)
-    zvals = np.linspace(space.q_list[2][0], space.q_list[2][zsize-1], zsize)
+    xvals = x.copy()
+    yvals = y.copy()
+    zvals = z.copy()
     
-    for xstep in range(xsize):
-        
-        iptheta = np.degrees(np.arcsin(xvals[xstep] / 2.0 * kvec))
-        
-        for zstep in range(zsize):
-        
-            alphaf = np.degrees(np.arcsin(zvals[zstep] / 2.0 * kvec))
+    # Finds closest x, y, and z values for each of the qx, qy, and qz values
+    for i in range(size(qx)):
+        closestx = x[0]
+        closesty = y[0]
+        closestz = z[0]
+
+        for ii in range(size(x)):
+            if abs(x[ii] - qx[i]) < abs(closestx - qx[i]): 
+                closestx = x[ii]
+                xvals[i] = ii
+                
+        for ii in range(size(y)):
+            if abs(y[ii] - qy[i]) < abs(closesty - qy[i]): 
+                closesty = y[ii]
+                yvals[i] = ii
+               
+        for ii in range(size(z)):
+            if abs(z[ii] - qz[i]) < abs(closestz - qz[i]): 
+                closestz = z[ii]
+                zvals[i] = ii
     
-            angular_intensity = intensity
-            
-            angular_intensity[iptheta][alphaf] = intensity[xstep][zstep] 
-            
-    x_values = np.degrees(np.arcsin(xvals / 2.0 * kvec))
-    z_values = np.degrees(np.arcsin(zvals / 2.0 * kvec))
+    xvals = xvals.astype(int)
+    yvals = yvals.astype(int) 
+    zvals = zvals.astype(int)
+    
+    # Converts axis values to degrees
+    y_values = degrees(iptheta)
+    z_values = degrees(alphaf)
+    
+    angular_intensity = np.empty((size(qx),size(qz)))
+    
+    # Pulls intensity from the born approximation array and stores it in the correct
+    # angle space
+    for i in range(size(iptheta)):
+        for j in range(size(alphaf)):
+            angular_intensity[i][j] = intensity[xvals[j]][yvals[i]][zvals[j]]
          
-    return angular_intensity, x_values, z_values
+    return angular_intensity, y_values, z_values
 
+    
 def complete_formula(czt_result, step, Q):
     '''
     the scattering from the unit cell is not just the fft of the unit cell.
