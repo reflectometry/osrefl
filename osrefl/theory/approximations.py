@@ -1191,7 +1191,7 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
     
     # upper and lowerbounds for reflected angle
     alphaf_min = alphai
-    alphaf_max = alphai + alphai
+    alphaf_max = 25 * alphai
 
     # upper and lowerbounds for in-plane angle 
     iptheta_max = arcsin((y[y.argmax()] / kvec))

@@ -496,6 +496,19 @@ class Calculator(object):
         self.results = sum((abs(results)**2),axis=1)
         return
     
+    def DWBA_FormFactor(self,refract = True):
+        '''
+        **Overview:**
+            Returns the formfactor from the DWBA calculation.
+
+        '''
+        from DWBA import DWBA_form
+        from numpy import sum
+        results = asarray(DWBA_form(self.feature,None,
+                                 self.probe,self.space,refract = refract))
+        
+        return (abs(results)**2)
+    
     def toAngular(self, incident_angle, intensity):
         
         data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)

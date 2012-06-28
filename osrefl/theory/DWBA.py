@@ -127,7 +127,8 @@ def scatCalc(cell,lattice,beam,q):
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
     
     #calculates the structure factor using the gaussian convolution.
-    SF = lattice.gauss_struc_calc(q)
+    if lattice != None:
+        SF = lattice.gauss_struc_calc(q)
 
     for i in range(size(q.q_list[0])):
         print 'qx number: ', i, ' calculating'
@@ -205,7 +206,8 @@ def scatCalc(cell,lattice,beam,q):
             
             
             #Eq.18 with the added structure factor.
-            ftwRef *=SF[i,ii,0]
+            if lattice != None:
+                ftwRef *=SF[i,ii,0]
 
             #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
             #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
