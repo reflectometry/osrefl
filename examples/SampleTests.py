@@ -68,11 +68,11 @@ triprismunit = triprismunit.buildUnit()
 #triprismunit.add_media()
 
 cylinderunit = GeomUnit(Dxyz = xyz, n = resolution, scene = cylinderscene)
-cylinderunit = cylinderunit.buildUnit()
+cylinderunit = cylinderuni8t.buildUnit()
 #cylinderunit.add_media()
 
 # Define the Q space
-q_space = Q_space([ -0.1 , -0.1 , 0.002 ], [ 0.1 , 0.1 , .12 ], [ 300 , 300 , 300 ])
+q_space = Q_space([ -0.1 , -0.1 , 0.002 ], [ 0.1 , 0.1 , .12 ], [ 250 , 250 , 250 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -125,13 +125,6 @@ sample3.toAngular(0.25, raw_intensity3)
 sample3.viewAngular()
 
 ###############################################################################
-
-
-
-
-
-
-
 
 
 
