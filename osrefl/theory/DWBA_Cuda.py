@@ -1,0 +1,550 @@
+import pycuda.driver as cuda
+import pycuda.autoinit
+from pycuda.compiler import SourceModule
+from pylab import *
+from numpy import *
+from time import time
+from  ..model.sample_prep import Q_space
+from .approximations import wavefunction_format
+
+def scatCalc(cell,lattice,beam,q):
+    '''
+    Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
+    '''
+    
+    #Front of Eq (20)
+    m = 1.674e-27
+    h_bar = 6.62607e-14
+
+    Vfac = -m/(2*pi*h_bar**2)
+
+    q.getKSpace(beam.wavelength)
+    
+    scat = zeros(q.points,dtype = 'complex')
+    
+    
+    # PSI in one
+    # PSI in two
+    # PSI out one
+    # PSI out two
+    
+    pio = [None]*cell.n[2]
+    pit = [None]*cell.n[2]
+    poo = [None]*cell.n[2]
+    pot = [None]*cell.n[2]
+
+    pil = [None]*cell.n[2]
+    pfl = [None]*cell.n[2]
+
+    q_piopoo = [None]*cell.n[2]
+    q_piopot = [None]*cell.n[2]
+    q_pitpoo = [None]*cell.n[2]
+    q_pitpot = [None]*cell.n[2]
+
+    x = cell.value_list[0].reshape((cell.n[0],1,1))
+    y = cell.value_list[1].reshape((1,cell.n[1],1))
+    z = cell.value_list[2].reshape((1,1,cell.n[2]))
+    
+    #Averages the in-plane scattering length density and formats the new
+    #object as [SLD,Thickeness,Absorbtion] for each z layer
+    SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
+    
+    #This is the calculation of the critical edge. It is needed for the
+    #calculation of p.
+    pcl = sqrt(4*pi*SLDArray[:,0])
+    
+    #The cell is originally oriented so that the the bottom of the unit cell
+    #is located at the origin. This flips the cell so that the stack is ordered
+    #in the opposite direction.
+    flipCell = zeros(shape(cell.unit))
+
+    for i in range(cell.n[2]):
+        flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
+
+    #This calculates the residual potential by taking the difference between
+    #the reference potential and the actual potential
+    Vres = flipCell - (SLDArray[:,0]).reshape((1,1,cell.n[2]))
+    
+    #This is the rho used in eq. 20. The integration is the residual potential
+    #relative to the reference potential.
+    rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
+    rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
+    
+    #calculates the structure factor using the gaussian convolution.
+    if lattice != None:
+        lattice_flag = True
+        SF = lattice.gauss_struc_calc(q)
+    else:
+        lattice_flag = False
+        
+    cudamod = loadkernelsrc("lib/DWBA_kernel.cc")
+    cudaDWBA = cudamod.get_function("cudaDWBA_part1")
+    ftwRef = numpy.zeros(size(q.q_list[2]),dtype=cplx)
+
+
+    for i in range(size(q.q_list[0])):
+        print 'qx number: ', i, ' calculating'
+
+        for ii in range(size(q.q_list[1])):
+            
+            #The next few lines calculate the c and d values for each layer.
+            #This is done by calculating the specular reflectivity and then
+            #tracing the final reflected intensity back into the sample.
+            poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
+            negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
+            pio = poskiWavePar.c
+            pit = poskiWavePar.d
+            k_inl =poskiWavePar.kz_l
+            poo = negkfWavePar.c
+            pot = negkfWavePar.d
+            k_outl =negkfWavePar.kz_l
+
+            for l in range(cell.n[2]):
+                
+                #Solves the equation shown after eq. 11 on page 5.
+                pil[l]=sqrt(asarray((q.kin[i,ii,:]**2)-(pcl[l]**2),
+                                    dtype = 'complex'))
+                pfl[l]=sqrt(asarray((q.kout[i,ii,:]**2)-(pcl[l]**2),
+                                    dtype = 'complex'))
+
+                #Equations directly after eq (18).
+
+                q_piopoo[l] = -pfl[l] - pil[l]
+                q_piopot[l] = -pfl[l] + pil[l]
+                q_pitpoo[l] = pfl[l] - pil[l]
+                q_pitpot[l] = pfl[l] + pil[l]
+
+            pil = asarray(pil)
+            pfl = asarray(pfl)
+
+            q_piopoo = asarray(q_piopoo)
+            q_piopot = asarray(q_piopot)
+            q_pitpoo = asarray(q_pitpoo)
+            q_pitpot = asarray(q_pitpot)
+
+            pio = asarray(pio)
+            pit = asarray(pit)
+            poo = asarray(poo)
+            pot = asarray(pot)
+
+            k_inl = asarray(k_inl)
+            k_outl = asarray(k_outl)
+        
+            cxx = gpuarray.to_gpu(x)
+            cyy = gpuarray.to_gpu(y)
+            
+            crtor = gpuarray.to_gpu(rhoTilOverRho)
+            
+            coutput = cuda.mem_alloc(ftwRef.nbytes)
+
+            cudaDWBA(q.q_list[0][i], q.q_list[1][ii],
+                     cell.step[0], cell.step[1],
+                     size(x[0]), size(y[0]),
+                     cxx, cyy, crtor,
+                     Vfac, lattice_flag,
+                     coutput)
+            
+            cuda.memcpy_dtoh(ftwRef, coutput)      
+                        
+            '''
+            #Eq. 18
+            qx = q.q_list[0][i]
+            if qx != 0:
+                laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
+            else:
+                laux = complex(cell.step[0])
+                
+            qy = q.q_list[1][ii]
+            if qy != 0:
+                lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
+            else:
+                lauy = complex(cell.step[1])
+
+            #if isnan(laux):
+            #    laux = cell.step[0]
+            #if isnan(lauy):
+            #    lauy = cell.step[1]
+            
+            #Eq. 20
+            ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
+                       exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
+            
+            #Eq.17 for the x and y directions
+            ftwRef *= laux
+            ftwRef *= lauy
+            
+            #Eq.18 with the added structure factor.
+            if lattice != None:
+                ftwRef *=SF[i,ii,0]
+
+            '''
+
+            #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
+            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
+            
+            #Eq. 19
+            ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
+                      ftwRef.reshape((1,1,cell.n[2])))
+            
+            for iii in range(size(q.q_list[2])):
+
+                ft = ftwRef.copy()
+
+                pioSel = pio[:,iii].reshape((1,1,cell.n[2]))
+                pitSel = pit[:,iii].reshape((1,1,cell.n[2]))
+                pooSel = poo[:,iii].reshape((1,1,cell.n[2]))
+                potSel = pot[:,iii].reshape((1,1,cell.n[2]))
+
+                q_piopoo_sel = q_piopoo[:,iii].reshape((1,1,cell.n[2]))
+                q_piopot_sel = q_piopot[:,iii].reshape((1,1,cell.n[2]))
+                q_pitpoo_sel = q_pitpoo[:,iii].reshape((1,1,cell.n[2]))
+                q_pitpot_sel = q_pitpot[:,iii].reshape((1,1,cell.n[2]))
+
+                pil_sel = pil[:,iii].reshape((1,1,cell.n[2]))
+                pfl_sel = pfl[:,iii].reshape((1,1,cell.n[2]))
+                
+                #equation 15
+                scat_PioPoo = (pioSel * exp(1j*pil_sel*z)*ft*
+                               exp(1j*pfl_sel*z) * pooSel)
+                scat_PioPot = (pioSel * exp(1j*pil_sel*z)*ft*
+                               exp(-1j*pfl_sel*z)*potSel)
+                scat_PitPoo = (pitSel * exp(-1j*pil_sel*z)*ft*
+                               exp(1j*pfl_sel*z) *pooSel)
+                scat_PitPot = (pitSel * exp(-1j*pil_sel*z)*ft*
+                               exp(-1j*pfl_sel*z)* potSel)
+
+                #equation 18
+                scat_PioPoo *= ((-1j / q_piopoo_sel) * 
+                                (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0))
+                scat_PioPoo[isnan(scat_PioPoo)] = cell.step[2]
+
+                scat_PioPot *= ((-1j / q_piopot_sel) * 
+                                (exp(1j *q_piopot_sel * cell.step[2]) - 1.0))
+                scat_PioPot[isnan(scat_PioPot)] = cell.step[2]
+
+                scat_PitPoo *= ((-1j / q_pitpoo_sel) * 
+                                (exp(1j *q_pitpoo_sel *cell.step[2]) - 1.0))
+                scat_PitPoo[isnan(scat_PitPoo)] = cell.step[2]
+
+                scat_PitPot *= ((-1j / q_pitpot_sel) * 
+                                (exp(1j *q_pitpot_sel * cell.step[2]) - 1.0))
+                scat_PitPot[isnan(scat_PitPot)] = cell.step[2]
+                
+                #Exactly equation15
+                scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
+                                    scat_PitPoo + scat_PitPot)
+
+
+    k_spec = q.q_list[2]/2.0
+    dwba_spec = dwbaWavefunction(k_spec,SLDArray)
+
+    locx = q.q_list[0].searchsorted(0.0)
+    locy = q.q_list[1].searchsorted(0.0)
+
+    #scat[locx,locy,:] = dwba_spec.r
+
+    
+    semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
+    semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
+    figure()
+    
+    return(scat)
+
+class dwbaWavefunction:
+
+    def __init__(self, kz, SLDArray):
+
+        self.kz = kz
+        self.SLDArray = SLDArray
+
+        self.layerCount = SLDArray.shape[0]
+        self.thickness = sum(SLDArray[1:-1,1])
+
+        SLD_inc = SLDArray[0,0]
+        SLD_sub = SLDArray[-1,0]
+
+        B11 = ones(shape(kz),dtype='complex')
+        B22 = ones(shape(kz),dtype='complex')
+        B21 = zeros(shape(kz),dtype='complex')
+        B12 = zeros(shape(kz),dtype='complex')
+
+        M11 = [None]*self.layerCount
+        M12 = [None]*self.layerCount
+        M21 = [None]*self.layerCount
+        M22 = [None]*self.layerCount
+
+        Bl11 = [None]*self.layerCount
+        Bl12 = [None]*self.layerCount
+        Bl21 = [None]*self.layerCount
+        Bl22 = [None]*self.layerCount
+
+        Bl11[0] = B11
+        Bl12[0] = B22
+        Bl21[0] = B21
+        Bl22[0] = B12
+
+        self.c = [None]*self.layerCount
+        self.d = [None]*self.layerCount
+
+        nz =[None]*self.layerCount
+
+        k0z = sqrt(asarray(kz**2 + 4 * pi * SLD_inc,dtype = 'complex'))
+
+        nz[0] = sqrt( complex(1) - 4 * pi * SLD_inc / k0z**2 )
+        nz[-1] = sqrt( complex(1) - 4 * pi * SLD_sub / k0z**2 )
+
+        for l in range(1, self.layerCount-1):
+
+            #leaving off the incident medium and substrate from sum
+            SLD,thickness,mu = self.SLDArray[l]
+
+            nz[l] = sqrt(complex(1) - 4 * pi * SLD/ k0z**2 )
+            kzl =( nz[l] * k0z ) # edit: BBM 02/10/2012
+            n = nz[l]
+
+            M11[l] = asarray(cos(kzl * thickness),dtype = 'complex')
+            M12[l] = asarray(1/n * sin(kzl * thickness),dtype = 'complex')
+            M21[l] = asarray((-n) * sin(kzl * thickness),dtype = 'complex')
+            M22[l] = asarray(cos(kzl * thickness),dtype = 'complex')
+
+            C1 = B11*M11[l] + B21*M12[l]
+            C2 = B11*M21[l] + B21*M22[l]
+            B11 = C1
+            B21 = C2
+
+
+            C1 = B12*M11[l] + B22*M12[l]
+            C2 = B12*M21[l] + B22*M22[l]
+            B12 = C1
+            B22 = C2
+
+            Bl11[l] = B11
+            Bl21[l] = B21
+            Bl12[l] = B12
+            Bl22[l] = B22
+
+        self.kz_l = nz * k0z
+
+        r = (B11 + (1j * nz[0] * B12) + (1/(1j * nz[-1])*(
+            -B21 - 1j * nz[0] * B22))) / ((-B11 + 1j * nz[0] * B12) + (
+                             1/(1j * nz[-1])*( B21 - 1j * nz[0] * B22)))
+
+        Bl11[-1] = ones(shape(kz))
+        Bl12[-1] = zeros(shape(kz))
+        Bl21[-1] = ones(shape(kz))
+        Bl22[-1] = zeros(shape(kz))
+
+        self.r = r
+
+        self.t = zeros(shape(r),dtype = 'complex')
+        self.t[nz[-1].real != 0.0] = 1.0 + self.r[nz[-1].real != 0.0]
+
+        self.c[0] = ones(shape(kz),dtype='complex') # incident beam has intensity 1
+        self.d[0] = r # reflected beam has intensity |r|**2
+
+        p = asarray(1.0 + r,dtype ='complex') #psi
+        pp = asarray(1j * nz[0] * (1 - r),dtype='complex') #psi prime / k0z
+
+        M11[0] = ones(shape(kz),dtype='complex')
+        M12[0] = ones(shape(kz),dtype='complex')
+        M21[0] = ones(shape(kz),dtype='complex')
+        M22[0] = ones(shape(kz),dtype='complex')
+
+        M11[-1] = zeros(shape(kz),dtype='complex')
+        M12[-1] = ones(shape(kz),dtype='complex')
+        M21[-1] = ones(shape(kz),dtype='complex')
+        M22[-1] = zeros(shape(kz),dtype='complex')
+
+        z_interface = 0.0
+
+        for l in range(1,self.layerCount-1):
+            ## this algorithm works all the way into the substrate
+
+            pForDot = copy(p)
+            ppForDot = copy(pp)
+
+            p = (M11[l]*pForDot) + (M12[l]*ppForDot)
+            pp = (M21[l]*pForDot) + (M22[l]*ppForDot)
+
+
+            #Fine, This is c and d
+            self.c[l] = (.5* exp(-1j*k0z*nz[l]*(z_interface))*
+                         (p + (pp/(1j*nz[l]))))
+            self.d[l] = (.5* exp(1j*k0z*nz[l]*(z_interface))*
+                         (p - (pp/(1j*nz[l]))))
+
+            z_interface += thickness
+
+        # fill final c,d
+
+        self.c[-1] = self.t
+        self.d[-1] = zeros(shape(kz),dtype='complex')
+        return
+    
+    
+def form(density, x, y, z, Qx, Qy, Qz, psi, qx_refract, gpu=None,
+         precision='float32'):
+    '''
+    Overview:
+        Sets up the parallelized calculation of the form factor for calculation
+    on an nvidia graphics card over all devices.
+
+
+    Parameters:
+
+    density:(3D array|angstroms^2) = The scattering length density array being
+    scattered off of.
+
+    x:(array|angstroms) = An array of real space values that represent the
+    location of the discretized units of density in the x direction.
+
+    y:(array|angstroms) = An array of real space values that represent the
+    location of the discretized units of density in the y direction.
+
+    z:(array|angstroms) = An array of real space values that represent the
+    location of the discretized units of density in the z direction.
+
+    Qx:(array|angstroms^-1) = The array of Qx values that are being solved for.
+    This array determines the output.
+
+    Qy:(array|angstroms^-1) = The array of Qy values that are being solved for.
+    Although solved for, this is the axis that is integrated over. It simulates
+    the contribution of Qy scattering to the data.
+
+    Qz:(array|angstroms^-1) = The array of Qz values that are being solved for.
+    This array determines the output.
+
+    gpu:(int) = The number of devices the user wants to utilize when solving
+    the wavefunction. This defaults the the maximum number of available
+    resources.
+
+    precision:(str|precision) = Allows the user to specify how precision the
+    calculation will be. The choices here are generally float32 and float64.
+
+    '''
+
+    density,x,y,z,Qx,Qy,Qz, qx_refract = [numpy.asarray(v,precision) for v in
+                              density,x,y,z,Qx,Qy,Qz,qx_refract]
+
+    cplx = 'complex64' if precision=='float32' else 'complex128'
+
+    psi= ([numpy.asarray(v,cplx) for v in psi])
+
+
+    if gpu is not None:
+        numgpus = 1
+        gpus = [gpu]
+
+    else:
+        numgpus = cuda.Device.count()
+        gpus = range(numgpus)
+
+    size = [len(v) for v in Qx,Qy,Qz]
+
+    result = numpy.empty(size,dtype=cplx)
+
+    work_queue = Queue.Queue()
+
+    for qxi,qx in enumerate(Qx): work_queue.put(qxi)
+
+    threads = [FormThread(gpus[k], work_queue, result,
+                      density, x, y, z,Qx, Qy, Qz,
+                      psi,qx_refract)
+           for k in range(numgpus)]
+
+    for T in threads: T.start()
+    for T in threads: T.join()
+    return result
+
+
+
+class FormThread(threading.Thread):
+    '''
+    Overview:
+        Threads the kernel and the parameters to the GPU card device for a
+    parallelized calculation.
+
+    Note:
+    -The threading in this object occurs over a single plane. Within the design
+    of this use, it threads over each Qx plane (Qy x Qz) and then moves on to
+    the next plane. Threading over the full 3D array proved challenging because
+    of limited resources on the card.
+    '''
+    def __init__(self, gpu, work_queue, result, density, x, y, z, Qx, Qy, Qz,
+                                                            psi, qx_refract):
+
+        threading.Thread.__init__(self)
+        self.born_args = density, x, y, z, Qx, Qy, Qz, result, psi, qx_refract
+        self.work_queue = work_queue
+        self.gpu = gpu
+        self.precision = x.dtype
+
+    def run(self):
+        '''
+        Overview:
+            The 'executed' part of the thread object.
+        '''
+        self.dev = cuda.Device(self.gpu)
+        self.ctx = self.dev.make_context()
+        self.cudamod = loadformkernelsrc("lib/smba_kernel.c",
+                                         precision=self.precision)
+
+        self.cudaBorn = self.cudamod.get_function("cudaBorn")
+        self.formkernel()
+        self.ctx.pop()
+        del self.ctx
+        del self.dev
+
+
+    def formkernel(self):
+        '''
+        Overview:
+            The kernel that is loaded by run to the device which calculates the
+        form factor for a given set of Q space parameters.
+
+        '''
+        density, x, y, z, Qx, Qy, Qz, result, psi, qx_refract = self.born_args
+
+        nx, ny, nz, nqx, nqy, nqz = [numpy.int32(len(v))
+                                     for v in x, y, z, Qx, Qy, Qz]
+
+        fdensity = density.flatten()
+
+        cx,cy,cz,cQx,cQy,cQz,cdensity = [gpuarray.to_gpu(v)
+                                          for v in x, y, z, Qx, Qy, Qz,fdensity]
+
+        cframe = cuda.mem_alloc(result[0].nbytes)
+
+        n = int(1*nqy*nqz)
+
+        while True:
+            try:
+                qxi = numpy.int32(self.work_queue.get(block=False))
+            except Queue.Empty:
+                break
+
+            print "%d of %d on %d\n"%(qxi,nqx,self.gpu),
+
+            cpsi_in_one = gpuarray.to_gpu((psi[0][qxi,:,:]).flatten())
+            cpsi_in_two = gpuarray.to_gpu((psi[1][qxi,:,:]).flatten())
+            cpsi_out_one = gpuarray.to_gpu((psi[2][qxi,:,:]).flatten())
+            cpsi_out_two = gpuarray.to_gpu((psi[3][qxi,:,:]).flatten())
+
+            cqx_refract = gpuarray.to_gpu(qx_refract[qxi,:,:].flatten())
+
+            self.cudaBorn(nx,ny,nz,nqx,nqy,nqz,
+                     cdensity,cx,cy,cz,cQx,cQy,cQz,
+                     cpsi_in_one,cpsi_in_two,
+                     cpsi_out_one,cpsi_out_two,
+                     cqx_refract,
+                     qxi,cframe,
+                     **cuda_partition(n))
+
+            ## Delay fetching result until the kernel is complete
+            cuda_sync()
+
+            ## Fetch result back to the CPU
+            cuda.memcpy_dtoh(result[qxi], cframe)
+
+        del cx, cy, cz, cQx, cQy, cQz, cdensity, cframe,cqx_refract
+        del cpsi_in_one,cpsi_out_one,cpsi_in_two,cpsi_out_two
