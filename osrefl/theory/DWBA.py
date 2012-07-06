@@ -10,6 +10,7 @@ from numpy import *
 from time import time
 from  ..model.sample_prep import Q_space
 from .approximations import wavefunction_format
+
 def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
     The scattering is calculated in scatCalc because we need to open up the
@@ -63,6 +64,16 @@ def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
     return(scat)
 
+def print_timing(func):
+    def wrapper(*arg):
+        t1 = time()
+        res = func(*arg)
+        t2 = time()
+        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
+        return res
+    return wrapper
+
+@print_timing
 def scatCalc(cell,lattice,beam,q):
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
@@ -138,8 +149,10 @@ def scatCalc(cell,lattice,beam,q):
             #The next few lines calculate the c and d values for each layer.
             #This is done by calculating the specular reflectivity and then
             #tracing the final reflected intensity back into the sample.
+           
             poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
             negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
+            
             pio = poskiWavePar.c
             pit = poskiWavePar.d
             k_inl =poskiWavePar.kz_l
@@ -161,6 +174,8 @@ def scatCalc(cell,lattice,beam,q):
                 q_piopot[l] = -pfl[l] + pil[l]
                 q_pitpoo[l] = pfl[l] - pil[l]
                 q_pitpot[l] = pfl[l] + pil[l]
+            
+
 
             pil = asarray(pil)
             pfl = asarray(pfl)
@@ -189,12 +204,8 @@ def scatCalc(cell,lattice,beam,q):
             if qy != 0:
                 lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
             else:
-                lauy = complex(cell.step[1])
-
-            #if isnan(laux):
-            #    laux = cell.step[0]
-            #if isnan(lauy):
-            #    lauy = cell.step[1]
+                lauy = complex(cell.step[1])       
+            
             
             #Eq. 20
             ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
@@ -204,7 +215,7 @@ def scatCalc(cell,lattice,beam,q):
             ftwRef *= laux
             ftwRef *= lauy
             
-            
+
             #Eq.18 with the added structure factor.
             if lattice != None:
                 ftwRef *=SF[i,ii,0]
@@ -263,8 +274,8 @@ def scatCalc(cell,lattice,beam,q):
                 #Exactly equation15
                 scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
                                     scat_PitPoo + scat_PitPot)
-
-
+            
+                    
     k_spec = q.q_list[2]/2.0
     dwba_spec = dwbaWavefunction(k_spec,SLDArray)
 
@@ -272,7 +283,6 @@ def scatCalc(cell,lattice,beam,q):
     locy = q.q_list[1].searchsorted(0.0)
 
     #scat[locx,locy,:] = dwba_spec.r
-
     
     semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
     semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])

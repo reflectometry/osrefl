@@ -27,7 +27,7 @@ alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0],
 #                                offset = [-1400, 0, 0.0])
 
 triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 400.0], 
-                          core_dim = [3000.0, 500.0, 300.0],
+                          core_dim = [3000.0, 500.0, 400.0],
                           x_increment = 0.0,
                           y_increment = 500.0,                          
                           offset = [0.0, -1250.0, 0.0])
@@ -43,10 +43,10 @@ cylinder = CylinderSample(shell_dim = [3000.0, 3000.0, 500.0],
 print("\nBuilding Samples...")
 alternating.Create(core_SLD = 3.0e-6, core_Ms = 2.162e-6, 
                    shell_SLD = 1.0e-6, shell_Ms = 1.0e-6)
-triprism.Create(core_SLD = 1e-6, core_Ms = 2.162e-6, 
-                shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
-cylinder.Create(core_SLD = 4.0e-6, core_Ms = 2.162e-6, 
-                shell_SLD = 3.12e-6, shell_Ms = 1.0e-6)
+triprism.Create(core_SLD = 0.1e-12, core_Ms = 2.162e-6, 
+                shell_SLD = 5.0e-6, shell_Ms = 1.0e-6)
+cylinder.Create(core_SLD = 0.1e-12, core_Ms = 2.162e-6, 
+                shell_SLD = 1.0e-6, shell_Ms = 1.0e-6)
 
 # Grab the scene object 
 altscene = alternating.getScene()
@@ -61,27 +61,23 @@ xyz = [ 3000 , 3000 , 600 ]
 print("Creating Geometry Units...")
 altunit = GeomUnit(Dxyz = xyz, n = resolution, scene = altscene)
 altunit = altunit.buildUnit()
-#altunit.add_media()
 
 triprismunit = GeomUnit(Dxyz = xyz, n = resolution, scene = triprismscene)
 triprismunit = triprismunit.buildUnit()
-#triprismunit.add_media()
 
 cylinderunit = GeomUnit(Dxyz = xyz, n = resolution, scene = cylinderscene)
-cylinderunit = cylinderuni8t.buildUnit()
-#cylinderunit.add_media()
+cylinderunit = cylinderunit.buildUnit()
 
 # Define the Q space
-q_space = Q_space([ -0.1 , -0.1 , 0.002 ], [ 0.1 , 0.1 , .12 ], [ 250 , 250 , 250 ])
+q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 30 , 30 , 30 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
 triprismlattice = Rectilinear([1,1,1],triprismunit)
 cylinderlattice = Rectilinear([1,1,1],cylinderunit)
 
-
 # Define the Beam parameters 
-beam = Beam(4.75, 0.02, None, 0.02, None)
+beam = Beam(4.75, None, None, 0.02, None)
 
 # Calculate the Scattering and display results 
 ###############################################################################
@@ -90,7 +86,7 @@ print("Calculating Sample 1... (Alternating)")
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 
-raw_intensity1 = sample1.BA_FormFactor()
+raw_intensity1 = sample1.DWBA_FormFactor()
 
 ##############################################################################
 
@@ -125,7 +121,6 @@ sample3.toAngular(0.25, raw_intensity3)
 sample3.viewAngular()
 
 ###############################################################################
-
 
 
 
