@@ -492,7 +492,7 @@ class Calculator(object):
         from numpy import sum
         results = asarray(DWBA_form(self.feature,self.lattice,
                                  self.probe,self.space,refract = refract))
-        print shape(results)
+        #print shape(results)
         self.results = sum((abs(results)**2),axis=1)
         return
     

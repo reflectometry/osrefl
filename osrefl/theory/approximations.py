@@ -1208,8 +1208,6 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
     # calculate the horizontal axis q values
     qy = kvec * sin( iptheta )
 
-    print qx
-
     xvals = x.copy()
     yvals = y.copy()
     zvals = z.copy()

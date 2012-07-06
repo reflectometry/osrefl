@@ -70,15 +70,20 @@ def scatCalc(cell,lattice,beam,q):
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
     
-    #calculates the structure factor using the gaussian convolution.
+    # calculates the structure factor using the gaussian convolution if there
+    # is a lattice specified
     if lattice != None:
         lattice_flag = True
         SF = lattice.gauss_struc_calc(q)
     else:
         lattice_flag = False
-        
+    
+    # Load CUDA source    
     cudamod = loadkernelsrc("lib/DWBA_kernel.cc")
+    #Grab function(s)
     cudaDWBA = cudamod.get_function("cudaDWBA_part1")
+    
+    # Allocate space in memory for GPU output
     ftwRef = numpy.zeros(size(q.q_list[2]),dtype=cplx)
 
 
@@ -128,15 +133,17 @@ def scatCalc(cell,lattice,beam,q):
             pot = asarray(pot)
 
             k_inl = asarray(k_inl)
-            k_outl = asarray(k_outl)
-        
+            k_outl = asarray(k_out)
+            
+            # Copy over arrays and allocate memory on the GPU
             cxx = gpuarray.to_gpu(x)
             cyy = gpuarray.to_gpu(y)
             
             crtor = gpuarray.to_gpu(rhoTilOverRho)
             
             coutput = cuda.mem_alloc(ftwRef.nbytes)
-
+            
+            # Call DWBA function on the GPU
             cudaDWBA(q.q_list[0][i], q.q_list[1][ii],
                      cell.step[0], cell.step[1],
                      size(x[0]), size(y[0]),
@@ -144,9 +151,14 @@ def scatCalc(cell,lattice,beam,q):
                      Vfac, lattice_flag,
                      coutput)
             
+            # Copy array back from the device(GPU) to the host (CPU)
             cuda.memcpy_dtoh(ftwRef, coutput)      
                         
             '''
+            ########################################################################
+            # THE FOLLOWING CODE HAS BEEN REPLACED BY GPU CALCULATIONS FOR TESTING #
+            ########################################################################
+            
             #Eq. 18
             qx = q.q_list[0][i]
             if qx != 0:
@@ -178,9 +190,6 @@ def scatCalc(cell,lattice,beam,q):
                 ftwRef *=SF[i,ii,0]
 
             '''
-
-            #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
-            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
             
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
