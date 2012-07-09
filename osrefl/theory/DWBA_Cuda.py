@@ -247,7 +247,7 @@ def scatCalc(cell,lattice,beam,q):
                      numpy.int32(size(x[0])), numpy.int32(size(y[0])),
                      cxx, cyy, crtor,
                      Vfac, coutput,
-                     block=(400,1,1), grid=(numpy.int32(1),1))
+                     block=(400,1,1), grid=(1,1))
             
             
             cuda_sync()
