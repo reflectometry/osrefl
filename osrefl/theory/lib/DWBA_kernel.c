@@ -4,7 +4,7 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	 const Real xstep, const Real ystep,
 	 const int nx, const int ny,
 	 const Real xx[], const Real yy[],
-	 const Real rtor[][][],
+	 const Real rtor[][][1000],
 	 const Real Vfac,
 	 const bool lattice,
 	 Cplx output[])
@@ -13,7 +13,7 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	const int x = threadIdx.x + blockIdx.x * blockDim.x;
 	const int y = threadIdx.y + blockIdx.y * gridDim.y;
 	int offset = x + y * blockDim.x * gridDim.x;
-	if (offset >= nx * ny) return;
+	if (offset >= ny) return;
 	
 	Cplx laux;
 	Cplx lauy;
