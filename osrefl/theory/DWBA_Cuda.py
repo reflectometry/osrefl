@@ -97,16 +97,7 @@ def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
     return(scat)
 
-def print_timing(func):
-    def wrapper(*arg):
-        t1 = time()
-        res = func(*arg)
-        t2 = time()
-        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
-        return res
-    return wrapper
 
-@print_timing
 def scatCalc(cell,lattice,beam,q):
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
