@@ -6,6 +6,7 @@ from numpy import *
 from time import time
 from  ..model.sample_prep import Q_space
 from .approximations import wavefunction_format
+import numpy 
 
 def loadkernelsrc(name, precision='float32', defines={}):
     import os
