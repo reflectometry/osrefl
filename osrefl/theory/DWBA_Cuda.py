@@ -35,7 +35,11 @@ def loadkernelsrc(name, precision='float32', defines={}):
     return SourceModule(src, no_extern_c=True,
                     include_dirs=[os.path.abspath(os.path.dirname(__file__))])
 
-
+def readfile(name):
+    file = open(name)
+    txt = file.read()
+    file.close()
+    return txt
 
 def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
@@ -172,7 +176,7 @@ def scatCalc(cell,lattice,beam,q):
         lattice_flag = False
     
     # Load CUDA source    
-    cudamod = loadkernelsrc("lib/DWBA_kernel.cc")
+    cudamod = loadkernelsrc("lib/DWBA_kernel.c")
     #Grab function(s)
     cudaDWBA = cudamod.get_function("cudaDWBA_part1")
     
