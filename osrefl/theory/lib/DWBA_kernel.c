@@ -4,7 +4,7 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	 const Real xstep, const Real ystep,
 	 const int nx, const int ny,
 	 const Real xx[], const Real yy[],
-	 const Real rtor[][][1000],
+	 const Real rtor[1000][1000][1000],
 	 const Real Vfac,
 	 const bool lattice,
 	 Cplx output[])
