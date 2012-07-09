@@ -7,14 +7,13 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	 const Real rtor[][][]
 	 const Real Vfac,
 	 const bool lattice,
-	 //const Real SF,
-	 Cplx output[])
-
+	 Cplx output[]
+)
 {
 
-	const int x = ThreadIdx.x + blockIdx.x * blockDim.x
-	const int y = ThreadIdx.y + blockIdx.y * gridDim.y
-	int offset = x + y * blockDim.x * gridDim.x
+	const int x = ThreadIdx.x + blockIdx.x * blockDim.x;
+	const int y = ThreadIdx.y + blockIdx.y * gridDim.y;
+	int offset = x + y * blockDim.x * gridDim.x;
 	if (offset >= nx * ny) return;
 	
 	Cplx laux;
@@ -33,8 +32,6 @@ cudaDWBA_part1(const Real qx, const Real qy,
 		for(int j = 0; j < ny; ++j)
 			ftwRef += rtor[i][j][offset] * exp(1I * qx[offset] * xx[offset]) * exp(1I * qy[offset] * yy[offset]);
 
-	//if(lattice)
-	//	ftwRef *= SF;	
 
 	output[offset] = ftwRef * Vfac * laux * lauy; 
 
