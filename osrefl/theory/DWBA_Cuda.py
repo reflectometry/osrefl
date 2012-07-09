@@ -235,7 +235,7 @@ def scatCalc(cell,lattice,beam,q):
             
             # Call DWBA function on the GPU
             cudaDWBA(q.q_list[0][i], q.q_list[1][ii],
-                     numpy.int32(cell.step[0]), numpy.int32(cell.step[1]),
+                     cell.step[0], cell.step[1],
                      numpy.int32(size(x[0])), numpy.int32(size(y[0])),
                      cxx, cyy, crtor,
                      numpy.float32(Vfac), coutput,

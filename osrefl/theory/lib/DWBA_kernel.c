@@ -13,7 +13,7 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	const int x = threadIdx.x + blockIdx.x * blockDim.x;
 	const int y = threadIdx.y + blockIdx.y * gridDim.y;
 	int offset = x + y * blockDim.x * gridDim.x;
-	if (offset >= ny) return;
+	if (offset >= ny-1) return;
 	
 	Cplx laux;
 	Cplx lauy;
