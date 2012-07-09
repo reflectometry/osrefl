@@ -246,7 +246,8 @@ def scatCalc(cell,lattice,beam,q):
                      cell.step[0], cell.step[1],
                      size(x[0]), size(y[0]),
                      cxx, cyy, crtor,
-                     Vfac, coutput, 32)
+                     Vfac, coutput,
+                     block=(300,300,300), grid=(3,3))
             
             # Copy array back from the device(GPU) to the host (CPU)
             cuda.memcpy_dtoh(ftwRef, coutput)      
