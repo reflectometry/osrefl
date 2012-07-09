@@ -7,6 +7,36 @@ from time import time
 from  ..model.sample_prep import Q_space
 from .approximations import wavefunction_format
 
+def loadkernelsrc(name, precision='float32', defines={}):
+    import os
+    src = readfile(os.path.join(os.path.dirname(__file__),name))
+    # The following are currently defined by cufloat.h/cudouble.h, so aren't
+    # needed here.
+    #defines['CUDA_KERNEL'] = 'extern "C" __global__ void'
+    #defines['INLINE'] = '__inline__ __host__ __device__'
+    defines = "\n".join(('#define %s %s'%(k,str(defines[k])))
+                        for k in sorted(defines.keys()))
+    #define sin __sinf
+    #define cos __cosf
+    if precision == 'float32':
+        typedefs = '''
+#define HAVE_CUDA
+#include <lib/cufloat.h>
+
+#define sincos __sincosf
+        '''
+    else:
+        typedefs = '''
+#define HAVE_CUDA
+#include <lib/cudouble.h>
+        '''
+    src = defines+typedefs+src
+
+    return SourceModule(src, no_extern_c=True,
+                    include_dirs=[os.path.abspath(os.path.dirname(__file__))])
+
+
+
 def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
     The scattering is calculated in scatCalc because we need to open up the
