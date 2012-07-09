@@ -63,7 +63,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 100 , 100 , 100 ])
+q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 300 , 300 , 300 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -104,8 +104,16 @@ raw_intensity3 = sample3.BA_FormFactor()
 
 print "Viewing Sample 1... {}".format(alternating.__class__)
 sample1.toAngular(0.25, raw_intensity1)
+
 sample1.viewAngular()
 
+sample1.printAngularToFile()
+sample1.viewAngularFromFile()
+
+
+
+
+'''
 print "Viewing Sample 1... {}".format(triprism.__class__)
 sample2.toAngular(0.25, raw_intensity2)
 sample2.viewAngular()
@@ -113,7 +121,7 @@ sample2.viewAngular()
 print "Viewing Sample 1... {}".format(cylinder.__class__)
 sample3.toAngular(0.25, raw_intensity3)
 sample3.viewAngular()
-
+'''
 ###############################################################################
 
 

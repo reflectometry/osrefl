@@ -16,6 +16,7 @@ import osrefl.loaders.scale
 import osrefl.model.sample_prep
 from . import resolution
 import numpy as np
+import pickle
 
 
 class Calculator(object):
@@ -762,6 +763,63 @@ class Calculator(object):
         
         MultiView(data,[xstep,zstep],
           [x_values,z_values],
+          titles=titles,extent= extent,
+          axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
+
+    def printAngularToFile(self):
+        '''
+        **Overview:**
+
+            Uses the magPlotSlicer.py module to view the uncorrected models in real space.
+            This module includes tools for:
+
+            * Slice averaging for the data vertically and horizontally
+            * Viewing linear and log plots of both 2D slices and 3D image plots
+            * Altering of the color axis scale
+
+        '''
+        
+        x_values = self.anglexvals
+        z_values = self.anglezvals
+        
+        titles = ['uncorrected']
+        data = [[self.results,'Theory']]
+
+        xstep = (x_values[size(x_values)-1] - x_values[0]) / size(x_values)
+        zstep = (z_values[size(z_values)-1] - z_values[0]) / size(z_values)
+        
+        xmin = x_values[0]
+        xmax = x_values[size(x_values)-1]              
+        zmin = z_values[0]
+        zmax = z_values[size(z_values)-1]
+        
+        xmin = xmin.tolist()
+        xmax = xmax.tolist()      
+        zmin = zmin.tolist()
+        zmax = zmax.tolist()
+    
+        extent = asarray([xmin, xmax, zmin, zmax])
+        
+        output = open('angular_data.dat', 'wb')
+        pickle.dump(self.results, output)
+        pickle.dump(extent, output)
+        pickle.dump([xstep, zstep], output)
+        pickle.dump([x_values,z_values], output)
+        output.close()
+        
+    def viewAngularFromFile(self):
+
+        input = open('angular_data.dat', 'rb')
+        data = self.results = pickle.load(input)
+        extent = pickle.load(input)
+        steps = pickle.load(input)
+        values = pickle.load(input)
+        input.close()
+        
+        titles = ['uncorrected']
+        data = [[data, 'Theory']]
+        
+        MultiView(data,steps, values,
           titles=titles,extent= extent,
           axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
 
