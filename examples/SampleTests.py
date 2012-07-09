@@ -1,7 +1,9 @@
+'''
+import matplotlib
+matplotlib.use('Agg')
 from osrefl.model.sample_prep import *
 from osrefl.model.samples import *
 from numpy import log, abs, min, max
-from pylab import figure, show, subplot, imshow
 from osrefl.loaders.andr_load import *
 from osrefl.theory.scatter import *
 from osrefl.theory import approximations, scatter
@@ -9,7 +11,23 @@ from osrefl.theory.approximations import *
 from osrefl.viewers import view
 import numpy as np
 import matplotlib.pyplot as plt
+from pylab import figure, show, subplot, imshow
 
+
+'''
+
+from osrefl.model.sample_prep import *
+from osrefl.model.samples import *
+from numpy import log, abs, min, max
+from osrefl.loaders.andr_load import *
+from osrefl.theory.scatter import *
+from osrefl.theory import approximations, scatter
+from osrefl.theory.approximations import *
+from osrefl.viewers import view
+import numpy as np
+
+import matplotlib.pyplot as plt
+from pylab import figure, show, subplot, imshow
 
 
 # Define the Samples
@@ -104,10 +122,6 @@ raw_intensity3 = sample3.BA_FormFactor()
 
 print "Viewing Sample 1... {}".format(alternating.__class__)
 sample1.toAngular(0.25, raw_intensity1)
-
-sample1.viewAngular()
-
-sample1.printAngularToFile()
 sample1.viewAngularFromFile()
 
 

@@ -489,7 +489,7 @@ class Calculator(object):
 
 
         '''
-        from DWBA import DWBA_form
+        from DWBA_Cuda import DWBA_form
         from numpy import sum
         results = asarray(DWBA_form(self.feature,self.lattice,
                                  self.probe,self.space,refract = refract))
