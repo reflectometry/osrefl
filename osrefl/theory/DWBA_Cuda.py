@@ -1,6 +1,7 @@
 import pycuda.driver as cuda
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
+from pycuda import gpuarray
 from pylab import *
 from numpy import *
 from time import time
