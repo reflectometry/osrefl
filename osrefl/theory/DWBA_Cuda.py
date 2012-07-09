@@ -490,3 +490,46 @@ class dwbaWavefunction:
         self.c[-1] = self.t
         self.d[-1] = zeros(shape(kz),dtype='complex')
         return
+    
+def cuda_sync():
+    """
+    Overview:
+        Waits for operation in the current context to complete.
+    """
+    #return # The following works in C++; don't know what pycuda is doing
+    # Create an event with which to synchronize
+    done = cuda.Event()
+
+    # Schedule an event trigger on the GPU.
+    done.record()
+
+    #line added to not hog resources
+    while not done.query(): time.sleep(0.01)
+
+    # Block until the GPU executes the kernel.
+    done.synchronize()
+    # Clean up the event; I don't think they can be reused.
+    del done
+
+def cuda_partition(n):
+    '''
+    Overview:
+        Auto grids the thread blocks to achieve some level of calculation
+    efficiency.
+    '''
+    max_gx,max_gy = 65535,65535
+    blocksize = 32
+    #max_gx,max_gy = 5,65536
+    #blocksize = 3
+    block = (blocksize,1,1)
+    num_blocks = int((n+blocksize-1)/blocksize)
+    if num_blocks < max_gx:
+        grid = (num_blocks,1)
+    else:
+        gx = max_gx
+        gy = (num_blocks + max_gx - 1) / max_gx
+        if gy >= max_gy: raise ValueError("vector is too large")
+        grid = (gx,gy)
+    #print "block",block,"grid",grid
+    #print "waste",block[0]*block[1]*block[2]*grid[0]*grid[1] - n
+    return dict(block=block,grid=grid)
