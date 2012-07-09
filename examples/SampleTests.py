@@ -98,6 +98,7 @@ print "Calculating Sample 1... {}".format(alternating.__class__)
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 
+# Use DWBA_FormFactor for DWBA Calculations(make sure Q_space is more coarsely defined)
 raw_intensity1 = sample1.BA_FormFactor()
 
 ##############################################################################
