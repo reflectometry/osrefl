@@ -182,7 +182,7 @@ def scatCalc(cell,lattice,beam,q):
     cudaDWBA = cudamod.get_function("cudaDWBA_part1")
     
     # Allocate space in memory for GPU output
-    ftwRef = numpy.zeros(size(q.q_list[2]),dtype=cplx)
+    ftwRef = numpy.zeros(size(q.q_list[2]),dtype=np.complex64)
 
 
     for i in range(size(q.q_list[0])):
