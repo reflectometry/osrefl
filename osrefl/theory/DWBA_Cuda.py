@@ -182,8 +182,7 @@ def scatCalc(cell,lattice,beam,q):
     cudaDWBA = cudamod.get_function("cudaDWBA_part1")
     
     # Allocate space in memory for GPU output
-    ftwRef = numpy.zeros(size(q.q_list[2]),dtype=np.complex64)
-
+    ftwRef = numpy.zeros(size(q.q_list[2]),dtype='complex')
 
     for i in range(size(q.q_list[0])):
         print 'qx number: ', i, ' calculating'
@@ -231,7 +230,7 @@ def scatCalc(cell,lattice,beam,q):
             pot = asarray(pot)
 
             k_inl = asarray(k_inl)
-            k_outl = asarray(k_out)
+            k_outl = asarray(k_outl)
             
             # Copy over arrays and allocate memory on the GPU
             cxx = gpuarray.to_gpu(x)
@@ -486,78 +485,3 @@ class dwbaWavefunction:
         self.c[-1] = self.t
         self.d[-1] = zeros(shape(kz),dtype='complex')
         return
-    
-    
-def form(density, x, y, z, Qx, Qy, Qz, psi, qx_refract, gpu=None,
-         precision='float32'):
-    '''
-    Overview:
-        Sets up the parallelized calculation of the form factor for calculation
-    on an nvidia graphics card over all devices.
-
-
-    Parameters:
-
-    density:(3D array|angstroms^2) = The scattering length density array being
-    scattered off of.
-
-    x:(array|angstroms) = An array of real space values that represent the
-    location of the discretized units of density in the x direction.
-
-    y:(array|angstroms) = An array of real space values that represent the
-    location of the discretized units of density in the y direction.
-
-    z:(array|angstroms) = An array of real space values that represent the
-    location of the discretized units of density in the z direction.
-
-    Qx:(array|angstroms^-1) = The array of Qx values that are being solved for.
-    This array determines the output.
-
-    Qy:(array|angstroms^-1) = The array of Qy values that are being solved for.
-    Although solved for, this is the axis that is integrated over. It simulates
-    the contribution of Qy scattering to the data.
-
-    Qz:(array|angstroms^-1) = The array of Qz values that are being solved for.
-    This array determines the output.
-
-    gpu:(int) = The number of devices the user wants to utilize when solving
-    the wavefunction. This defaults the the maximum number of available
-    resources.
-
-    precision:(str|precision) = Allows the user to specify how precision the
-    calculation will be. The choices here are generally float32 and float64.
-
-    '''
-
-    density,x,y,z,Qx,Qy,Qz, qx_refract = [numpy.asarray(v,precision) for v in
-                              density,x,y,z,Qx,Qy,Qz,qx_refract]
-
-    cplx = 'complex64' if precision=='float32' else 'complex128'
-
-    psi= ([numpy.asarray(v,cplx) for v in psi])
-
-
-    if gpu is not None:
-        numgpus = 1
-        gpus = [gpu]
-
-    else:
-        numgpus = cuda.Device.count()
-        gpus = range(numgpus)
-
-    size = [len(v) for v in Qx,Qy,Qz]
-
-    result = numpy.empty(size,dtype=cplx)
-
-    work_queue = Queue.Queue()
-
-    for qxi,qx in enumerate(Qx): work_queue.put(qxi)
-
-    threads = [FormThread(gpus[k], work_queue, result,
-                      density, x, y, z,Qx, Qy, Qz,
-                      psi,qx_refract)
-           for k in range(numgpus)]
-
-    for T in threads: T.start()
-    for T in threads: T.join()
-    return result
