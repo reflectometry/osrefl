@@ -22,14 +22,14 @@ cudaDWBA_part1(const Real qx, const Real qy,
 
 	const Cplx I(0.0,1.0);
 
-	if (qx[offset] != 0 )
-		laux = ((-1I / qx) * exp(I * qx * xstep - 1.0));
-	if (qx[offset] != 0 )
-		lauy = ((-1I / qy) * exp(I * qy * ystep - 1.0));
+	if (qx != 0 )
+		laux = ((-1 * I) / qx) * exp(I * qx * (xstep - 1));
+	if (qx != 0 )
+		lauy = ((-1 * I) / qy) * exp(I * qy * (ystep - 1));
 	
 	for(int i = 0; i < nx; ++i)
 		for(int j = 0; j < ny; ++j)
-			ftwRef += rtor[i][j][offset] * exp(1I * qx * xx[offset]) * exp(1I * qy * yy[offset]);
+			ftwRef += rtor[i][j][offset] * exp(I * qx * xx[offset]) * exp(I * qy * yy[offset]);
 
 
 	output[offset] = ftwRef * Vfac * laux * lauy; 
