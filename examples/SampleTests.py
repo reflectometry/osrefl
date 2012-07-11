@@ -99,7 +99,7 @@ print "Calculating Sample 1... {}".format(alternating.__class__)
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 
 # Use DWBA_FormFactor for DWBA Calculations(make sure Q_space is more coarsely defined)
-raw_intensity1 = sample1.DWBAtest()
+#raw_intensity1 = sample1.DWBAtest()
 
 '''
 ##############################################################################
@@ -123,9 +123,9 @@ raw_intensity3 = sample3.BA_FormFactor()
 
 # View Angular Results
 print "Viewing Sample 1... {}".format(alternating.__class__)
-sample1.toAngular(0.25, raw_intensity1)
-sample1.viewAngular()
-#sample1.viewAngularFromFile()
+#sample1.toAngular(0.25, raw_intensity1)
+#sample1.viewAngular()
+sample1.viewAngularFromFile()
 
 '''
 print "Viewing Sample 1... {}".format(triprism.__class__)

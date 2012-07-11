@@ -500,7 +500,7 @@ class Calculator(object):
             Returns the wavefunction parts only from the DWBA calculation.
 
         '''
-        from DWBAtest import DWBA_form
+        from DWBA import DWBA_form
         from numpy import sum
         results = asarray(DWBA_form(self.feature,self.lattice,
                                  self.probe,self.space,refract = refract))
