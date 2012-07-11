@@ -486,16 +486,25 @@ class Calculator(object):
     def DWBA(self,refract = True):
         '''
         **Overview:**
-
-
         '''
-        from DWBA_Cuda import DWBA_form
+        from DWBA import DWBA_form
         from numpy import sum
         results = asarray(DWBA_form(self.feature,self.lattice,
                                  self.probe,self.space,refract = refract))
-        #print shape(results)
         self.results = sum((abs(results)**2),axis=1)
         return
+    
+    def DWBAtest(self,refract = True):
+        '''
+        **Overview:**
+            Returns the wavefunction parts only from the DWBA calculation.
+
+        '''
+        from DWBAtest import DWBA_form
+        from numpy import sum
+        results = asarray(DWBA_form(self.feature,self.lattice,
+                                 self.probe,self.space,refract = refract))
+        return abs(results)**2
     
     def DWBA_FormFactor(self,refract = True):
         '''
@@ -503,15 +512,14 @@ class Calculator(object):
             Returns the formfactor from the DWBA calculation.
 
         '''
-        from DWBA import DWBA_form
+        from DWBA_Cuda import DWBA_form
         from numpy import sum
         results = asarray(DWBA_form(self.feature,None,
                                  self.probe,self.space,refract = refract))
         
-        return (abs(results)**2)
+        return abs(results)**2
     
     def toAngular(self, incident_angle, intensity):
-        
         data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)
         self.results = data[0]
         self.anglexvals = data[1]

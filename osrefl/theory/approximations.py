@@ -1179,7 +1179,7 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
         
     '''
     
-    # convert angle to raidans
+    # convert angle to radians
     alphai = alphai * (pi / 180)
     
     # determine wave vector (k)

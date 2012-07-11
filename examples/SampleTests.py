@@ -81,7 +81,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 300 , 300 , 300 ])
+q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 50 , 50 , 50 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -99,8 +99,9 @@ print "Calculating Sample 1... {}".format(alternating.__class__)
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 
 # Use DWBA_FormFactor for DWBA Calculations(make sure Q_space is more coarsely defined)
-raw_intensity1 = sample1.BA_FormFactor()
+raw_intensity1 = sample1.DWBAtest()
 
+'''
 ##############################################################################
 
 print "Calculating Sample 2... {}".format(triprism.__class__)
@@ -118,15 +119,13 @@ sample3 = scatter.Calculator(None, beam, q_space, cylinderunit)
 raw_intensity3 = sample3.BA_FormFactor()
 
 ###############################################################################
+'''
 
 # View Angular Results
-
 print "Viewing Sample 1... {}".format(alternating.__class__)
 sample1.toAngular(0.25, raw_intensity1)
-sample1.viewAngularFromFile()
-
-
-
+sample1.viewAngular()
+#sample1.viewAngularFromFile()
 
 '''
 print "Viewing Sample 1... {}".format(triprism.__class__)

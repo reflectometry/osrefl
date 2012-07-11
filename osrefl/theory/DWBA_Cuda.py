@@ -246,44 +246,7 @@ def scatCalc(cell,lattice,beam,q):
             
             # Copy array back from the device(GPU) to the host (CPU)
             cuda.memcpy_dtoh(ftwRef, coutput)      
-                        
-            '''
-            ########################################################################
-            # THE FOLLOWING CODE HAS BEEN REPLACED BY GPU CALCULATIONS FOR TESTING #
-            ########################################################################
-            
-            #Eq. 18
-            qx = q.q_list[0][i]
-            if qx != 0:
-                laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
-            else:
-                laux = complex(cell.step[0])
-                
-            qy = q.q_list[1][ii]
-            if qy != 0:
-                lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
-            else:
-                lauy = complex(cell.step[1])
-
-            #if isnan(laux):
-            #    laux = cell.step[0]
-            #if isnan(lauy):
-            #    lauy = cell.step[1]
-            
-            #Eq. 20
-            ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
-                       exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
-            
-            #Eq.17 for the x and y directions
-            ftwRef *= laux
-            ftwRef *= lauy
-            
-            #Eq.18 with the added structure factor.
-            if lattice != None:
-                ftwRef *=SF[i,ii,0]
-
-            '''
-            
+                                    
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
