@@ -135,7 +135,9 @@ class Calculator(object):
     
         #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
         
-        return raw_intensity
+        self.results = raw_intensity
+
+        return 
 
     def longBA(self):
         r'''
@@ -495,12 +497,16 @@ class Calculator(object):
         results = asarray(DWBA_form(self.feature,None,
                                  self.probe,self.space,refract = refract))
         
-        self.results = sum((abs(results)**2),axis=1)
-        
+        self.results = abs(results)**2
+     
         return
     
-    def toAngular(self, incident_angle, intensity):
+    def toAngular(self, incident_angle, intensity = None):
         
+        if(intensity == None):
+            intensity = self.results
+        print shape(intensity)
+            
         data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)
         self.results = data[0]
         self.anglexvals = data[1]
