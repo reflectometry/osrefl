@@ -501,11 +501,11 @@ class Calculator(object):
             Returns the wavefunction parts only from the DWBA calculation.
 
         '''
-        from DWBA import DWBA_form
+        from DWBAtest import wfCalc
         from numpy import sum
-        results = asarray(DWBA_form(self.feature,self.lattice,
-                                 self.probe,self.space,refract = refract))
-        return abs(results)**2
+        wfCalc(self.feature,self.lattice, self.probe,self.space)
+
+        return 
     
     def DWBA_FormFactor(self,refract = True):
         '''
