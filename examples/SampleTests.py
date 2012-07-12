@@ -98,50 +98,34 @@ print "Calculating Sample 1... {}".format(alternating.__class__)
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 
-# Use DWBA_FormFactor for DWBA Calculations(make sure Q_space is more coarsely defined)
+#Use DWBA_FormFactor for DWBA Calculations(make sure Q_space is more coarsely defined)
 #raw_intensity1 = sample1.DWBAtest()
 
 
 ##############################################################################
 
-print "Calculating Sample 2... {}".format(triprism.__class__)
+#print "Calculating Sample 2... {}".format(triprism.__class__)
 
-sample2 = scatter.Calculator(None, beam, q_space, triprismunit)
+#sample2 = scatter.Calculator(None, beam, q_space, triprismunit)
 
 #raw_intensity2 = sample2.BA_FormFactor()
 
 ###############################################################################
 
-print "Calculating Sample 3... {}".format(cylinder.__class__)
+#print "Calculating Sample 3... {}".format(cylinder.__class__)
 
-sample3 = scatter.Calculator(None, beam, q_space, cylinderunit)
+#sample3 = scatter.Calculator(None, beam, q_space, cylinderunit)
 
 #raw_intensity3 = sample3.BA_FormFactor()
 
 ###############################################################################
-
-sample1.DWBAtest()
-sample2.DWBAtest()
-sample3.DWBAtest()
 
 
 # View Angular Results
 #print "Viewing Sample 1... {}".format(alternating.__class__)
 #sample1.toAngular(0.25, raw_intensity1)
 #sample1.viewAngular()
-#sample1.viewAngularFromFile()
-
-'''
-print "Viewing Sample 1... {}".format(triprism.__class__)
-sample2.toAngular(0.25, raw_intensity2)
-sample2.viewAngular()
-
-print "Viewing Sample 1... {}".format(cylinder.__class__)
-sample3.toAngular(0.25, raw_intensity3)
-sample3.viewAngular()
-'''
-###############################################################################
-
+sample1.viewAngularFromFile()
 
 
 

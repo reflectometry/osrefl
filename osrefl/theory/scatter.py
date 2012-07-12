@@ -134,7 +134,7 @@ class Calculator(object):
         raw_intensity *= (4.0 * pi / (qz_array))**2
     
         #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
-    
+        
         return raw_intensity
 
     def longBA(self):
@@ -484,47 +484,29 @@ class Calculator(object):
                                                    self.lattice, self.probe)
         return
 
-    def DWBA(self,refract = True):
-        '''
-        **Overview:**
-        '''
-        from DWBA import DWBA_form
+    def DWBA(self,refract = True, Cuda = False):
+        
+        if(Cuda == True):
+            from DWBA_Cuda import DWBA_form
+        else:
+            from DWBA import DWBA_form
         from numpy import sum
-        results = asarray(DWBA_form(self.feature,self.lattice,
-                                 self.probe,self.space,refract = refract))
-        self.results = sum((abs(results)**2),axis=1)
-        return
-    
-    def DWBAtest(self,refract = True):
-        '''
-        **Overview:**
-            Returns the wavefunction parts only from the DWBA calculation.
-
-        '''
-        from DWBAtest import wfCalc
-        from numpy import sum
-        wfCalc(self.feature,self.lattice, self.probe,self.space)
-
-        return 
-    
-    def DWBA_FormFactor(self,refract = True):
-        '''
-        **Overview:**
-            Returns the formfactor from the DWBA calculation.
-
-        '''
-        from DWBA_Cuda import DWBA_form
-        from numpy import sum
+        
         results = asarray(DWBA_form(self.feature,None,
                                  self.probe,self.space,refract = refract))
         
-        return abs(results)**2
+        self.results = sum((abs(results)**2),axis=1)
+        
+        return
     
     def toAngular(self, incident_angle, intensity):
+        
         data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)
         self.results = data[0]
         self.anglexvals = data[1]
         self.anglezvals = data[2]
+        
+        return
 
     def resolution_correction(self):
         '''
