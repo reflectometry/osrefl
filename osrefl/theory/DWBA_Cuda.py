@@ -408,7 +408,7 @@ class dwbaWavefunction:
         self.d[0] = r # reflected beam has intensity |r|**2
 
         p = asarray(1.0 + r,dtype ='complex') #psi
-        pp = asarray(1j * nz[0] * (1 - r),dtype='complex') #psi prime / k0z
+        pp = asarray(1j * kz[0] * (1 - r),dtype='complex') #psi prime
 
         M11[0] = ones(shape(kz),dtype='complex')
         M12[0] = ones(shape(kz),dtype='complex')
@@ -428,15 +428,16 @@ class dwbaWavefunction:
             pForDot = copy(p)
             ppForDot = copy(pp)
 
-            p = (M11[l]*pForDot) + (M12[l]*ppForDot)
-            pp = (M21[l]*pForDot) + (M22[l]*ppForDot)
+            p = (M11[l]*pForDot) + (M12[l]*ppForDot/k0z)
+            pp = (k0z*M21[l]*pForDot) + (M22[l]*ppForDot)
 
 
             #Fine, This is c and d
-            self.c[l] = (.5* exp(-1j*k0z*nz[l]*(z_interface))*
-                         (p + (pp/(1j*nz[l]))))
-            self.d[l] = (.5* exp(1j*k0z*nz[l]*(z_interface))*
-                         (p - (pp/(1j*nz[l]))))
+            kzl =( nz[l] * k0z ) 
+            self.c[l] = (.5* exp(-1j*kzl*(z_interface))*
+                         (p + (pp/(1j*kzl))))
+            self.d[l] = (.5* exp(1j*kzl*(z_interface))*
+                         (p - (pp/(1j*kzl))))
 
             z_interface += thickness
 
@@ -445,26 +446,7 @@ class dwbaWavefunction:
         self.c[-1] = self.t
         self.d[-1] = zeros(shape(kz),dtype='complex')
         return
-    
-def cuda_sync():
-    """
-    Overview:
-        Waits for operation in the current context to complete.
-    """
-    #return # The following works in C++; don't know what pycuda is doing
-    # Create an event with which to synchronize
-    done = cuda.Event()
 
-    # Schedule an event trigger on the GPU.
-    done.record()
-
-    #line added to not hog resources
-    while not done.query(): time.sleep(0.01)
-
-    # Block until the GPU executes the kernel.
-    done.synchronize()
-    # Clean up the event; I don't think they can be reused.
-    del done
 
 def cuda_partition(n):
     '''
