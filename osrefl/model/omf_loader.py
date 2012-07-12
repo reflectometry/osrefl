@@ -335,6 +335,7 @@ class Omf(object):
         self.mx = mx
         self.my = my
         self.mz = mz
+        self.rhoM = self.ConvertRho()
 
     def downsample(self, down_factor=10):
         """
@@ -399,8 +400,7 @@ class Omf(object):
             print "units not known \n"
 
         return self.M * C_prime
-
-
+        
     def viewFixedZ(self, plot_title = None, z_layer = 0):
         """
         **Overview:**

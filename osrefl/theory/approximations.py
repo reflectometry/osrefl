@@ -129,13 +129,13 @@ def partial_magnetic_BA_long(struc_cell,mag_cell,Q,lattice,beam):
 
     return intensity
 
-def cudaMagBA(struc_cell, Q, lattice, beam, omf, precision = 'float32',
+def cudaMagBA(struc_cell, Q, lattice, beam, magVec, rho_m, precision = 'float32',
               refract = False):
 
     from smba_driver import magCudaBA_form
     intensity = [None]*4
 
-    form_factor = magCudaBA_form(struc_cell,Q,lattice,beam,omf,
+    form_factor = magCudaBA_form(struc_cell,Q,lattice,beam,magVec,rho_m,
                               precision = precision,refract = refract)
 
     #structure_factor = lattice.struc_calc(Q)
@@ -148,7 +148,7 @@ def cudaMagBA(struc_cell, Q, lattice, beam, omf, precision = 'float32',
 
     return intensity
 
-def magneticBA(struc_cell,Q,lattice,beam, omf):
+def magneticBA(struc_cell,Q,lattice,beam,magVec,rho_m):
     '''
     **Overview:**
 
@@ -191,7 +191,8 @@ def magneticBA(struc_cell,Q,lattice,beam, omf):
     intensity = [None]*4
 
     qxn,qyn,qzn = Q.normalize()
-    rho_m = omf.ConvertRho()
+    #rho_m = omf.rhoM
+    #magVec = [omf.mx, omf.my, omf.mz]
 
     for i in range (size(Q.q_list[0])):
         print i
@@ -203,45 +204,47 @@ def magneticBA(struc_cell,Q,lattice,beam, omf):
 
                 (form_factor[0][i,ii,iii],form_factor[1][i,ii,iii],
                  form_factor[2][i,ii,iii], form_factor[3][i,ii,iii]) = mag_func(
-                                        struc_cell, omf, q, qn, rho_m)
+                                        struc_cell, magVec, q, qn, rho_m)
 
     structure_factor = lattice.gauss_struc_calc(Q)
 
     for i in range(4):
-        form_factor[i] = complete_formula(form_factor[i],struc_cell.step,
-                                         Q)
+        form_factor[i] = complete_formula(form_factor[i],struc_cell.step,Q)
         #intensity[i] = sum(abs(form_factor[i])**2,axis = 1)
         intensity[i] = (structure_factor)**2 * abs(form_factor[i])**2
         intensity[i] = normalize(intensity[i],struc_cell, Q, lattice).real
 
-    return intensity
+    return intensity, form_factor, structure_factor
 
 
-def mag_func(strucUnit,omf, q, qn, magCell):
-
+def mag_func(strucUnit, magVec, q, qn, rho_m):
+    mx, my, mz = magVec
     recip = [None,None,None,None]
-    form_factor = [None,None,None,None]
+    #form_factor = [None,None,None,None]
 
-    QdotM = (qn[0] * omf.mx) + (qn[1] * omf.my) + (qn[2] * omf.mz)
+    QdotM = (qn[0] * mx) + (qn[1] * my) + (qn[2] * mz)
 
-    qcx = omf.mx - asarray(qn[0]*QdotM)
-    qcy = omf.my - asarray(qn[1]*QdotM)
-    qcz = omf.mz - asarray(qn[2]*QdotM)
+    qcx = mx - asarray(qn[0]*QdotM)
+    qcy = my - asarray(qn[1]*QdotM)
+    qcz = mz - asarray(qn[2]*QdotM)
     
     qca = qcx * 0.0 + qcy * 1.0 + qcz * 0.0;
     qcb = qcx * 0.0 + qcy * 0.0 + qcz * 1.0;
     qcc = qcx * 1.0 + qcy * 0.0 + qcz * 0.0;
     
-    e = exp_part(q[0], q[1], q[2], strucUnit.value_list)
+    x,y,z = strucUnit.value_list
     
-    ruu = (strucUnit.unit) + (qca*magCell)
+    e = exp(1j * (q[0] *  x[:, newaxis, newaxis] + q[1] * y[newaxis, :, newaxis] + q[2] * z[newaxis, newaxis, :]))
+    #e = exp_part(q[0], q[1], q[2], strucUnit.value_list)
+    
+    ruu = (strucUnit.unit) + (qca*rho_m)
 
-    rdd = (strucUnit.unit) - (qca*magCell)
+    rdd = (strucUnit.unit) - (qca*rho_m)
 
 
-    rud = (qcb + (1j*qcc)) * magCell
+    rud = (qcb + (1j*qcc)) * rho_m
 
-    rdu = (qcb - (1j*qcc)) * magCell
+    rdu = (qcb - (1j*qcc)) * rho_m
 
     recip[0] = ruu * e
     recip[1] = rdd * e
@@ -548,13 +551,14 @@ def SMBA_form(qx,qy,arg):
 
     return form_factor,qx
 
-def interpWaveCalc(cell,Q,beam):
+def interpWaveCalc(cell,Q,beam,proc='gpu'):
 
     '''
     UNDER CONSTRUCTION
     '''
     from scipy.interpolate import RectBivariateSpline
     import wavefunction_kernel
+    from smba_wave_driver import wave
     import time
 
     Q.getKSpace(beam.wavelength)
@@ -618,8 +622,8 @@ def interpWaveCalc(cell,Q,beam):
 
 
     psi_in_one,psi_in_two,psi_out_one,psi_out_two,qx_refract = (
-                    wavefunction_thread.wave(cell.inc_sub, Q.q_list[0], Q.q_list[1],
-                         Q.q_list[2],beam.wavelength,cell.step[2]))
+                    wave(cell.inc_sub, Q.q_list[0], Q.q_list[1],
+                         Q.q_list[2],beam.wavelength,cell.step[2], proc=proc))
 
     pioTab=ones(Q.points,dtype = 'complex')
     pitTab=ones(Q.points,dtype = 'complex')
@@ -702,7 +706,7 @@ def interpWaveCalc(cell,Q,beam):
     qxrefract[Q.kout > 0.0] -= beam.wavelength * cell.inc_sub[-1,0]
 
     #return psi_in_one,psi_in_two,psi_out_one,psi_out_two,qxrefract
-    return pio,pit,poo,pot,qxrefract
+    return pioTab,pitTab,pooTab,potTab,qxrefract
 
 
 def SMBA_wavecalcMultiK(qx,deltaz,stack,wavelength, ki_z,kf_z):
@@ -1144,10 +1148,14 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
 def complete_formula(czt_result, step, Q):
     '''
-    the scattering from the unit cell is not just the fft of the unit cell.
-    There is another mathematical piece that must be solved for. This
-    calculation solves for this additional math and multiples the given fft
-    by it.
+    the scattering from the unit cell is not just the fft of the unit cell:
+    the scattering is the integral of e^{i q r} * rho(r), which can be
+    approximated by a Fourier sum if rho(r) is taken to be constant over the 
+    step size in r, then the integral over a single block dr can be calculated
+    exactly.  The blocks are then all summed to give the complete integral - 
+    that last summation is equivalent to the FFT mathematically.  The constant
+    integration factor for a block is pulled out of the sum and is calculated 
+    below...  and then multiplied by the FFT.
 
     czt_results = the resulting Fourier transform of the unit cell for the Q
     values requested by the user
@@ -1162,28 +1170,18 @@ def complete_formula(czt_result, step, Q):
     qy = Q.q_list[1].reshape(1,size(Q.q_list[1]),1)
     qz = Q.q_list[2].reshape(1,1,size(Q.q_list[2]))
 
-
-
-
-    I = complex64(1j)
-    if (qx[0].dtype == float64):
-        delta_x = step[0]
-        delta_y = step[1]
-        delta_z = step[2]
-        x_comp = (( 1. - exp(1j*qx*delta_x))*(-1j / qx))
-        y_comp = (( 1. - exp(1j*qy*delta_y))*(-1j / qy))
-        z_comp = (( 1. - exp(1j*qz*delta_z))*(-1j / qz))
-
-    elif (qx[0].dtype == float32):
-        print 'float32 calculation'
-        delta_x = float32(step[0])
-        delta_y = float32(step[1])
-        delta_z = float32(step[2])
-        x_comp = (( 1. - exp(I*qx*delta_x))*(-I / qx))
-        y_comp = (( 1. - exp(I*qy*delta_y))*(-I / qy))
-        z_comp = (( 1. - exp(I*qz*delta_z))*(-I / qz))
-
-
+    x_comp = zeros_like(qx)
+    y_comp = zeros_like(qy)
+    z_comp = zeros_like(qz)
+    
+    delta_x = step[0]
+    delta_y = step[1]
+    delta_z = step[2]
+        
+    x_comp[qx != 0.0] = (( 1. - exp(1j*qx[qx != 0]*delta_x))*(-1j / qx[qx != 0]))
+    y_comp[qy != 0.0] = (( 1. - exp(1j*qy[qy != 0]*delta_y))*(-1j / qy[qy != 0]))
+    z_comp[qz != 0.0] = (( 1. - exp(1j*qz[qz != 0]*delta_z))*(-1j / qz[qz != 0]))
+        
     x_comp[qx == 0.0] = delta_x
     y_comp[qy == 0.0] = delta_y
     z_comp[qz == 0.0] = delta_z
@@ -1209,17 +1207,17 @@ def trip_czt(unit,stepSpace,q_points,q_mins,q_maxs):
     '''
 
 
-    frequancy = (2*pi)/stepSpace
+    frequency = (2*pi)/stepSpace
 
     intermediate_matrix_one = czt.zoomfft(unit,q_mins[0],q_maxs[0],q_points[0],
-                                          frequancy[0],axis = 0)
+                                          frequency[0],axis = 0)
 
     intermediate_matrix_two = czt.zoomfft(intermediate_matrix_one,q_mins[1],
-                                          q_maxs[1],q_points[1],frequancy[1],
+                                          q_maxs[1],q_points[1],frequency[1],
                                           axis=1)
 
     czt_result = czt.zoomfft(intermediate_matrix_two,q_mins[2],
-                             q_maxs[2],q_points[2],frequancy[2],axis=2)
+                             q_maxs[2],q_points[2],frequency[2],axis=2)
 
     return czt_result
 
@@ -1422,44 +1420,53 @@ def _test():
     show()
     '''
     from numpy import shape
-    import sample_prep
-    from sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
+    import osrefl.model.sample_prep
+    from osrefl.model.sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam, Q_space
     #from scatter import *
     #from pylab import *
     from omfLoader import Omf
     #magneticBA test
-    mag = Omf('../../examples/data/test.omf')
+    import os
+    DATA_PATH = os.path.join('..', os.path.dirname(osrefl.__file__), 'examples', 'data')
+    #print open(DATA_PATH).read()
+    import wx
+    filepath = wx.FileSelector('test.omf')
+    mag = Omf(filepath)
     #mag.view()
 
 
 
-    Au = (sample_prep.Parallelapiped(SLD = 4.506842e-6,
+    Au = (Parallelapiped(SLD = 4.506842e-6,
                                      Ms = 8.6e5,dim=[5.0e4,5.0e4,2.0e4]))
 
-    Cr = (sample_prep.Layer(SLD = 3.01e-6,Ms = 8.6e5,
+    Cr = (Layer(SLD = 3.01e-6,Ms = 8.6e5,
                             thickness_value = 1000.0))
 
     Au.on_top_of(Cr)
-    scene = sample_prep.Scene([Au,Cr])
+    scene = Scene([Au,Cr])
 
-    GeoUnit = (sample_prep.GeomUnit(Dxyz = [10.0e4,10.0e4,2.5e4],
+    GeoUnit = (GeomUnit(Dxyz = [10.0e4,10.0e4,2.5e4],
                                     n = [70,70,30],scene = scene))
 
     unit = GeoUnit.buildUnit()
-    unit.generateMIF()
+    unit.generateMIF(filename='test.mif')
     #unit.viewSlice()
     space = Q_space([-.0001,-0.001,0.00002],[.0001,0.001,0.04],[50,5,50])
     lattice = Rectilinear([20,20,1],unit)
 
     beam = Beam(5.0,None,None,0.05,None)
 
-    '''
+    from osrefl.theory.scatter import Calculator
     magtest = Calculator(lattice, beam, space, unit, mag)
 
     magtest.magneticBA()
     magtest.view_uncorrected()
     show()
-    '''
-    interpWaveCalc(unit,space,beam)
+    
+    print 'gpu result:'
+    interpWaveCalc(unit,space,beam, proc='gpu')
+    print 'cpu result:'
+    return space, interpWaveCalc(unit,space,beam, proc='cpu')
+    
 
 if __name__=="__main__":_test()

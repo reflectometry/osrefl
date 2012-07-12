@@ -39,7 +39,8 @@ cudaBorn(int nx, int ny, int nz, int nqx, int nqy, int nqz,
             for (int zi=0; zi < nz; zi++) {
 
 				//ft = density[densityidx]*exp(I*Qx[qxi]*x[xi])*exp(I*Qy[qyi]*y[yi])*exp(I*Qz[qzi]*z[zi]);
-				ft = density[densityidx]*exp(I*qx_refract[idx]*x[xi])*exp(I*Qy[qyi]*y[yi])*exp(I*Qz[qzi]*z[zi]);
+				//ft = density[densityidx]*exp(I*qx_refract[idx]*x[xi])*exp(I*Qy[qyi]*y[yi])*exp(I*Qz[qzi]*z[zi]);
+				ft = density[densityidx]*exp(I*(qx_refract[idx]*x[xi] + Qy[qyi]*y[yi] + Qz[qzi]*z[zi]));
 
                 scat_PioPoo = psi_in_one[idx] * ft * psi_out_one[idx];
                 scat_PioPot = psi_in_one[idx] * ft * psi_out_two[idx];

@@ -34,7 +34,7 @@ def create_mif(unit, mifDataObj = None, filename = None):
     '''
 
     if filename == None:
-        filename= '/home/mettingc/Documents/temp_mif_one.mif'
+        filename= '/tmp/temp_mif_one.mif'
     from numpy import size
     nofile = unit.mag_unit.flatten()
 

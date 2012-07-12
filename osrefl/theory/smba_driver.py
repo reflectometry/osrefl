@@ -13,10 +13,11 @@ import numpy
 
 from . import approximations,smba_wave_driver
 
-def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
+def magCudaBA_form(cell,Q,lattice,beam,magVec,rho_m,precision='float32', refract = True):
     nqx = numpy.shape(Q.q_list[0])[0]
     nqy = numpy.shape(Q.q_list[1])[0]
     nqz = numpy.shape(Q.q_list[2])[0]
+    mx, my, mz = magVec
 
     if refract == True:
         stack = cell.inc_sub
@@ -39,14 +40,14 @@ def magCudaBA_form(cell,Q,lattice,beam,omf,precision='float32', refract = True):
 
     psi =[psi_in_one,psi_in_two,psi_out_one,psi_out_two]
 
-    magDensity = omf.ConvertRho()
+    magDensity = rho_m
     print '******'
     print magDensity[magDensity!=0.0]
     print '******'
     form_solution = magForm(cell.unit,magDensity, cell.value_list[0],
                             cell.value_list[1], cell.value_list[2],Q.q_list[0],
-                            Q.q_list[1],Q.q_list[2],psi,qx_refract, omf.mx,
-                            omf.my, omf.mz, precision=precision)
+                            Q.q_list[1],Q.q_list[2],psi,qx_refract, mx,
+                            my, mz, precision=precision)
 
     return form_solution
 

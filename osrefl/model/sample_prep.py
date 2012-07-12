@@ -660,8 +660,8 @@ class GeomUnit(object):
         self.scene = scene
 
 
-        if size(self.Dxyz) == 2:self.Dxyz = hstack((self.Dxyz,None))
-        if self.Dxyz[2] == None:self.Dxyz[2] = scene.query_height()
+        if size(self.Dxyz) == 2: self.Dxyz = hstack((self.Dxyz,None))
+        if self.Dxyz[2] == None: self.Dxyz[2] = scene.query_height()
 
         self.value_extend()
         self.unit = None

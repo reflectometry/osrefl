@@ -48,10 +48,11 @@ class Calculator(object):
             of the magnetic moment.
 
     '''
-    def __init__(self, lattice, probe, space, feature, omf = None):
+    def __init__(self, lattice, probe, space, feature, magVec=None, rho_m=None):
 
         self.feature = feature
-        self.omf = omf
+        self.magVec = magVec
+        self.rho_m = rho_m
         self.lattice = lattice
         self.probe = probe
         self.space = space
@@ -364,7 +365,7 @@ class Calculator(object):
 
     def cudaMagBA(self,precision = 'float32', refract = True):
         self.results = approximations.cudaMagBA(self.feature,self.space,
-                                     self.lattice, self.probe,self.omf,
+                                     self.lattice, self.probe,self.magVec, self.rho_m,
                                      precision,refract)
         return
 
@@ -408,7 +409,7 @@ class Calculator(object):
 
 
         self.results = approximations.magneticBA(self.feature,self.space,
-                                          self.lattice, self.probe, self.omf)
+                                          self.lattice, self.probe, self.magVec, self.rho_m)
         return
 
     def partial_magnetic_BA(self):
