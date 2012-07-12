@@ -17,7 +17,6 @@ from scipy.integrate import quad
 from . import calculations, omf_loader, image_util
 from ..viewers import view
 
-
 class Unit_Cell(object):
     '''
     **Overview:**
@@ -974,6 +973,7 @@ class Shape(object):
               in the x-y plane does not make a difference.
 
         '''
+        
         if (element.center[:2] != [None]*2) and (self.center[:2] != [None]*2):
             self.center = copy.copy(element.center)
             for i in range(3): self.center[i] += offset[i]
@@ -982,6 +982,8 @@ class Shape(object):
             self.center[2] = copy.copy(element.center[2])
             self.center[2] += offset[2]
         return
+    
+    
 
 
 class Sphere(Shape):
@@ -1102,6 +1104,7 @@ class Sphere(Shape):
         mag_to_fill [calculations.sphere_point_test(self.center,self.r,
                                 x_points,y_points,z_points)==True] = self.Ms
         return cell_to_fill, mag_to_fill
+
 
 class RoundedParPip(Shape):
     '''
@@ -1243,13 +1246,13 @@ class Parallelapiped(Shape):
 
     *Parameters(__init__):*
         *SLD:* (float|angstroms^2)
-            The scattering length density of the sphere.
+            The scattering length density of the parallelapiped object.
 
         *dim:* (float,[3]|angstroms)
             x, y and z dimensions of the feature.
 
         *center:* (float,[3]|angstroms)
-            The x, y, and z component of the central point of the sphere. In the
+            The x, y, and z component of the central point of the parallelapiped object. In the
             case that the center is set to [None,None,None] the shape will be
             put in the bottom corner of the unit cell (the bounding box will
             start at (0,0,0).
@@ -1637,6 +1640,131 @@ class Cone(Shape):
             self.dim,self.stub,x_points,y_points,z_points)==True] = self.Ms
         return cell_to_fill, mag_to_fill
 
+class TriangularPrism(Shape):
+
+    '''
+    **Overview:**
+        Uses the generic formula for a Triangular Prism feature to create a Triangular Prism object.
+
+    **Parameters(__init__):**
+        *SLD:* (float|angstroms^2)
+            The scattering length density of the Triangular Prism.
+
+        *dim:* (float,[3]|angstroms)
+            The x component, y component and thickness of the cone respectively.
+            x is the length of the Triangular Prism base and y is the width of the
+            Triangular Prism base.
+
+        *center:* (float,[3]|angstroms)
+            The x, y, and z component of the central point of the Triangular Prism. In
+            the case that the center is set to [None,None,None] the shape will
+            be put in the bottom corner of the unit cell (the bounding box will
+            start at (0,0,0).
+
+        *Ms:* (float|angstroms)
+            The magnetic SLD of the material for this shape.
+
+    '''
+
+    def __init__(self, SLD, dim, center = [None,None,None],
+                 Ms = 0.0):
+
+        self.dim = [dim[0]/2,dim[1]/2,dim[2]]
+        self.SLD = SLD
+        self.Ms = Ms
+
+        if (center == [None,None,None]):
+            self.center = [self.dim[0],self.dim[1],dim[2]/2]
+        else:
+            self.center = center
+
+        return
+
+    def thickness(self):
+        '''
+        **Overview:**
+
+            Returns the total thickness of the Triangular Prism.
+
+        '''
+        return self.dim[2]
+
+
+    def height(self):
+        '''
+        **Overview:**
+
+            Returns the total height of the Triangular Prism. This differs from thickness
+            which only describes the thickness of the individual Pyramid whereas
+            this method returns the maximum z-value of the shape in the unit
+            cell.
+
+        '''
+        return self.center[2] + self.dim[2]/2
+
+    def length(self):
+        '''
+        Overview:
+
+            Returns the maximum length of the Triangular Prism (x direction)
+
+        '''
+        return self.dim[0] * 2.0
+
+    def width(self):
+        '''
+        Overview:
+
+            Returns the maximum width of the Triangular Prism (y direction)
+
+        '''
+        return self.dim[1] * 2.0
+
+    def discritize(self,x_points,y_points,z_points,cell_to_fill, mag_to_fill):
+
+        '''
+        **Overview:**
+
+            This module takes in x,y, and z points and fills the matrix array
+            with the SLD of the shape for the points that fall within the shape
+
+        **Parameters:**
+
+            *x_points:* (float|angstroms)
+                an array of x points to be determined if they fall within the
+                 Triangular Prism.
+
+            *y_points:* (float|angstroms)
+                an array of y points to be determined if they  fall within the
+                 Triangular Prism.
+
+            *z_points:* (float|angstroms)
+                an array of z points to be determined if they  fall within the
+                 Triangular Prism.
+
+            *cell_to_fill:* (float,array|angstroms)
+                This is the SLD matrix of the unit cell. It is filled by the
+                render function.
+
+            *mag_to_fill:* (float,array|angstroms)
+                This is the Ms matrix of the unit cell. It is filled by the
+                render function.
+
+        '''
+
+        x_points =  reshape(x_points,[size(x_points),1,1])
+        y_points = reshape(y_points,[1,size(y_points),1])
+        z_points = reshape(z_points,[1,1,size(z_points)])
+
+        cell_to_fill [calculations.triangularprism_point_test(self.center,
+                self.dim,x_points,y_points,z_points)==True] = self.SLD
+
+        mag_to_fill [calculations.triangularprism_point_test(self.center,
+             self.dim,x_points,y_points,z_points)==True] = self.Ms
+             
+        return cell_to_fill, mag_to_fill
+
+
 class Pyrimid(Shape):
 
     '''
@@ -1768,6 +1896,7 @@ class Pyrimid(Shape):
              self.dim,self.stub,x_points,y_points,z_points)==True] = self.Ms
         return cell_to_fill, mag_to_fill
 
+
 class Layer(Shape):
     '''
     **Overview:**
@@ -1778,7 +1907,7 @@ class Layer(Shape):
     **Parameters(__init__):**
 
         *SLD:* (float|angstroms^2)
-            The scattering length density of the Pyramid.
+            The scattering length density of the Layer.
 
         *thickness_value:* (float|angstroms)
             The thickness of the layer.
@@ -1957,7 +2086,7 @@ class Ellipsoid(Shape):
         '''
         **Overview:**
 
-            Returns the total thickness of the layer.
+            Returns the total thickness of the Ellipsoid.
 
         '''
         return self.c*2.0
@@ -1965,8 +2094,8 @@ class Ellipsoid(Shape):
     def height(self):
         '''
         **Overview:**
-            Returns the total height of the layer. This differs from thickness
-            which only describes the thickness of the individual layer whereas
+            Returns the total height of the Ellipsoid. This differs from thickness
+            which only describes the thickness of the individual Ellipsoid whereas
             this method returns the maximum z-value of the shape in the unit
             cell.
 
@@ -1976,7 +2105,7 @@ class Ellipsoid(Shape):
     def width(self):
         '''
         **Overview:**
-            Returns the maximum width of the Pyramid (y direction)
+            Returns the maximum width of the Ellipsoid (y direction)
 
         '''
         return self.b * 2.0
@@ -2709,10 +2838,13 @@ class Q_space(Space):
         self.qx_refract = None
         self.kin = None
         self.kout = None
+        #print 'Q List: '
 
         for i in range(3):
             self.q_list[i] = linspace(self.minimums[i],self.maximums[i],
                                       self.points[i])
+            #print self.q_list[i]
+
         return
 
     def vectorize(self,type = 'float'):

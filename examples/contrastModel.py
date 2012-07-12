@@ -5,10 +5,14 @@
 
 #Starting Date:9/21/2009
 import numpy
-from sample_prep import *
-from andrload import *
-from scatter import *
-import approximations,view, scatter
+from osrefl.model.sample_prep import *
+from osrefl.model.samples import *
+from numpy import log, abs, min, max
+from pylab import figure, show, subplot, imshow
+from osrefl.loaders.andr_load import *
+from osrefl.theory.scatter import *
+from osrefl.theory import approximations, scatter
+from osrefl.viewers import view
 from numpy import log
 from pylab import figure
 

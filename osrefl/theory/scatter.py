@@ -4,10 +4,9 @@
 # Author: Christopher Metting
 
 #Starting Date:6/19/2009
-from numpy import shape, cos, sin, size, nonzero, min, max,real, shape, log
-from numpy import isfinite, zeros,flipud,fliplr,array,asarray
+from numpy import *
 
-from pylab import subplot,figure
+from pylab import figure, show, subplot, imshow
 
 #import approximations, view, scale, sample_prep, magPlotSlicer
 from . import approximations
@@ -16,6 +15,8 @@ from osrefl.viewers.plot_slicer import MultiView
 import osrefl.loaders.scale
 import osrefl.model.sample_prep
 from . import resolution
+import numpy as np
+import pickle
 
 
 class Calculator(object):
@@ -58,6 +59,8 @@ class Calculator(object):
         self.space = space
         self.results = None
         self.corrected_results = None
+        self.anglexvals = None
+        self.anglezvals = None
         
         return
     def BAres(self):
@@ -75,13 +78,13 @@ class Calculator(object):
             This Born Approximation calculation is written entirely in Python
             and assumes that the scattered beam is so small that the transmitted
             beam is essentially t=1. This makes for a simple calculation,
-            however, it does not allows for the capturing of the dynamically
+            however, it does not allows for the capturing of the dynamic
             effects seen in real scattering.
 
             Because of the simplistic nature of this calculation. Some tricks
             can be used to speed up the calculation. This version of the BA
-            calculation uses a chirp-z transform (CZT) to solve the Form Factor.
-            The chirp-z is essentially a FFT which allows for solving the
+            calculation utilizes the chirp-z transform (CZT) to solve the Form Factor.
+            The chirp-z is essentially an FFT which allows for solving the
             transform anywhere on the sphere. With this, we can solve for any Q
             range without wasting any resources calculating for areas we don't
             need.
@@ -118,7 +121,21 @@ class Calculator(object):
             raise Exception, ("This calculation does not ",
                               self.space.type,"space type")
         return
-
+    
+    def BA_FormFactor(self):
+        
+        raw_intensity = approximations.BA_FT(self.feature.unit, self.feature.step, self.space)
+        raw_intensity = abs(approximations.complete_formula(raw_intensity, self.feature.step, self.space))**2
+    
+        qx_array = self.space.q_list[0].reshape(self.space.points[0],1,1)
+        qy_array = self.space.q_list[1].reshape(1,self.space.points[1], 1)
+        qz_array = self.space.q_list[2].reshape(1,1,self.space.points[2])
+        # * qx_array * qy_array
+        raw_intensity *= (4.0 * pi / (qz_array))**2
+    
+        #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
+    
+        return raw_intensity
 
     def longBA(self):
         r'''
@@ -470,16 +487,44 @@ class Calculator(object):
     def DWBA(self,refract = True):
         '''
         **Overview:**
-
+        '''
+        from DWBA import DWBA_form
+        from numpy import sum
+        results = asarray(DWBA_form(self.feature,self.lattice,
+                                 self.probe,self.space,refract = refract))
+        self.results = sum((abs(results)**2),axis=1)
+        return
+    
+    def DWBAtest(self,refract = True):
+        '''
+        **Overview:**
+            Returns the wavefunction parts only from the DWBA calculation.
 
         '''
         from DWBA import DWBA_form
         from numpy import sum
         results = asarray(DWBA_form(self.feature,self.lattice,
                                  self.probe,self.space,refract = refract))
-        print shape(results)
-        self.results = sum((abs(results)**2),axis=1)
-        return
+        return abs(results)**2
+    
+    def DWBA_FormFactor(self,refract = True):
+        '''
+        **Overview:**
+            Returns the formfactor from the DWBA calculation.
+
+        '''
+        from DWBA_Cuda import DWBA_form
+        from numpy import sum
+        results = asarray(DWBA_form(self.feature,None,
+                                 self.probe,self.space,refract = refract))
+        
+        return abs(results)**2
+    
+    def toAngular(self, incident_angle, intensity):
+        data = approximations.QxQyQz_to_angle(self.space, incident_angle, intensity, self.probe.wavelength)
+        self.results = data[0]
+        self.anglexvals = data[1]
+        self.anglezvals = data[2]
 
     def resolution_correction(self):
         '''
@@ -636,7 +681,7 @@ class Calculator(object):
         '''
         **Overview:**
 
-            Uses the magPlotSlicer.py module to view  the uncorrected models.
+            Uses the magPlotSlicer.py module to view the uncorrected models.
             This module includes tools for:
 
             * Slice averaging for the data vertically and horizontally
@@ -690,6 +735,102 @@ class Calculator(object):
           titles=titles,extent= extent,
           axisLabel = ['qx(A^-1)','qz(A^-1)'])
         return
+    
+    def viewAngular(self):
+        '''
+        **Overview:**
+
+            Uses the magPlotSlicer.py module to view the uncorrected models in real space.
+            This module includes tools for:
+
+            * Slice averaging for the data vertically and horizontally
+            * Viewing linear and log plots of both 2D slices and 3D image plots
+            * Altering of the color axis scale
+
+        '''
+        
+        x_values = self.anglexvals
+        z_values = self.anglezvals
+        
+        titles = ['uncorrected']
+        data = [[self.results,'Theory']]
+
+        xstep = (x_values[size(x_values)-1] - x_values[0]) / size(x_values)
+        zstep = (z_values[size(z_values)-1] - z_values[0]) / size(z_values)
+        
+        xmin = x_values[0]
+        xmax = x_values[size(x_values)-1]              
+        zmin = z_values[0]
+        zmax = z_values[size(z_values)-1]
+        
+        xmin = xmin.tolist()
+        xmax = xmax.tolist()      
+        zmin = zmin.tolist()
+        zmax = zmax.tolist()
+    
+        extent = asarray([xmin, xmax, zmin, zmax])
+        
+        MultiView(data,[xstep,zstep],
+          [x_values,z_values],
+          titles=titles,extent= extent,
+          axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
+
+    def printAngularToFile(self):
+        '''
+        **Overview:**
+
+            Uses the magPlotSlicer.py module to view the uncorrected models in real space.
+            This module includes tools for:
+
+            * Slice averaging for the data vertically and horizontally
+            * Viewing linear and log plots of both 2D slices and 3D image plots
+            * Altering of the color axis scale
+
+        '''
+        
+        x_values = self.anglexvals
+        z_values = self.anglezvals
+        
+        titles = ['uncorrected']
+        data = [[self.results,'Theory']]
+
+        xstep = (x_values[size(x_values)-1] - x_values[0]) / size(x_values)
+        zstep = (z_values[size(z_values)-1] - z_values[0]) / size(z_values)
+        
+        xmin = x_values[0]
+        xmax = x_values[size(x_values)-1]              
+        zmin = z_values[0]
+        zmax = z_values[size(z_values)-1]
+        
+        xmin = xmin.tolist()
+        xmax = xmax.tolist()      
+        zmin = zmin.tolist()
+        zmax = zmax.tolist()
+    
+        extent = asarray([xmin, xmax, zmin, zmax])
+        
+        output = open('angular_data.dat', 'wb')
+        pickle.dump(self.results, output)
+        pickle.dump(extent, output)
+        pickle.dump([xstep, zstep], output)
+        pickle.dump([x_values,z_values], output)
+        output.close()
+        
+    def viewAngularFromFile(self):
+
+        input = open('angular_data.dat', 'rb')
+        data = self.results = pickle.load(input)
+        extent = pickle.load(input)
+        steps = pickle.load(input)
+        values = pickle.load(input)
+        input.close()
+        
+        titles = ['uncorrected']
+        data = [[data, 'Theory']]
+        
+        MultiView(data,steps, values,
+          titles=titles,extent= extent,
+          axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
 
     def generalCompare(self,otherData,titles):
         extent = self.space.getExtent()

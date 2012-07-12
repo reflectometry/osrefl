@@ -14,10 +14,10 @@ that the scatter modules go to for their approximations.
 '''
 from pylab import imshow,colorbar,show,pcolormesh
 from numpy import *
-from . import wavefunction_kernel
+from osrefl.theory import wavefunction_kernel
 import osrefl.viewers.view
-from . import czt
-
+from osrefl.theory import czt
+import numpy as np
 
 def partial_magnetic_BA(struc_cell,mag_cell,Q,lattice,beam):
 
@@ -153,7 +153,7 @@ def magneticBA(struc_cell,Q,lattice,beam,magVec,rho_m):
     **Overview:**
 
         This calculation solves the Born Approximation for a magnetic sample
-        using an :class:`~omfLoader.Omf` object which hold the information about
+        using a(n) :class:`~omfLoader.Omf` object which hold the information about
         the magnetic moments in a sample.
 
     **Parameters:**
@@ -303,7 +303,7 @@ def SMBAfft(cell,Q,lattice,beam,precision = 'float32',refract = True):
     perturbing this by the wavefunctions. This calculation will solve the czt
     and then perturb it by the wave function.
 
-
+    
     Parameters:
 
     cell(float:3D array|angstroms^2) = The structural scattering potential
@@ -866,6 +866,8 @@ def BAres(cell,q,lattice,beam):
     flipCell = zeros(shape(cell.unit))
     SLDArray = wavefunction_format(cell.unit, cell.step[2], absorbtion = None)
     
+    
+    
     for i in range(cell.n[2]):
         flipCell[:,:,i] = cell.unit[:,:,shape(cell.unit)[2]-i-1]
     
@@ -962,7 +964,7 @@ def BA(cell,Q,lattice,beam):
     Overview:
         Solves the Born Approximation for the off-specular scattering using the
     chirp-z transform which allows for the direct selection of areas and
-    spacings in reciprocal space.
+    spacings in reciprocal space.+-
 
     Parameters:
 
@@ -984,11 +986,42 @@ def BA(cell,Q,lattice,beam):
     #form_factor = complete_formula(form_factor,cell.step,Q)
 
     #structure_factor = describes the scattering off of the lattice
-    #structure_factor = lattice.struc_calc(Q)
     structure_factor = lattice.gauss_struc_calc(Q)
 
-    intensity =abs(structure_factor)**2 * abs(form_factor)**2
+    intensity = abs(form_factor)**2 * abs(structure_factor)**2
     return normalize(intensity, cell, Q, lattice)
+
+
+def BA_FF(cell,Q):
+    '''
+    Overview:
+        Solves the Born Approximation for the off-specular scattering using the
+    chirp-z transform. Calculates only the form factor.
+
+    Parameters:
+
+    cell(float:3D array|angstroms^2) = The structural scattering potential
+    of the feature being scattered off of.
+
+    Q:(q_space) = A Q_space object that holds all of the information about the
+    desired q space output.
+
+    beam:(Beam) = Holds all of the information about the experimental beam
+    needed to apply beam dependent corrections to the data.
+    '''
+    
+    raw_intensity = approximations.BA_FT(cell.unit, cell.step, Q)
+    raw_intensity = abs(approximations.complete_formula(raw_intensity, cell.step, Q))**2
+
+    qx_array = Q.q_list[0].reshape(Q.points[0],1,1)
+    qy_array = Q.q_list[1].reshape(1,Q.points[1], 1)
+    qz_array = Q.q_list[2].reshape(1,1,Q.points[2])
+
+    raw_intensity *= (4.0 * pi / (qz_array * qx_array * qy_array))**2
+
+    #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
+
+    return raw_intensity
 
 
 def thetaBA(cell,theta,lattice,beam):
@@ -1098,11 +1131,10 @@ def BA_FT(total_rho,step,Q):
     Q:(q_space) = A Q_space object that holds all of the information about the
     desired q space output.
 
-    lattice:(Lattice) = A lattice object that holds all of the information
-    needed to solve the structure factor of the scattering.
     '''
 
     form_factor = trip_czt(total_rho, step, Q.points, Q.minimums, Q.maximums)
+
     return form_factor
 
 
@@ -1114,7 +1146,6 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
 
     Parameters:
-
 
     '''
 
@@ -1144,8 +1175,87 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     return kz_in, kz_out
 
+def QxQyQz_to_angle(space, alphai, intensity, wavelength):  
+    
+    '''
+    Overview:
+        A Python implementation of the Q space to real (angular) space conversion.
+        
+    '''
+    
+    # convert angle to radians
+    alphai = alphai * (pi / 180)
+    
+    # determine wave vector (k)
+    kvec = 2.0*pi/wavelength
+    
+    x = space.q_list[0]
+    y = space.q_list[1]
+    z = space.q_list[2]
+    
+    # upper and lowerbounds for reflected angle
+    alphaf_min = alphai
+    alphaf_max = 25 * alphai
 
+    # upper and lowerbounds for in-plane angle 
+    iptheta_max = arcsin((y[y.argmax()] / kvec))
+    iptheta_min = -iptheta_max
+    
+    # grab equally spaced intervals between upper and lowerbound angles
+    alphaf = linspace(alphaf_min, alphaf_max, size(x))
+    iptheta = linspace(iptheta_min, iptheta_max, size(y))
+    
+    # calculate the vertical axis q values
+    qx = kvec * (cos( alphaf ) - cos(  alphai) )
+    qz = kvec * (sin( alphaf ) - sin(  alphai) )
+    
+    # calculate the horizontal axis q values
+    qy = kvec * sin( iptheta )
 
+    xvals = x.copy()
+    yvals = y.copy()
+    zvals = z.copy()
+    
+    # Finds closest x, y, and z values for each of the qx, qy, and qz values
+    for i in range(size(qx)):
+        closestx = x[0]
+        closesty = y[0]
+        closestz = z[0]
+
+        for ii in range(size(x)):
+            if abs(x[ii] - qx[i]) < abs(closestx - qx[i]): 
+                closestx = x[ii]
+                xvals[i] = ii
+                
+        for ii in range(size(y)):
+            if abs(y[ii] - qy[i]) < abs(closesty - qy[i]): 
+                closesty = y[ii]
+                yvals[i] = ii
+               
+        for ii in range(size(z)):
+            if abs(z[ii] - qz[i]) < abs(closestz - qz[i]): 
+                closestz = z[ii]
+                zvals[i] = ii
+    
+    xvals = xvals.astype(int)
+    yvals = yvals.astype(int) 
+    zvals = zvals.astype(int)
+    
+    # Converts axis values to degrees
+    y_values = degrees(iptheta)
+    z_values = degrees(alphaf)
+    
+    angular_intensity = np.empty((size(qx),size(qz)))
+    
+    # Pulls intensity from the born approximation array and stores it in the correct
+    # angle space
+    for i in range(size(iptheta)):
+        for j in range(size(alphaf)):
+            angular_intensity[i][j] = intensity[xvals[j]][yvals[i]][zvals[j]]
+         
+    return angular_intensity, y_values, z_values
+
+    
 def complete_formula(czt_result, step, Q):
     '''
     the scattering from the unit cell is not just the fft of the unit cell:
@@ -1200,12 +1310,15 @@ def trip_czt(unit,stepSpace,q_points,q_mins,q_maxs):
     Chirp-z transform.
 
     unit = The matrix representation of the unit cell
+    
     q_points = the number of points that q will be solved for in the x,y and z
     direction
+    
     q_mins = the minimum q values for the x, y, and z direction
+    
     q_max = the maximum q values for the x, y, and z direction
+    
     '''
-
 
     frequency = (2*pi)/stepSpace
 
@@ -1424,7 +1537,7 @@ def _test():
     from osrefl.model.sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam, Q_space
     #from scatter import *
     #from pylab import *
-    from omfLoader import Omf
+    #from osrefl.loaders.omfLoader import Omf
     #magneticBA test
     import os
     DATA_PATH = os.path.join('..', os.path.dirname(osrefl.__file__), 'examples', 'data')

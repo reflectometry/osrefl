@@ -911,11 +911,11 @@ class PlotInfo(object):
         for i in range(len(rawData)):self.data.append(rawData[i][0])
         for i in range(len(rawData)):self.type.append(rawData[i][1])
 
-        print self.data
-        print self.type
+        # self.data
+        #print self.type
         
-        for dat in self.data:
-            print shape(dat)
+        #for dat in self.data:
+        #    print shape(dat)
         
         self.data = asarray(self.data)
         self.type = asarray(self.type,dtype = object)
@@ -949,7 +949,7 @@ class PlotInfo(object):
 
     def initVlim(self):
 
-        self.vlimit= [amax(self.data[0])*1.0e-20,amax(self.data)]
+        self.vlimit= [amax(self.data[0])*2.0e-20,amax(self.data)]
         return
 
 

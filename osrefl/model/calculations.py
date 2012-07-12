@@ -40,6 +40,62 @@ def sphere_point_test(center,r,x,y,z):
         (z - center[2])**2)) <=(r**2 )
     return test_results
 
+def cylinder_point_test(pt1, pt2, r, x, y, z):
+
+    '''
+    
+     Overview:
+        Determines whether a given point is in a cylinder given the point
+    being tested and the relevant parameters.
+
+
+    Parameters:
+
+    pt1:(float,[3]|angstroms) = The coordinates of the originized axis point. 
+        This parameter is in the form (x, y, z)
+
+    pt2:(float,[3]|angstroms) = The coordinates of the other axis point.
+
+    x,y,z:(float|angstroms) = coordinates for the point being tested.
+
+
+    Note:
+    -The API is left intentionally independent of the class structures used in
+    sample_prep.py to allow for code resuabilitiy.
+    
+    
+    '''
+
+    dx = pt2[0]-pt1[0]; 
+    dy = pt2[1]-pt1[1];
+    dz = pt2[2]-pt1[2];
+    
+    # handle the degenerate case of z1 == z2 with an approximation
+    if(dz == 0):
+       dz = .00000001;
+       
+    # faster vector calculations   
+    lengthSquared = dz * dz
+    
+    # fd <=> final delta
+    fdx = x - pt1[0]
+    fdy = y - pt1[1]
+    fdz = z - pt1[2]
+    
+    dotProduct = dx * fdx + dy * fdy + dz * fdz
+    
+    if(dotProduct < 0.0 | dotProduct > lengthSquared):
+        return false
+    else:
+        # Point is inside two endpoints, find if it is close enough to Axis
+        # distanceFromAxis is in units^2
+        distanceFromAxis = (fdx*fdx + fdy*fdy + fdz*fdz) - dotProduct*dotProduct/lengthSquared;
+    
+        if(distanceFromAxis > r*r):
+            return false
+        else:
+            return true
+
 
 def parallel_point_test(center,dim,x,y,z):
     '''
@@ -220,6 +276,7 @@ def pyrimid_point_test(center,dim,stub,x,y,z):
 
     -The API is left intentionally independent of the class structures used in
     sample_prep.py to allow for code resuabilitiy.
+    
     '''
     a_angle = arctan(dim[2]/dim[0])
     b_angle = arctan(dim[2]/dim[1])
@@ -233,13 +290,81 @@ def pyrimid_point_test(center,dim,stub,x,y,z):
 
 
 
-    test_results = (less_equal((center[0] -
-        ((center[2] + dim[2]/2)-z)/tan(a_angle)/2.0),x) *
-        less_equal(x,(center[0] + ((center[2] + dim[2]/2)-z)/tan(a_angle)/2.0))*
-        less_equal((center[0] - ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0),y)*
-        less_equal(y,(center[0] + ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0)))
+    test_results = (
+
+        less_equal((center[0] -((center[2] + dim[2]/2)-z)/tan(a_angle)),x) *
+        
+        less_equal(x,(center[0] + ((center[2] + dim[2]/2)-z)/tan(a_angle)))*
+        
+        less_equal((center[1] - ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0),y)*
+        
+        less_equal(y,(center[1] + ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0)))
 
     return test_results
+
+def triangularprism_point_test(center,dim,x,y,z):
+    
+    '''
+    Overview:
+        Determines whether a given point is in an pyramid given the point being
+    tested and the relevant parameters..
+
+
+    Parameters:
+
+    center:float,[3]|angstroms) = The x, y, and z component of the central
+    point of the ellipsoid. In the case that the center is set to
+    [None,None,None] the shape will be put in the bottom corner of the unit cell
+    (the bounding box will start at (0,0,0).
+
+    dim:(float,[3]|angstroms) = The x component, y component and thickness
+    of the cone respectively. x is the length of the Pyramid base and y is the
+    width of the Pyramid base.
+
+    stub:(float|angstroms) = provides a hard cut-off for the thickness of the
+    Pyramid. this allows for the creation of a trapezoidal object who side slope
+    can be altered by using different z component values while keeping the stub
+    parameter fixed.
+
+    x,y,z:(float|angstroms) = coordinates for the point being tested.
+
+
+    Notes:
+
+    -To solve this equation more efficiently, the program takes in an array of
+    x,y and z so that x[size(x),1,1], y[1,size(y),1], z[1,1,size(z)]. This
+    module then solves each part of the test individually and takes the product.
+    Only the points where all of the inquires are True will be left as true in
+    the test_results array
+
+    -The API is left intentionally independent of the class structures used in
+    sample_prep.py to allow for code resuabilitiy.
+    
+        test_results = (
+
+        less_equal((center[0] -((center[2] + dim[2]/2)-z)/tan(a_angle)),x) *
+        
+        less_equal(x,(center[0] + ((center[2] + dim[2]/2)-z)/tan(a_angle)))*
+        
+        less_equal((center[0] - ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0),y)*
+        
+        less_equal(y,(center[0] + ((center[2] + dim[2]/2)-z)/tan(b_angle)/2.0)))
+    
+    '''
+    theta = arctan((dim[2]/2.0)/dim[1])
+
+    test_results = (
+
+        less_equal((center[0] - dim[0]),x) *
+        
+        less_equal(x,(center[0] + dim[0])) *
+        
+        less_equal((center[1] - ((center[2] + dim[2]/2)-z)/tan(theta)/2.0),y)*
+        
+        less_equal(y,(center[1] + ((center[2] + dim[2]/2)-z)/tan(theta)/2.0)))
+
+    return test_results
+
 
 def layer_point_test(thickness,start_point,z):
     '''
@@ -893,7 +1018,7 @@ def test():
     this test contains an array of assertion statements to ensure the shapes
     are being properly treated.
     '''
-    from sample_prep import Parallelapiped, Sphere, Ellipse, Cone
+    from sample_prep import Parallelapiped, Sphere, Ellipse, Cone, Cylinder
 
     first_cone = Cone(SLD = 9.4e-5,dim = [5.0,5.0,5.0],stub = None)
     assert cone_point_test(first_cone.center, first_cone.dim, first_cone.stub,2.5,2.5,2.0) == True, 'Cone calculation broke'
@@ -912,5 +1037,12 @@ def test():
     assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,3,8,11) == False, 'ellipse: z test '
     assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,0,4,5)== True, 'ellipse: xaxis limit'
     assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,5,4,5)== True, 'ellipse: random'
+    
+    test_cylinder = Cylinder(9.8e-6, [6.0,8.0,10.0])
+    # Add Assertions later 
+    # assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,3,8,5) == True, 'ellipse: yaxis limit '
+    # assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,3,8,11) == False, 'ellipse: z test '
+    # assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,0,4,5)== True, 'ellipse: xaxis limit'
+    # assert ellipse_point_test(test_ellipse.center,test_ellipse.dim,5,4,5)== True, 'ellipse: random'
 
 if __name__=="__main__":test()

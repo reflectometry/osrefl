@@ -4,6 +4,7 @@
 # All rights reserved.
 # See LICENSE.txt for details.
 # Author: Christopher Metting
+# changed
 
 """
 This script starts the OsRefl Off-Specular Reflectometry application.

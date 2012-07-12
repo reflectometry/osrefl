@@ -330,7 +330,7 @@ def zoomfft(x, f1, f2=None, m=None, Fs=2, axis=-1):
     Returns:
     -------
     array
-      The transformed signal.  The fourier transform will be calculate
+      The transformed signal.  The fourier transform will be calculated
       at the points f1, f1+df, f1+2df, ..., f2, where df=(f2-f1)/m.
 
     zoomfft(x,0,2-2./len(x)) is equivalent to fft(x).

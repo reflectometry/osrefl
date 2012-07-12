@@ -5,12 +5,15 @@
 
 #Starting Date:6/12/2009
 from osrefl.model.sample_prep import *
+from osrefl.model.samples import *
 from numpy import log, abs, min, max
 from pylab import figure, show, subplot, imshow
 from osrefl.loaders.andr_load import *
 from osrefl.theory.scatter import *
 from osrefl.theory import approximations, scatter
+from osrefl.theory.approximations import *
 from osrefl.viewers import view
+import numpy as np
 
 # Variables used to define the parameters of multiple Ellipse objects without
 #redefining each individually.
@@ -59,14 +62,14 @@ now we can create the unit_cell. This class contains all of the required
 information about a single unit cell.
 '''
 
-kathryns_non_mag_unit = GeomUnit(Dxyz = [9000.0,4500.0,None],
-                                 n = [20,20,20], scene = test)
+kathryns_non_mag_unit = GeomUnit(Dxyz = [9000.0,9000.0,None],
+                                 n = [20,20,20], scene = mag_ellips_scene)
 
 kathryns_non_mag_unit = kathryns_non_mag_unit.buildUnit()
 kathryns_non_mag_unit.add_media()
 
-q_space = Q_space([-.001,-0.002,0.0002],[.001,.002,0.3],[100,25,50])
-lattice = Rectilinear([20,20,1],kathryns_non_mag_unit)
+q_space = Q_space([-.01,-0.002,0.0002],[.01,.002,0.3],[100,100,50])
+lattice = Rectilinear([1,1,1],kathryns_non_mag_unit)
 
 beam = Beam(5.0,None,None,0.05,None)
 
@@ -75,13 +78,22 @@ This solves the structure
 BA for a single, non-magnetic system
 '''
 sample = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
-sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
+#sample_two = scatter.Calculator(lattice,beam,q_space,kathryns_non_mag_unit)
 
-sample.DWBA(refract = False)
+#sample.BA()
 
-sample.resolution_correction()
 
-sample.viewCorUncor()
+raw_intensity = abs(BA_FT(kathryns_non_mag_unit.unit, kathryns_non_mag_unit.step, q_space))**2 
+
+qz_array = q_space.q_list[2].reshape(1,1,q_space.points[2])
+
+raw_intensity *= (4.0 * pi / (qz_array * kathryns_non_mag_unit.Dxyz[0] * kathryns_non_mag_unit.Dxyz[1]))**2
+    
+sample.results = sum(raw_intensity,axis=1).astype('float64')
+
+#sample.resolution_correction()
+
+sample.viewUncor()
 
 '''
 ********* INSERT SAVE FOR sample HERE**********

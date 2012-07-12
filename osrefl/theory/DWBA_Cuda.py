@@ -1,15 +1,48 @@
-# Copyright (C) 2008 University of Maryland
-# All rights reserved.
-# See LICENSE.txt for details.
-# Author: Christopher Metting
-
-#Starting Date:6/12/2009
-
+import pycuda.driver as cuda
+import pycuda.autoinit
+from pycuda.compiler import SourceModule
+from pycuda import gpuarray
 from pylab import *
 from numpy import *
 from time import time
 from  ..model.sample_prep import Q_space
 from .approximations import wavefunction_format
+import numpy 
+import time
+
+def loadkernelsrc(name, precision='float32', defines={}):
+    import os
+    src = readfile(os.path.join(os.path.dirname(__file__),name))
+    # The following are currently defined by cufloat.h/cudouble.h, so aren't
+    # needed here.
+    #defines['CUDA_KERNEL'] = 'extern "C" __global__ void'
+    #defines['INLINE'] = '__inline__ __host__ __device__'
+    defines = "\n".join(('#define %s %s'%(k,str(defines[k])))
+                        for k in sorted(defines.keys()))
+    #define sin __sinf
+    #define cos __cosf
+    if precision == 'float32':
+        typedefs = '''
+#define HAVE_CUDA
+#include <lib/cufloat.h>
+
+#define sincos __sincosf
+        '''
+    else:
+        typedefs = '''
+#define HAVE_CUDA
+#include <lib/cudouble.h>
+        '''
+    src = defines+typedefs+src
+
+    return SourceModule(src, no_extern_c=True,
+                    include_dirs=[os.path.abspath(os.path.dirname(__file__))])
+
+def readfile(name):
+    file = open(name)
+    txt = file.read()
+    file.close()
+    return txt
 
 def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
@@ -64,16 +97,7 @@ def DWBA_form(cell,lattice,beam,q,refract = True):
     '''
     return(scat)
 
-def print_timing(func):
-    def wrapper(*arg):
-        t1 = time()
-        res = func(*arg)
-        t2 = time()
-        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
-        return res
-    return wrapper
 
-@print_timing
 def scatCalc(cell,lattice,beam,q):
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
@@ -85,11 +109,11 @@ def scatCalc(cell,lattice,beam,q):
 
     Vfac = -m/(2*pi*h_bar**2)
 
-    
     q.getKSpace(beam.wavelength)
     
     scat = zeros(q.points,dtype = 'complex')
-
+    
+    
     # PSI in one
     # PSI in two
     # PSI out one
@@ -137,9 +161,21 @@ def scatCalc(cell,lattice,beam,q):
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
     
-    #calculates the structure factor using the gaussian convolution.
+    # calculates the structure factor using the gaussian convolution if there
+    # is a lattice specified
     if lattice != None:
+        lattice_flag = True
         SF = lattice.gauss_struc_calc(q)
+    else:
+        lattice_flag = False
+    
+    # Load CUDA source    
+    cudamod = loadkernelsrc("lib/DWBA_kernel.c")
+    #Grab function(s)
+    cudaDWBA = cudamod.get_function("cudaDWBA_part1")
+    
+    # Allocate space in memory for GPU output
+    ftwRef = numpy.zeros(size(q.q_list[2]),dtype='complex')
 
     for i in range(size(q.q_list[0])):
         print 'qx number: ', i, ' calculating'
@@ -149,10 +185,8 @@ def scatCalc(cell,lattice,beam,q):
             #The next few lines calculate the c and d values for each layer.
             #This is done by calculating the specular reflectivity and then
             #tracing the final reflected intensity back into the sample.
-           
             poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
             negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
-            
             pio = poskiWavePar.c
             pit = poskiWavePar.d
             k_inl =poskiWavePar.kz_l
@@ -174,8 +208,6 @@ def scatCalc(cell,lattice,beam,q):
                 q_piopot[l] = -pfl[l] + pil[l]
                 q_pitpoo[l] = pfl[l] - pil[l]
                 q_pitpot[l] = pfl[l] + pil[l]
-            
-
 
             pil = asarray(pil)
             pfl = asarray(pfl)
@@ -192,37 +224,29 @@ def scatCalc(cell,lattice,beam,q):
 
             k_inl = asarray(k_inl)
             k_outl = asarray(k_outl)
-
-            #Eq. 18
-            qx = q.q_list[0][i]
-            if qx != 0:
-                laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
-            else:
-                laux = complex(cell.step[0])
-                
-            qy = q.q_list[1][ii]
-            if qy != 0:
-                lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
-            else:
-                lauy = complex(cell.step[1])       
+            
+            # Copy over arrays and allocate memory on the GPU
+            cxx = gpuarray.to_gpu(x)
+            cyy = gpuarray.to_gpu(y)
+            
+            crtor = gpuarray.to_gpu(rhoTilOverRho)
+            
+            coutput = cuda.mem_alloc(ftwRef.nbytes)
+            
+            # Call DWBA function on the GPU
+            cudaDWBA(q.q_list[0][i], q.q_list[1][ii],
+                     cell.step[0], cell.step[1],
+                     numpy.int32(size(x[0])), numpy.int32(size(y[0])),
+                     cxx, cyy, crtor,
+                     numpy.float32(Vfac), coutput,
+                     block=(400,1,1), grid=(1,1))
             
             
-            #Eq. 20
-            ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
-                       exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
+            #cuda_sync()
             
-            #Eq.17 for the x and y directions
-            ftwRef *= laux
-            ftwRef *= lauy
-            
-
-            #Eq.18 with the added structure factor.
-            if lattice != None:
-                ftwRef *=SF[i,ii,0]
-
-            #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
-            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
-            
+            # Copy array back from the device(GPU) to the host (CPU)
+            cuda.memcpy_dtoh(ftwRef, coutput)      
+                                    
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
@@ -274,8 +298,8 @@ def scatCalc(cell,lattice,beam,q):
                 #Exactly equation15
                 scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
                                     scat_PitPoo + scat_PitPot)
-            
-                    
+
+
     k_spec = q.q_list[2]/2.0
     dwba_spec = dwbaWavefunction(k_spec,SLDArray)
 
@@ -283,13 +307,13 @@ def scatCalc(cell,lattice,beam,q):
     locy = q.q_list[1].searchsorted(0.0)
 
     #scat[locx,locy,:] = dwba_spec.r
+
     
     semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
     semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
     figure()
     
     return(scat)
-
 
 class dwbaWavefunction:
 
@@ -384,7 +408,7 @@ class dwbaWavefunction:
         self.d[0] = r # reflected beam has intensity |r|**2
 
         p = asarray(1.0 + r,dtype ='complex') #psi
-        pp = asarray(1j * kz[0] * (1 - r),dtype='complex') #psi prime
+        pp = asarray(1j * nz[0] * (1 - r),dtype='complex') #psi prime / k0z
 
         M11[0] = ones(shape(kz),dtype='complex')
         M12[0] = ones(shape(kz),dtype='complex')
@@ -404,16 +428,15 @@ class dwbaWavefunction:
             pForDot = copy(p)
             ppForDot = copy(pp)
 
-            p = (M11[l]*pForDot) + (M12[l]*ppForDot/k0z)
-            pp = (k0z*M21[l]*pForDot) + (M22[l]*ppForDot)
+            p = (M11[l]*pForDot) + (M12[l]*ppForDot)
+            pp = (M21[l]*pForDot) + (M22[l]*ppForDot)
 
 
             #Fine, This is c and d
-            kzl =( nz[l] * k0z ) 
-            self.c[l] = (.5* exp(-1j*kzl*(z_interface))*
-                         (p + (pp/(1j*kzl))))
-            self.d[l] = (.5* exp(1j*kzl*(z_interface))*
-                         (p - (pp/(1j*kzl))))
+            self.c[l] = (.5* exp(-1j*k0z*nz[l]*(z_interface))*
+                         (p + (pp/(1j*nz[l]))))
+            self.d[l] = (.5* exp(1j*k0z*nz[l]*(z_interface))*
+                         (p - (pp/(1j*nz[l]))))
 
             z_interface += thickness
 
@@ -422,70 +445,46 @@ class dwbaWavefunction:
         self.c[-1] = self.t
         self.d[-1] = zeros(shape(kz),dtype='complex')
         return
-
-def _test():
-    # run from ipython by starting in root osrefl directory, 
-    # from osrefl.theory.DWBA import _test
-    # test()
-    # ...
-    from osrefl.model.sample_prep import Parallelapiped, Layer, Scene, GeomUnit, Rectilinear, Beam
     
-    Au = Parallelapiped(SLD = 4.506842e-6,dim=[3.7e4,3.7e4,630.0])#, curve = .56)
-    Cr = Layer(SLD = 3.01e-6,thickness_value = 48.0)
+def cuda_sync():
+    """
+    Overview:
+        Waits for operation in the current context to complete.
+    """
+    #return # The following works in C++; don't know what pycuda is doing
+    # Create an event with which to synchronize
+    done = cuda.Event()
 
-    #Au.on_top_of(Cr)
+    # Schedule an event trigger on the GPU.
+    done.record()
 
-    #scene = Scene([Au,Cr])
-    scene = Scene([Au])
+    #line added to not hog resources
+    while not done.query(): time.sleep(0.01)
 
-    GeoUnit = GeomUnit(Dxyz = [10.0e4,10.0e4,700.0], n = [20,21,40],
-                       #scene = scene, inc_sub = [0.0,0.0])
-                       scene = scene, inc_sub = [0.0,2.07e-6])
-    unit = GeoUnit.buildUnit()
-    unit.add_media()
+    # Block until the GPU executes the kernel.
+    done.synchronize()
+    # Clean up the event; I don't think they can be reused.
+    del done
 
-    lattice = Rectilinear([20.0,20.0,1.0],unit)
-    beam = Beam(5.0,.02,None,0.02,None)
-    q = Q_space([-.0002,-0.002,0.00002],[.0002,.002,0.1],[100,5,150])
-
-
-    SLDArray = wavefunction_format(unit.unit, unit.step[2], absorbtion = None)
-
+def cuda_partition(n):
     '''
-    kiWavePar = dwbaWavefunction(q.kin,SLDArray)
-
-    test = 2
-
-    bbmTest = neutron_wavefunction(q.kin[test,2,50],SLDArray)
-
-    cCollect = zeros(shape(kiWavePar.c)[0])
-    dCollect = zeros(shape(kiWavePar.d)[0])
-
-    c = asarray(kiWavePar.c)
-    d = asarray(kiWavePar.d)
-    for i in range(shape(kiWavePar.c)[0]):
-
-        temp = kiWavePar.c[i]
-        cCollect[i] = temp[test,2,50]
-        temp = kiWavePar.d[i]
-        dCollect[i] = temp[test,2,50]
-
-        cCollect=c[:,test,2,50]
-        dCollect=d[:,test,2,50]
-
-    plot(bbmTest.c,label = 'bbm')
-    plot(cCollect,label = 'py')
-    legend()
-    figure()
-    plot(bbmTest.d,label = 'bbm')
-    plot(dCollect,label = 'py')
-    legend()
-    figure()
-    diff = abs(bbmTest.c.real-cCollect.real)/((abs(bbmTest.c.real)+abs(cCollect.real))/2.0)
-    plot(diff,label = 'diff')
-    show()
+    Overview:
+        Auto grids the thread blocks to achieve some level of calculation
+    efficiency.
     '''
-    DWBA_form(unit,lattice,beam,q)
-
-if __name__=="__main__": _test()
-
+    max_gx,max_gy = 65535,65535
+    blocksize = 32
+    #max_gx,max_gy = 5,65536
+    #blocksize = 3
+    block = (blocksize,1,1)
+    num_blocks = int((n+blocksize-1)/blocksize)
+    if num_blocks < max_gx:
+        grid = (num_blocks,1)
+    else:
+        gx = max_gx
+        gy = (num_blocks + max_gx - 1) / max_gx
+        if gy >= max_gy: raise ValueError("vector is too large")
+        grid = (gx,gy)
+    #print "block",block,"grid",grid
+    #print "waste",block[0]*block[1]*block[2]*grid[0]*grid[1] - n
+    return dict(block=block,grid=grid)
