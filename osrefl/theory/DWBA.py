@@ -403,17 +403,18 @@ class dwbaWavefunction:
 
             pForDot = copy(p)
             ppForDot = copy(pp)
-
-            p = (M11[l]*pForDot) + (M12[l]*ppForDot/k0z)
-            pp = (k0z*M21[l]*pForDot) + (M22[l]*ppForDot)
-
-
+            
             #Fine, This is c and d
             kzl =( nz[l] * k0z ) 
             self.c[l] = (.5* exp(-1j*kzl*(z_interface))*
                          (p + (pp/(1j*kzl))))
             self.d[l] = (.5* exp(1j*kzl*(z_interface))*
                          (p - (pp/(1j*kzl))))
+            
+            ## Moved ^ above v to model wavefunction.js WRT 7/16/12
+            
+            p = (M11[l]*pForDot) + (M12[l]*ppForDot/k0z)
+            pp = (k0z*M21[l]*pForDot) + (M22[l]*ppForDot) 
 
             z_interface += thickness
 

@@ -512,6 +512,8 @@ class Calculator(object):
         self.anglexvals = data[1]
         self.anglezvals = data[2]
         
+        print shape(self.results)
+        
         return
 
     def resolution_correction(self):
@@ -677,6 +679,9 @@ class Calculator(object):
             * Altering of the color axis scale
 
         '''
+        if (shape(self.results) == (80, 80, 80) ):
+            self.results = sum(self.results, axis = 1).astype('float64')
+        
         if (shape(self.results)[0]) == 4:
             titles = ['++ (uncor)','-- (uncor)','+- (uncor)','-+ (uncor)']
             data = [[self.results[0],'Theory'],
