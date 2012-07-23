@@ -193,7 +193,12 @@ def scatCalc(cell,lattice,beam,q):
             k_inl = asarray(k_inl)
             k_outl = asarray(k_outl)
 
-            #Eq. 18
+            ######## 
+            # EDIT: bbm 07/20/2012
+            # this is not Eq. 18, which refers only to the out-of-plane (z) Laue factor
+            # this is the necessary Laue factor to do the integral in eq. 20
+            # as a finite sum over blocks of constant rho in the x-y plane
+            ########
             qx = q.q_list[0][i]
             if qx != 0:
                 laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
@@ -207,11 +212,11 @@ def scatCalc(cell,lattice,beam,q):
                 lauy = complex(cell.step[1])       
             
             
-            #Eq. 20
+            #Eq. 20 (including only rhoN - rhoM is assumed to be zero)
             ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*q.q_list[0][i]*x)*
                        exp(1j*q.q_list[1][ii]*y),axis = 0),axis=0))
             
-            #Eq.17 for the x and y directions
+            # finite-sum corrections for the x and y directions
             ftwRef *= laux
             ftwRef *= lauy
             
@@ -254,22 +259,46 @@ def scatCalc(cell,lattice,beam,q):
                 scat_PitPot = (pitSel * exp(-1j*pil_sel*z)*ft*
                                exp(-1j*pfl_sel*z)* potSel)
 
+                #equation 15
+                # edit 7/23/2012, bbm: 
+                # the integration over z is taken care of by eq. 17 and 18, 
+                # giving the Laue factor - 
+                # the mu and nu sum comes out to 1/4 * 4 * g for unpolarized
+                # NO - Wait - changing my mind.
+                # 
+                # looks like Chris was right - the S propagator in eq. 11
+                # is for a wavefunction referenced to the boundary of the 
+                # current layer, while our c and d are calculated with respect
+                # to z = 0 (not z=z_l), so the extra factor of e^{ikz_l} might
+                # be necessary.
+#                scat_PioPoo = (pioSel * ft * pooSel)
+#                scat_PioPot = (pioSel * ft * potSel)
+#                scat_PitPoo = (pitSel * ft * pooSel)
+#                scat_PitPot = (pitSel * ft * potSel)
+
                 #equation 18
-                scat_PioPoo *= ((-1j / q_piopoo_sel) * 
-                                (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0))
-                scat_PioPoo[isnan(scat_PioPoo)] = cell.step[2]
-
-                scat_PioPot *= ((-1j / q_piopot_sel) * 
-                                (exp(1j *q_piopot_sel * cell.step[2]) - 1.0))
-                scat_PioPot[isnan(scat_PioPot)] = cell.step[2]
-
-                scat_PitPoo *= ((-1j / q_pitpoo_sel) * 
-                                (exp(1j *q_pitpoo_sel *cell.step[2]) - 1.0))
-                scat_PitPoo[isnan(scat_PitPoo)] = cell.step[2]
-
-                scat_PitPot *= ((-1j / q_pitpot_sel) * 
-                                (exp(1j *q_pitpot_sel * cell.step[2]) - 1.0))
-                scat_PitPot[isnan(scat_PitPot)] = cell.step[2]
+                # edit 7/23/12, bbm:
+                # scat_ was incorrectly set to = cell.step[2] for q==0 case,
+                # instead of multiplying (should be *= )
+                mask = (q_piopoo_sel != 0)
+                scat_PioPoo[mask] *= ((-1j / q_piopoo_sel[mask]) * 
+                                (exp(1j *q_piopoo_sel[mask] * cell.step[2]) - 1.0))
+                scat_PioPoo[q_piopoo == 0] *= cell.step[2]
+                
+                mask = (q_piopot_sel != 0)
+                scat_PioPot *= ((-1j / q_piopot_sel[mask]) * 
+                                (exp(1j *q_piopot_sel[mask] * cell.step[2]) - 1.0))
+                scat_PioPot[q_piopot == 0] *= cell.step[2]
+                
+                mask = (q_pitpoo_sel != 0)
+                scat_PitPoo *= ((-1j / q_pitpoo_sel[mask]) * 
+                                (exp(1j *q_pitpoo_sel[mask] * cell.step[2]) - 1.0))
+                scat_PitPoo[q_pitpoo == 0] *= cell.step[2]
+                
+                mask = (q_pitpot_sel != 0)
+                scat_PitPot *= ((-1j / q_pitpot_sel[mask]) * 
+                                (exp(1j *q_pitpot_sel[mask] * cell.step[2]) - 1.0))
+                scat_PitPot[q_pitpot == 0] *= cell.step[2]
                 
                 #Exactly equation15
                 scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
