@@ -12,12 +12,13 @@ const Real Vfac = -m/(2 * pi * h_bar * h_bar);
 
 const int MAX_DIM = 1000;
 
+//const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
+//const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
+//const Real z[MAX_DIM][MAX_DIM][MAX_DIM],
+
 // Cuda DWBA implementation that takes in various parameters 
 // returns through variable scatOut
-__global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
-	 //const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
-	 //const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
-	 //const Real z[MAX_DIM][MAX_DIM][MAX_DIM],
+cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	 const int csx, const int csy, const int csz,
 	 const Real SLDArray[MAX_DIM][],
 	 const Real kin[MAX_DIM][MAX_DIM][MAX_DIM], 
@@ -35,9 +36,9 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 
 	// 4) Calculate indices	
 
-	int i = blockDim.x * blockIdx.x + threadIdx.x;
-	int ii = blockDim.y * blockIdx.y + threadIdx.y;
-	int iii = blockDim.z * blockIdx.z + threadIdx.z;
+	const int i = blockDim.x * blockIdx.x + threadIdx.x;
+	const int ii = blockDim.y * blockIdx.y + threadIdx.y;
+	const int iii = blockDim.z * blockIdx.z + threadIdx.z;
 
 	if(i >= xsize) return;
 	if(ii >= ysize) return;
