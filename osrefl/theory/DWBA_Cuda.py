@@ -174,6 +174,11 @@ def scatCalc(cell,lattice,beam,q):
     #Grab function(s)
     cudaDWBA = cudamod.get_function("cudaDWBA_part1")
     
+     # Load CUDA source    
+    cudamod1 = loadkernelsrc("lib/DWBA_kernel1.c")
+    #Grab function(s)
+    cudaDWBA1 = cudamod.get_function("cudaDWBA")
+    
     # Allocate space in memory for GPU output
     ftwRef = numpy.zeros(size(q.q_list[2]),dtype='complex')
 
@@ -185,15 +190,48 @@ def scatCalc(cell,lattice,beam,q):
             #The next few lines calculate the c and d values for each layer.
             #This is done by calculating the specular reflectivity and then
             #tracing the final reflected intensity back into the sample.
+            '''
             poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
             negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
+            
             pio = poskiWavePar.c
             pit = poskiWavePar.d
             k_inl =poskiWavePar.kz_l
             poo = negkfWavePar.c
             pot = negkfWavePar.d
             k_outl =negkfWavePar.kz_l
+            '''
+            kin = q.kin
+            kout = -q.kout
+            
+            crtor = gpuarray.to_gpu(rhoTilOverRho)
+            cSLDArray = gpuarray.to_gpu(SLDArray)
+            ckin = gpuarray.to_gpu(kin)
+            ckout = gpuarray.to_gpu(kout)
+            
+            cscatout = cuda.mem_alloc(ftwRef.nbytes)
+            
+            # Call DWBA function on the GPU
+            cudaDWBA1(crtor,
+                      #const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
+                      #const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
+                      #const Real z[MAX_DIM][MAX_DIM][MAX_DIM],
+                      cell.step[0], cell.step[1], cell.step[2],
+                      cSLDArray, 
+                      ckin, ckout,
+                      numpy.int32(size(q.q_list[0])), 
+                      numpy.int32(size(q.q_list[1])), 
+                      numpy.int32(size(q.q_list[2])),
+                      cscatout,
+                      block=(50,50,50), grid=(10,10))
 
+            # Copy array back from the device(GPU) to the host (CPU)
+            cuda.memcpy_dtoh(pio, pio)
+            cuda.memcpy_dtoh(pit, pit)
+            cuda.memcpy_dtoh(poo, poo)
+            cuda.memcpy_dtoh(pot, pot)
+            
+            
             for l in range(cell.n[2]):
                 
                 #Solves the equation shown after eq. 11 on page 5.
@@ -208,6 +246,8 @@ def scatCalc(cell,lattice,beam,q):
                 q_piopot[l] = -pfl[l] + pil[l]
                 q_pitpoo[l] = pfl[l] - pil[l]
                 q_pitpot[l] = pfl[l] + pil[l]
+            
+
 
             pil = asarray(pil)
             pfl = asarray(pfl)
@@ -247,7 +287,7 @@ def scatCalc(cell,lattice,beam,q):
             # Copy array back from the device(GPU) to the host (CPU)
             cuda.memcpy_dtoh(ftwRef, coutput)      
                                     
-            #Eq. 19
+             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
             
@@ -278,28 +318,52 @@ def scatCalc(cell,lattice,beam,q):
                 scat_PitPot = (pitSel * exp(-1j*pil_sel*z)*ft*
                                exp(-1j*pfl_sel*z)* potSel)
 
+                #equation 15
+                # edit 7/23/2012, bbm: 
+                # the integration over z is taken care of by eq. 17 and 18, 
+                # giving the Laue factor - 
+                # the mu and nu sum comes out to 1/4 * 4 * g for unpolarized
+                # NO - Wait - changing my mind.
+                # 
+                # looks like Chris was right - the S propagator in eq. 11
+                # is for a wavefunction referenced to the boundary of the 
+                # current layer, while our c and d are calculated with respect
+                # to z = 0 (not z=z_l), so the extra factor of e^{ikz_l} might
+                # be necessary.
+#                scat_PioPoo = (pioSel * ft * pooSel)
+#                scat_PioPot = (pioSel * ft * potSel)
+#                scat_PitPoo = (pitSel * ft * pooSel)
+#                scat_PitPot = (pitSel * ft * potSel)
+
                 #equation 18
-                scat_PioPoo *= ((-1j / q_piopoo_sel) * 
-                                (exp(1j *q_piopoo_sel * cell.step[2]) - 1.0))
-                scat_PioPoo[isnan(scat_PioPoo)] = cell.step[2]
-
-                scat_PioPot *= ((-1j / q_piopot_sel) * 
-                                (exp(1j *q_piopot_sel * cell.step[2]) - 1.0))
-                scat_PioPot[isnan(scat_PioPot)] = cell.step[2]
-
-                scat_PitPoo *= ((-1j / q_pitpoo_sel) * 
-                                (exp(1j *q_pitpoo_sel *cell.step[2]) - 1.0))
-                scat_PitPoo[isnan(scat_PitPoo)] = cell.step[2]
-
-                scat_PitPot *= ((-1j / q_pitpot_sel) * 
-                                (exp(1j *q_pitpot_sel * cell.step[2]) - 1.0))
-                scat_PitPot[isnan(scat_PitPot)] = cell.step[2]
+                # edit 7/23/12, bbm:
+                # scat_ was incorrectly set to = cell.step[2] for q==0 case,
+                # instead of multiplying (should be *= )
+                mask = (q_piopoo_sel != 0)
+                scat_PioPoo[mask] *= ((-1j / q_piopoo_sel[mask]) * 
+                                (exp(1j *q_piopoo_sel[mask] * cell.step[2]) - 1.0))
+                scat_PioPoo[q_piopoo == 0] *= cell.step[2]
+                
+                mask = (q_piopot_sel != 0)
+                scat_PioPot *= ((-1j / q_piopot_sel[mask]) * 
+                                (exp(1j *q_piopot_sel[mask] * cell.step[2]) - 1.0))
+                scat_PioPot[q_piopot == 0] *= cell.step[2]
+                
+                mask = (q_pitpoo_sel != 0)
+                scat_PitPoo *= ((-1j / q_pitpoo_sel[mask]) * 
+                                (exp(1j *q_pitpoo_sel[mask] * cell.step[2]) - 1.0))
+                scat_PitPoo[q_pitpoo == 0] *= cell.step[2]
+                
+                mask = (q_pitpot_sel != 0)
+                scat_PitPot *= ((-1j / q_pitpot_sel[mask]) * 
+                                (exp(1j *q_pitpot_sel[mask] * cell.step[2]) - 1.0))
+                scat_PitPot[q_pitpot == 0] *= cell.step[2]
                 
                 #Exactly equation15
                 scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
                                     scat_PitPoo + scat_PitPot)
-
-
+            
+    '''                   
     k_spec = q.q_list[2]/2.0
     dwba_spec = dwbaWavefunction(k_spec,SLDArray)
 
@@ -307,12 +371,12 @@ def scatCalc(cell,lattice,beam,q):
     locy = q.q_list[1].searchsorted(0.0)
 
     #scat[locx,locy,:] = dwba_spec.r
-
     
     semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
     semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
     figure()
-    
+    '''  
+                
     return(scat)
 
 class dwbaWavefunction:

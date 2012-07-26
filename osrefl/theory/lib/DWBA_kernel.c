@@ -23,9 +23,13 @@ cudaDWBA_part1(const Real qx, const Real qy,
 	const Cplx I(0.0,1.0);
 
 	if (qx != 0 )
-		laux = ((-1 * I) / qx) * exp(I * qx * (xstep - 1));
+		laux = ((-1 * I) / qx) * exp(I * qx * xstep) - 1);
+	else 
+		laux = xstep;
 	if (qx != 0 )
-		lauy = ((-1 * I) / qy) * exp(I * qy * (ystep - 1));
+		lauy = ((-1 * I) / qy) * exp(I * qy * ystep) - 1);
+	else
+		lauy = ystep;
 	
 	for(int i = 0; i < nx; ++i)
 		for(int j = 0; j < ny; ++j)
