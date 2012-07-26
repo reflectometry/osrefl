@@ -32,7 +32,10 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	int ii = blockDim.y * blockIdx.y + threadIdx.y;
 	int iii = blockDim.z * blockIdx.z + threadIdx.z;
-	
+
+	if(i >= xsize) return;
+	if(ii >= ysize) return;
+	if(iii >= zsize) return;
 	// 3) calculate c & d with DWBA_wave_function
 
 	wave_function = DWBA_wave_function(SLDArray, kin, i, ii, iii);
