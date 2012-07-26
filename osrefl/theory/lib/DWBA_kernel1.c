@@ -6,8 +6,6 @@ const Real m (1.674e-27);
 const Real h_bar (6.62607e-14);
 const Real Vfac (-m/(2 * pi * h_bar * h_bar));
 
-
-
 //const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
 //const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
 //const Real z[MAX_DIM][MAX_DIM][MAX_DIM],

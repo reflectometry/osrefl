@@ -201,7 +201,7 @@ def scatCalc(cell,lattice,beam,q):
             # Load CUDA source    
             cudamod1 = loadkernelsrc("lib/DWBA_kernel1.c")
             #Grab function(s)
-            cudaDWBA1 = cudamod.get_function("cudaDWBA")
+            cudaDWBA1 = cudamod1.get_function("cudaDWBA")
             
             crtor = gpuarray.to_gpu(rhoTilOverRho)
             cSLDArray = gpuarray.to_gpu(SLDArray)
