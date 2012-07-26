@@ -1,4 +1,4 @@
-// 1) Set Constants
+// Set Constants
 
 const Real pi(3.14159265358979323846264338327950288);
 const Cplx I(0.0,1.0);
@@ -6,9 +6,7 @@ const Real m (1.674e-27);
 const Real h_bar (6.62607e-14);
 const Real Vfac (-m/(2 * pi * h_bar * h_bar));
 
-// 2) Set maximum Q space x, y, and z value (or dimension) 
 
-const int MAX_DIM = 1000;
 
 //const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
 //const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
@@ -111,6 +109,10 @@ DWBA_wave_function(Real SLDArray[][], Real k[][][],
 
 
 CUDA_KERNEL
+
+// Set maximum Q space x, y, and z value (or dimension) 
+
+const int MAX_DIM = 1000;
 
 // Cuda DWBA implementation that takes in various parameters 
 // returns through variable scatOut
