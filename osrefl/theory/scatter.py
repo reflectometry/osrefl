@@ -744,6 +744,8 @@ class Calculator(object):
         
         x_values = self.anglexvals
         z_values = self.anglezvals
+        xpoints = x_values.shape[0]
+        zpoints = z_values.shape[0]
         
         titles = ['uncorrected']
         data = [[self.results,'Theory']]
@@ -764,7 +766,7 @@ class Calculator(object):
         extent = asarray([xmin, xmax, zmin, zmax])
         
         MultiView(data,[xstep,zstep],
-          [x_values,z_values],
+          [xpoints,zpoints],
           titles=titles,extent= extent,
           axisLabel = ['in-plane angle (degrees)','angle of reflection (degrees)'])
 
