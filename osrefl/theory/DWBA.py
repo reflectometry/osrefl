@@ -313,9 +313,9 @@ def scatCalc(cell,lattice,beam,q):
 
     #scat[locx,locy,:] = dwba_spec.r
     
-    semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
-    semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
-    figure()
+    #semilogy(q.q_list[2],(abs(dwba_spec.r)**2))
+    #semilogy(q.q_list[2],sum((abs(scat)**2).real,axis=1)[locx+5,:])
+    #figure()
     
     return(scat)
 

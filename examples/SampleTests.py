@@ -123,7 +123,7 @@ sample1.DWBA(refract = False)
 # View Angular Results
 #print "Viewing Sample 1... {}".format(alternating.__class__)
 sample1.toAngular(0.25)
-sample1.viewAngular()
+#sample1.viewAngular()
 #sample1.viewAngularFromFile()
 #sample1.viewUncor()
 
