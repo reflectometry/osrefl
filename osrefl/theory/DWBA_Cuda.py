@@ -169,15 +169,9 @@ def scatCalc(cell,lattice,beam,q):
     else:
         lattice_flag = False
     
-    # Load CUDA source    
-    cudamod = loadkernelsrc("lib/DWBA_kernel.c")
-    #Grab function(s)
-    cudaDWBA = cudamod.get_function("cudaDWBA_part1")
+   
     
-     # Load CUDA source    
-    cudamod1 = loadkernelsrc("lib/DWBA_kernel1.c")
-    #Grab function(s)
-    cudaDWBA1 = cudamod.get_function("cudaDWBA")
+    
     
     # Allocate space in memory for GPU output
     ftwRef = numpy.zeros(size(q.q_list[2]),dtype='complex')
@@ -203,6 +197,11 @@ def scatCalc(cell,lattice,beam,q):
             '''
             kin = q.kin
             kout = -q.kout
+            
+            # Load CUDA source    
+            cudamod1 = loadkernelsrc("lib/DWBA_kernel1.c")
+            #Grab function(s)
+            cudaDWBA1 = cudamod.get_function("cudaDWBA")
             
             crtor = gpuarray.to_gpu(rhoTilOverRho)
             cSLDArray = gpuarray.to_gpu(SLDArray)
@@ -264,6 +263,11 @@ def scatCalc(cell,lattice,beam,q):
 
             k_inl = asarray(k_inl)
             k_outl = asarray(k_outl)
+            
+            # Load CUDA source    
+            cudamod = loadkernelsrc("lib/DWBA_kernel.c")
+            #Grab function(s)
+            cudaDWBA = cudamod.get_function("cudaDWBA_part1")
             
             # Copy over arrays and allocate memory on the GPU
             cxx = gpuarray.to_gpu(x)

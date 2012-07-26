@@ -1,13 +1,19 @@
 CUDA_KERNEL
 
+// 1) Set Constants
+
 const Real pi = 3.14159265358979323846;
 const Cplx I(0.0,1.0);
 const Real m = 1.674e-27;
 const Real h_bar = 6.62607e-14;
 const Real Vfac = -m/(2 * pi * h_bar * h_bar);
 
+// 2) Set maximum Q space x, y, and z value (or dimension) 
+
 const int MAX_DIM = 1000;
 
+// Cuda DWBA implementation that takes in various parameters 
+// returns through variable scatOut
 __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	 //const Real x[MAX_DIM][MAX_DIM][MAX_DIM], 
 	 //const Real y[MAX_DIM][MAX_DIM][MAX_DIM], 
@@ -19,7 +25,7 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	 const int xsize, const int ysize, const int zsize,
 	 Cplx scatOut[MAX_DIM][MAX_DIM][MAX_DIM])
 {
-	// 1) Variable Declarations
+	// 3) Variable Declarations
 
 	Cplx wave_function[];
 	Cplx pio;
@@ -27,7 +33,7 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	Cplx poo;
 	Cplx pot;
 
-	// 2) Calculate indices	
+	// 4) Calculate indices	
 
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	int ii = blockDim.y * blockIdx.y + threadIdx.y;
@@ -36,7 +42,8 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	if(i >= xsize) return;
 	if(ii >= ysize) return;
 	if(iii >= zsize) return;
-	// 3) calculate c & d with DWBA_wave_function
+
+	// 5) calculate c & d with DWBA_wave_function
 
 	wave_function = DWBA_wave_function(SLDArray, kin, i, ii, iii);
 	pio = wave_function[0];
@@ -46,11 +53,11 @@ __global__ cudaDWBA(const Real RTOR[MAX_DIM][MAX_DIM][MAX_DIM],
 	poo = wave_function[0];
 	pot = wave_function[1];
 
-	// 4) rest of DWBA calculation
+	// 6) rest of DWBA calculation
 
 	
 
-	// 5) set scatOut and memcopy from host
+	// 7) set scatOut and memcopy from host
 
 }
 
@@ -91,8 +98,8 @@ DWBA_wave_function(Real SLDArray[][], Real k[][][],
 
 	int z_interface;
 
-	SLDinc = SLDArray[0,0];
-	SLDsub = SLDArray[zsize, 0];
+	SLDinc = SLDArray[0][0];
+	SLDsub = SLDArray[zsize][0];
 	kz = k[i][ii][iii];
 
 	SLD = SLDArray[iii][0];
