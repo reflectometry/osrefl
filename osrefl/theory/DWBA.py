@@ -167,7 +167,7 @@ def scatCalc(cell,lattice,beam,q):
                                     dtype = 'complex'))
                 pfl[l]=sqrt(asarray((q.kout[i,ii,:]**2)-(pcl[l]**2),
                                     dtype = 'complex'))
-
+                #print pil[l], poskiWavePar.nz[l] * pio[0]
                 #Equations directly after eq (18).
 
                 q_piopoo[l] = -pfl[l] - pil[l]
@@ -283,22 +283,22 @@ def scatCalc(cell,lattice,beam,q):
                 mask = (q_piopoo_sel != 0)
                 scat_PioPoo[mask] *= ((-1j / q_piopoo_sel[mask]) * 
                                 (exp(1j *q_piopoo_sel[mask] * cell.step[2]) - 1.0))
-                scat_PioPoo[q_piopoo == 0] *= cell.step[2]
+                scat_PioPoo[q_piopoo_sel == 0] *= cell.step[2]
                 
                 mask = (q_piopot_sel != 0)
-                scat_PioPot *= ((-1j / q_piopot_sel[mask]) * 
+                scat_PioPot[mask] *= ((-1j / q_piopot_sel[mask]) * 
                                 (exp(1j *q_piopot_sel[mask] * cell.step[2]) - 1.0))
-                scat_PioPot[q_piopot == 0] *= cell.step[2]
+                scat_PioPot[q_piopot_sel == 0] *= cell.step[2]
                 
                 mask = (q_pitpoo_sel != 0)
-                scat_PitPoo *= ((-1j / q_pitpoo_sel[mask]) * 
+                scat_PitPoo[mask] *= ((-1j / q_pitpoo_sel[mask]) * 
                                 (exp(1j *q_pitpoo_sel[mask] * cell.step[2]) - 1.0))
-                scat_PitPoo[q_pitpoo == 0] *= cell.step[2]
+                scat_PitPoo[q_pitpoo_sel == 0] *= cell.step[2]
                 
                 mask = (q_pitpot_sel != 0)
-                scat_PitPot *= ((-1j / q_pitpot_sel[mask]) * 
+                scat_PitPot[mask] *= ((-1j / q_pitpot_sel[mask]) * 
                                 (exp(1j *q_pitpot_sel[mask] * cell.step[2]) - 1.0))
-                scat_PitPot[q_pitpot == 0] *= cell.step[2]
+                scat_PitPot[q_pitpot_sel == 0] *= cell.step[2]
                 
                 #Exactly equation15
                 scat[i,ii,iii]= sum(scat_PioPoo + scat_PioPot + 
@@ -451,6 +451,7 @@ class dwbaWavefunction:
 
         self.c[-1] = self.t
         self.d[-1] = zeros(shape(kz),dtype='complex')
+        self.nz = nz
         return
 
 def _test():

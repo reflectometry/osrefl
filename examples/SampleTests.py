@@ -81,7 +81,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 80 , 80 , 80 ])
+q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 81, 81, 81 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)

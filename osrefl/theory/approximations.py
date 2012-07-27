@@ -1156,6 +1156,47 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     if qy == None: qy = asarray([0.0])
 
+    #Qmag = sqrt((qx**2) + (qy**2) + (qz**2))
+    Qmag = sqrt((qx**2) + zeros_like(qy)**2 +  (qz**2))
+
+    if Qmag.size == 1:
+        if Qmag==0.0: Qmag = 1.0
+    else:
+        Qmag[Qmag == 0.0] = 1.0
+
+    k0 = 2.0*pi/wavelength
+    twoth = 2.0 * arcsin(Qmag/(2.0*k0))
+    tilt = arctan2(qx,qz)
+
+    th_in = (twoth/2.0) + tilt
+    th_out = (twoth/2.0) - tilt
+
+    kz_in = k0 * sin(th_in)
+    kz_out = -k0 * sin(th_out)
+
+    return kz_in, kz_out
+    
+def QxQyQz_to_gisans_k(qx,qy,qz,wavelength,incident_angle):
+    '''
+    Overview:
+        A Python implementation of the Q space to k_in k_out conversion.
+    using the assumptions common to GISANS:
+    the incoming beam is fixed in angle at itheta_inplane = 0, 
+    itheta_outofplane = constant
+    and the outgoing beam is just referenced to that!
+
+    Parameters:
+
+    '''
+    
+    qx = asarray(qx)
+    qy = asarray(qy)
+    qz = asarray(qz)
+    outshape = (size(qx), size(qy), size(qz))
+    wavelength = asarray(wavelength)
+
+    if qy == None: qy = asarray([0.0])
+
     Qmag = sqrt((qx**2) + (qy**2) + (qz**2))
 
     if Qmag.size == 1:
@@ -1164,6 +1205,9 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
         Qmag[Qmag == 0.0] = 1.0
 
     k0 = 2.0*pi/wavelength
+    kz_in = ones(outshape) * k0 * sin(incident_angle)
+    
+    # still have to fix this...
     twoth = 2.0 * arcsin(Qmag/(2.0*k0))
     tilt = arctan2(qx,qz)
 

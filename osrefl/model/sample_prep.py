@@ -2818,7 +2818,7 @@ class Q_space(Space):
         *k_space:* (float,[array]|angstroms)
             This is the equivelent k-space values for the given set of q values.
     '''
-    def __init__(self,minimums, maximums, points):
+    def __init__(self,minimums, maximums, points, geometry="offspec"):
         if size(minimums) == 2:
             minimums = [minimums[0],minimums[0],minimums[1]]
 
@@ -2829,6 +2829,7 @@ class Q_space(Space):
             points = [points[0],points[0],points[1]]
 
         self.type = 'Q_space'
+        self.geometry = geometry
         self.minimums = minimums
         self.maximums = maximums
         self.points = points
@@ -2917,11 +2918,26 @@ class Q_space(Space):
           (array|angstroms)
 
         '''
-        from ..theory.approximations import QxQyQz_to_k
-        vecQ = self.vectorize()
-        self.kin,self.kout = QxQyQz_to_k(vecQ[0],vecQ[1],vecQ[2],wavelength)
+        if self.geometry == "offspec":
+            from ..theory.approximations import QxQyQz_to_k
+            vecQ = self.vectorize()
+            self.kin,self.kout = QxQyQz_to_k(vecQ[0],vecQ[1],vecQ[2],wavelength)
+        elif self.geometry == "gisans":
+            from ..theory.approximations import QxQyQz_to_gisans_k
+            vecQ = self.vectorize()
+            self.kin,self.kout = QxQyQz_to_gisans_k(vecQ[0],vecQ[1],vecQ[2],wavelength)
+        else:
+            print "no corresponding geometry found"
         return
-
+        
+    def getArrays(self):
+        qv = self.vectorize()
+        outArray_qx = ones(self.points) * qv[0]
+        outArray_qy = ones(self.points) * qv[1]
+        outArray_qz = ones(self.points) * qv[2]
+        return outArray_qx, outArray_qy, outArray_qz
+        
+        
 
 class Beam(object):
     '''
