@@ -1138,7 +1138,7 @@ def BA_FT(total_rho,step,Q):
     return form_factor
 
 
-def QxQyQz_to_k(qx,qy,qz,wavelength):
+def old_QxQyQz_to_k(qx,qy,qz,wavelength):
     '''
     Overview:
         A Python implementation of the Q space to k_in k_out conversion.
@@ -1170,6 +1170,46 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
 
     th_in = (twoth/2.0) + tilt
     th_out = (twoth/2.0) - tilt
+
+    kz_in = k0 * sin(th_in)
+    kz_out = -k0 * sin(th_out)
+
+    return kz_in, kz_out
+
+def QxQyQz_to_k(qx,qy,qz,wavelength):
+    '''
+    Overview:
+        A Python implementation of the Q space to k_in k_out conversion.
+    It includes the qy component in the magnitude
+
+
+    Parameters:
+
+    '''
+
+    qx = asarray(qx)
+    qy = asarray(qy)
+    qz = asarray(qz)
+    wavelength = asarray(wavelength)
+
+    if qy == None: qy = asarray([0.0])
+
+    Qmag = sqrt((qx**2) + (qy**2) + (qz**2))
+    #Qmag = sqrt((qx**2) + zeros_like(qy)**2 +  (qz**2))
+
+    if Qmag.size == 1:
+        if Qmag==0.0: Qmag = 1.0
+    else:
+        Qmag[Qmag == 0.0] = 1.0
+
+    k0 = 2.0*pi/wavelength
+    kfy = abs(qy) # just looking for length here
+    kfxz = sqrt(k0**2 - kfy**2)
+    Qxzmag = sqrt(qx**2 + qz**2)
+    tilt = arctan2(qx,qz)
+    
+    th_in = pi/2.0 - tilt - arccos(Qmag**2 / (2*Qxzmag*k0))
+    th_out = -th_in + arccos((2*k0**2 - Qmag**2)/(2*kfxz*k0))
 
     kz_in = k0 * sin(th_in)
     kz_out = -k0 * sin(th_out)
