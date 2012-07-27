@@ -396,7 +396,7 @@ class dwbaWavefunction:
         self.kz_l = nz * k0z
 
         r = (B11 + (1j * nz[0] * B12) + (1/(1j * nz[-1])*(
-            -B21 - 1j * nz[0] * B22))) / ((-B11 + 1j * nz[0] * B12) + (
+            -B21 - 1j * nz[0] * B22))) / (-B11 + (1j * nz[0] * B12) + (
                              1/(1j * nz[-1])*( B21 - 1j * nz[0] * B22)))
 
         Bl11[-1] = ones(shape(kz))
@@ -420,10 +420,10 @@ class dwbaWavefunction:
         M21[0] = ones(shape(kz),dtype='complex')
         M22[0] = ones(shape(kz),dtype='complex')
 
-        M11[-1] = zeros(shape(kz),dtype='complex')
-        M12[-1] = ones(shape(kz),dtype='complex')
-        M21[-1] = ones(shape(kz),dtype='complex')
-        M22[-1] = zeros(shape(kz),dtype='complex')
+        #M11[-1] = zeros(shape(kz),dtype='complex')
+        #M12[-1] = ones(shape(kz),dtype='complex')
+        #M21[-1] = ones(shape(kz),dtype='complex')
+        #M22[-1] = zeros(shape(kz),dtype='complex')
 
         z_interface = 0.0
 

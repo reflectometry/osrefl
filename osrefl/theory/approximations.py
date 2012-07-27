@@ -1294,8 +1294,8 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
     # Pulls intensity from the born approximation array and stores it in the correct
     # angle space
     for i in range(size(iptheta)):
-        for j in range(size(alphaf)):
-            angular_intensity[i][j] = intensity[xvals[j]][yvals[i]][zvals[j]]
+        for j in range(size(alphaf)): 
+            angular_intensity[i][j] = intensity[xvals[5]][yvals[i]][zvals[j]]
          
     return angular_intensity, y_values, z_values
 

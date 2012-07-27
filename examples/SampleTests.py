@@ -31,12 +31,19 @@ from pylab import figure, show, subplot, imshow
 
 
 # Define the Samples
+
 alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0], 
                                 core_dim = [3000.0, 200.0, 500.0],
                                 x_increment = 0.0,
                                 y_increment = 500.0,                  
                                 offset = [0.0, -1400.0, 0.0])
-
+'''
+alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0], 
+                                core_dim = [200.0, 3000.0, 500.0],
+                                x_increment = 500.0,
+                                y_increment = 0.0,                  
+                                offset = [-1400.0, 0.0, 0.0])
+'''
 triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 400.0], 
                           core_dim = [3000.0, 500.0, 400.0],
                           x_increment = 0.0,
@@ -81,7 +88,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.001 , -0.1 , 0.002 ], [ 0.001 , 0.1 , .12 ], [ 81, 81, 81 ])
+q_space = Q_space([ -0.001 , -0.1 , 0.001 ], [ 0.001 , 0.1 , .12 ], [ 80 , 80 , 80 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -123,7 +130,7 @@ sample1.DWBA(refract = False)
 # View Angular Results
 #print "Viewing Sample 1... {}".format(alternating.__class__)
 sample1.toAngular(0.25)
-#sample1.viewAngular()
+sample1.viewAngular()
 #sample1.viewAngularFromFile()
 #sample1.viewUncor()
 
