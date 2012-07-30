@@ -18,7 +18,7 @@ def DWBA_form(cell,lattice,beam,q, angle_in):
 
     return scat[0], scat[1], scat[2]
 
-def scatCalc(cell,lattice,beam,q, alphai):
+def scatCalc(cell,lattice,beam,q, angle_in):
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
     '''
@@ -32,14 +32,14 @@ def scatCalc(cell,lattice,beam,q, alphai):
     wavelength = beam.wavelength
 
     # convert angle to radians
-    alphai = alphai * (pi / 180)
+    angle_in = angle_in * (pi / 180)
     
     # determine wave vector (k)
     kvec = 2.0*pi/wavelength
 
     # upper and lowerbounds for reflected angle
-    alphaf_min = alphai
-    alphaf_max = 25 * alphai
+    alphaf_min = angle_in
+    alphaf_max = 25 * angle_in
 
     # upper and lowerbounds for in-plane angle 
     iptheta_max = arcsin((q.q_list[1][q.q_list[1].argmax()] / kvec))
@@ -48,8 +48,8 @@ def scatCalc(cell,lattice,beam,q, alphai):
     # grab equally spaced intervals between upper and lowerbound angles
     angle_out = linspace(alphaf_min, alphaf_max, size(q.q_list[2]))
     iptheta = linspace(iptheta_min, iptheta_max, size(q.q_list[1]))
-    angle_in = np.zeros_like(angle_out)
-    angle_in.fill(alphai)
+    #angle_in = np.zeros_like(angle_out)
+    #angle_in.fill(alphai)
     
     # calculate the vertical axis q values
     kz_out = kvec * sin( angle_out )
@@ -169,7 +169,7 @@ def scatCalc(cell,lattice,beam,q, alphai):
             # this is the necessary Laue factor to do the integral in eq. 20
             # as a finite sum over blocks of constant rho in the x-y plane
             ########f (mask.all() != False): 
-            qx = kx_in[ii] - kx_out[ii]
+            qx = kx_in - kx_out[ii]
             if qx != 0:
                 laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
             else:
@@ -208,7 +208,7 @@ def scatCalc(cell,lattice,beam,q, alphai):
             q_pitpoo_sel = q_pitpoo[:,0].reshape((1,1,cell.n[2]))
             q_pitpot_sel = q_pitpot[:,0].reshape((1,1,cell.n[2]))
 
-            pil_sel = pil[:,0].reshape((1,1,cell.n[2]))
+            pil_sel = pil[:].reshape((1,1,cell.n[2]))
             pfl_sel = pfl[:,0].reshape((1,1,cell.n[2]))
             
             #equation 15

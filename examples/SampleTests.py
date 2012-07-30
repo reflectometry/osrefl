@@ -37,13 +37,7 @@ alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0],
                                 x_increment = 0.0,
                                 y_increment = 500.0,                  
                                 offset = [0.0, -1400.0, 0.0])
-'''
-alternating = AlternatingSample(shell_dim = [3000.0, 3000.0, 500.0], 
-                                core_dim = [200.0, 3000.0, 500.0],
-                                x_increment = 500.0,
-                                y_increment = 0.0,                  
-                                offset = [-1400.0, 0.0, 0.0])
-'''
+
 triprism = TriPrismSample(shell_dim = [3000.0, 3000.0, 400.0], 
                           core_dim = [3000.0, 500.0, 400.0],
                           x_increment = 0.0,
@@ -88,7 +82,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 80 , 80 , 80 ])
+q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 30 , 30 , 30 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -105,8 +99,6 @@ print "Calculating Sample 1... {}".format(alternating.__class__)
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
 sample1.DWBA(refract = False)
-#sample1.BA_FormFactor()
-
 
 ##############################################################################
 
@@ -128,7 +120,7 @@ sample1.DWBA(refract = False)
 
 
 # View Angular Results
-#print "Viewing Sample 1... {}".format(alternating.__class__)
+print "Viewing Sample 1... {}".format(alternating.__class__)
 #sample1.toAngular(0.25)
 sample1.viewAngular()
 #sample1.viewAngularFromFile()
