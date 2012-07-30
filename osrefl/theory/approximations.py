@@ -1208,11 +1208,17 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
     Qxzmag = sqrt(qx**2 + qz**2)
     tilt = arctan2(qx,qz)
     
-    th_in = pi/2.0 - tilt - arccos(Qmag**2 / (2*Qxzmag*k0))
-    th_out = -th_in + arccos((2*k0**2 - Qmag**2)/(2*kfxz*k0))
+    cos_gamma = Qmag**2 / ( 2 * Qxzmag * k0 )
+    sin_gamma = sqrt(1 - cos_gamma**2)
+    
+    #th_in = pi/2.0 - tilt - arccos(Qmag**2 / (2*Qxzmag*k0))
+    #th_out = -th_in + arccos((2*k0**2 - Qmag**2)/(2*kfxz*k0))
 
-    kz_in = k0 * sin(th_in)
-    kz_out = -k0 * sin(th_out)
+    #kz_in = k0 * sin(th_in)
+    #kz_out = -k0 * sin(th_out)
+    
+    kz_in = k0 * (cos(tilt) * cos_gamma - sin(tilt) * sin_gamma)
+    kz_out = kz_in - qz
 
     return kz_in, kz_out
     
