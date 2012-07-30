@@ -491,13 +491,26 @@ class Calculator(object):
         if(Cuda == True):
             from DWBA_Cuda import DWBA_form
         else:
-            from DWBA import DWBA_form
+            from DWBAGISANS import DWBA_form
+            
+            data = DWBA_form(self.feature,None,
+                                 self.probe, self.space, 0.25)
+                     
+            self.results = abs(data[0])**2
+            self.anglexvals = data[1]
+            self.anglezvals = data[2]
+ 
+            
+            return 
+        
         from numpy import sum
         
         results = asarray(DWBA_form(self.feature,None,
-                                 self.probe,self.space,refract = refract))
+                                 self.probe, self.space, refract = refract))
         
         self.results = abs(results)**2
+        
+       
      
         return
     

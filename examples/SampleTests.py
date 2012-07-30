@@ -88,7 +88,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.001 , -0.1 , 0.001 ], [ 0.001 , 0.1 , .12 ], [ 80 , 80 , 80 ])
+q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 150 , 150 , 150 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -96,7 +96,7 @@ triprismlattice = Rectilinear([1,1,1],triprismunit)
 cylinderlattice = Rectilinear([1,1,1],cylinderunit)
 
 # Define the Beam parameters 
-beam = Beam(4.75, None, None, 0.02, None)
+beam = Beam(4.54, None, None, 0.02, None)
 
 # Calculate the Scattering and display results 
 ###############################################################################
@@ -129,7 +129,7 @@ sample1.DWBA(refract = False)
 
 # View Angular Results
 #print "Viewing Sample 1... {}".format(alternating.__class__)
-sample1.toAngular(0.25)
+#sample1.toAngular(0.25)
 sample1.viewAngular()
 #sample1.viewAngularFromFile()
 #sample1.viewUncor()

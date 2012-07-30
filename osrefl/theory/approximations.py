@@ -1350,7 +1350,7 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
         for j in range(size(alphaf)): 
             angular_intensity[i][j] = intensity[xvals[5]][yvals[i]][zvals[j]]
          
-    return angular_intensity, y_values, z_values
+    return (angular_intensity), y_values, z_values
 
     
 def complete_formula(czt_result, step, Q):
