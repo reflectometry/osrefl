@@ -1181,7 +1181,14 @@ def QxQyQz_to_k(qx,qy,qz,wavelength):
     Overview:
         A Python implementation of the Q space to k_in k_out conversion.
     It includes the qy component in the magnitude
-
+    These equations make the assumption that ky_in == 0, 
+    so then ky_out = qy
+    
+    gamma is the angle between Qxz and k_in in the xz-plane,
+    determined using the law of cosines: 
+    
+    cos(gamma) = ( Qx**2 + Qz**2 + k0**2 - (k0**2 - Qy**2) ) / (2 * Qxz * k0)
+    which reduces to cos(gamma) = Q**2 / (2 * Qxz * k0)
 
     Parameters:
 
