@@ -122,13 +122,13 @@ def scatCalc(cell,lattice,beam,q, alphai):
     #This is done by calculating the specular reflectivity and then
     #tracing the final reflected intensity back into the sample.
        
-    for ii in range(size(iptheta)):
+    for i in range(size(iptheta)):
         print 'iptheta:', degrees(iptheta[i]), 'calculating (', i+1, 'of', size(iptheta), ')' 
             
-        for i in range(size(angle_out)):
+        for ii in range(size(angle_out)):
              
             poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
-            negkfWavePar = dwbaWavefunction(kz_out[i],SLDArray)
+            negkfWavePar = dwbaWavefunction(kz_out[ii],SLDArray)
              
             pio = poskiWavePar.c
             pit = poskiWavePar.d
@@ -143,7 +143,6 @@ def scatCalc(cell,lattice,beam,q, alphai):
                 pfl[l]=sqrt(asarray((kz_out**2)-(pcl[l]**2),
                                         dtype = 'complex'))
                 
-        
                 #Equations directly after eq (18).
         
                 q_piopoo[l] = -pfl[l] - pil[l]
@@ -170,13 +169,13 @@ def scatCalc(cell,lattice,beam,q, alphai):
             # this is the necessary Laue factor to do the integral in eq. 20
             # as a finite sum over blocks of constant rho in the x-y plane
             ########f (mask.all() != False): 
-            qx = kx_in[i] - kx_out[i]
+            qx = kx_in[ii] - kx_out[ii]
             if qx != 0:
                 laux = ((-1j / qx) * (exp(1j * qx * cell.step[0]) - 1.0))
             else:
                 laux = complex(cell.step[0])
                 
-            qy = -ky_out[ii]
+            qy = -ky_out[i]
             if qy != 0:
                 lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
             else:
@@ -247,12 +246,10 @@ def scatCalc(cell,lattice,beam,q, alphai):
             scat[i, ii]= sum(scat_PioPoo + scat_PioPot + 
                                 scat_PitPoo + scat_PitPot)
             
-    
     xvals = degrees(iptheta)
     yvals = degrees(angle_out)
 
     return scat, xvals, yvals
-
 
 class dwbaWavefunction:
 
