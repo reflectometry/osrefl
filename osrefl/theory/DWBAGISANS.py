@@ -122,47 +122,47 @@ def scatCalc(cell,lattice,beam,q, alphai):
     #This is done by calculating the specular reflectivity and then
     #tracing the final reflected intensity back into the sample.
        
-    poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
-    negkfWavePar = dwbaWavefunction(kz_out,(SLDArray))
-        
-    pio = poskiWavePar.c
-    pit = poskiWavePar.d
-    poo = negkfWavePar.c
-    pot = negkfWavePar.d
-
-    for l in range(cell.n[2]):
+    for ii in range(size(iptheta)):
+        print 'iptheta:', degrees(iptheta[i]), 'calculating (', i+1, 'of', size(iptheta), ')' 
             
-        #Solves the equation shown after eq. 11 on page 5.
-        pil[l]=sqrt(asarray((kz_in**2)-(pcl[l]**2),
-                                dtype = 'complex'))
-        pfl[l]=sqrt(asarray((kz_out**2)-(pcl[l]**2),
-                                dtype = 'complex'))
-
-        #Equations directly after eq (18).
-
-        q_piopoo[l] = -pfl[l] - pil[l]
-        q_piopot[l] = -pfl[l] + pil[l]
-        q_pitpoo[l] = pfl[l] - pil[l]
-        q_pitpot[l] = pfl[l] + pil[l]
+        for i in range(size(angle_out)):
+             
+            poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
+            negkfWavePar = dwbaWavefunction(kz_out[i],SLDArray)
+             
+            pio = poskiWavePar.c
+            pit = poskiWavePar.d
+            poo = negkfWavePar.c
+            pot = negkfWavePar.d
         
-    pil = asarray(pil)
-    pfl = asarray(pfl)
-
-    q_piopoo = asarray(q_piopoo)
-    q_piopot = asarray(q_piopot)
-    q_pitpoo = asarray(q_pitpoo)
-    q_pitpot = asarray(q_pitpot)
-
-    pio = asarray(pio)
-    pit = asarray(pit)
-    poo = asarray(poo)
-    pot = asarray(pot)
-            
-    for i in range(size(angle_out)):
-        print 'angle_out:', degrees(angle_out[i]), 'calculating (', i+1, 'of', size(angle_out), ')'  
-
-        for ii in range(size(iptheta)):
-            #print 'iptheta: ', iptheta[ii], ' calculating'
+            for l in range(cell.n[2]):
+                    
+                #Solves the equation shown after eq. 11 on page 5.
+                pil[l]=sqrt(asarray((kz_in**2)-(pcl[l]**2),
+                                        dtype = 'complex'))
+                pfl[l]=sqrt(asarray((kz_out**2)-(pcl[l]**2),
+                                        dtype = 'complex'))
+                
+        
+                #Equations directly after eq (18).
+        
+                q_piopoo[l] = -pfl[l] - pil[l]
+                q_piopot[l] = -pfl[l] + pil[l]
+                q_pitpoo[l] = pfl[l] - pil[l]
+                q_pitpot[l] = pfl[l] + pil[l]
+                
+            pil = asarray(pil)
+            pfl = asarray(pfl)
+        
+            q_piopoo = asarray(q_piopoo)
+            q_piopot = asarray(q_piopot)
+            q_pitpoo = asarray(q_pitpoo)
+            q_pitpot = asarray(q_pitpot)
+        
+            pio = asarray(pio)
+            pit = asarray(pit)
+            poo = asarray(poo)
+            pot = asarray(pot)
     
             ######## 
             # EDIT: bbm 07/20/2012
@@ -180,12 +180,11 @@ def scatCalc(cell,lattice,beam,q, alphai):
             if qy != 0:
                 lauy = ((-1j / qy) * (exp(1j * qy * cell.step[1]) - 1.0))
             else:
-                lauy = complex(cell.step[1])       
-            
+                lauy = complex(cell.step[1])                 
             
             #Eq. 20 (including only rhoN - rhoM is assumed to be zero)
             ftwRef = (Vfac*sum(sum(rhoTilOverRho * exp(1j*qx*x)*
-                       exp(1j*qy*y),axis = 0),axis=0))
+                       exp(1j*qy*y),axis=0),axis=0))
             
             # finite-sum corrections for the x and y directions
             ftwRef *= laux
@@ -197,51 +196,21 @@ def scatCalc(cell,lattice,beam,q, alphai):
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
-            
-    
-            
-            zlist = q.q_list[2]
-            closestz = zlist[0]
-            
-            zval = 0  
-            qz = kz_in[i] - kz_out[i]
-
-            for j in range(size(zlist)):
-                if abs(zlist[j] - qz) < abs(closestz - qz): 
-                    closestz = zlist[j]
-                    zval = j
-
-            iii = zval
-
-            '''
-            xlist = q.q_list[2]
-            closestx = xlist[0]
-            
-            xval = 0  
-            #qz = kz_in[i] - kz_out[i]
-
-            for j in range(size(xlist)):
-                if abs(xlist[j] - qx) < abs(closestx - qx): 
-                    closestx = xlist[j]
-                    xval = j
-    
-            iii = xval
-            '''  
               
             ft = ftwRef.copy()
 
-            pioSel = pio[:,iii].reshape((1,1,cell.n[2]))
-            pitSel = pit[:,iii].reshape((1,1,cell.n[2]))
-            pooSel = poo[:,iii].reshape((1,1,cell.n[2]))
-            potSel = pot[:,iii].reshape((1,1,cell.n[2]))
+            pioSel = pio[:,0].reshape((1,1,cell.n[2]))
+            pitSel = pit[:,0].reshape((1,1,cell.n[2]))
+            pooSel = poo[:,0].reshape((1,1,cell.n[2]))
+            potSel = pot[:,0].reshape((1,1,cell.n[2]))
 
-            q_piopoo_sel = q_piopoo[:,iii].reshape((1,1,cell.n[2]))
-            q_piopot_sel = q_piopot[:,iii].reshape((1,1,cell.n[2]))
-            q_pitpoo_sel = q_pitpoo[:,iii].reshape((1,1,cell.n[2]))
-            q_pitpot_sel = q_pitpot[:,iii].reshape((1,1,cell.n[2]))
+            q_piopoo_sel = q_piopoo[:,0].reshape((1,1,cell.n[2]))
+            q_piopot_sel = q_piopot[:,0].reshape((1,1,cell.n[2]))
+            q_pitpoo_sel = q_pitpoo[:,0].reshape((1,1,cell.n[2]))
+            q_pitpot_sel = q_pitpot[:,0].reshape((1,1,cell.n[2]))
 
-            pil_sel = pil[:,iii].reshape((1,1,cell.n[2]))
-            pfl_sel = pfl[:,iii].reshape((1,1,cell.n[2]))
+            pil_sel = pil[:,0].reshape((1,1,cell.n[2]))
+            pfl_sel = pfl[:,0].reshape((1,1,cell.n[2]))
             
             #equation 15
             scat_PioPoo = (pioSel * exp(1j*pil_sel*z)*ft*
@@ -275,7 +244,7 @@ def scatCalc(cell,lattice,beam,q, alphai):
             scat_PitPot[q_pitpot_sel == 0] *= cell.step[2]
             
             #Exactly equation15
-            scat[ii, i]= sum(scat_PioPoo + scat_PioPot + 
+            scat[i, ii]= sum(scat_PioPoo + scat_PioPot + 
                                 scat_PitPoo + scat_PitPot)
             
     
@@ -289,6 +258,7 @@ class dwbaWavefunction:
 
     def __init__(self, kz, SLDArray):
 
+        kz = array([kz]).flatten().astype(complex)
         self.kz = kz
         self.SLDArray = SLDArray
 

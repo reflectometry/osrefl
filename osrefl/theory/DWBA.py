@@ -151,7 +151,7 @@ def scatCalc(cell,lattice,beam,q):
             #tracing the final reflected intensity back into the sample.
            
             poskiWavePar = dwbaWavefunction(q.kin[i,ii,:],SLDArray)
-            negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],(SLDArray))
+            negkfWavePar = dwbaWavefunction(-q.kout[i,ii,:],SLDArray)
             
             pio = poskiWavePar.c
             pit = poskiWavePar.d
