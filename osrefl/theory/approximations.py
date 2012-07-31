@@ -1303,8 +1303,8 @@ def QxQyQz_to_angle(space, alphai, intensity, wavelength):
     iptheta = linspace(iptheta_min, iptheta_max, size(y))
     
     # calculate the vertical axis q values
-    qx = kvec * (cos( alphaf ) - cos(  alphai) )
-    qz = kvec * (sin( alphaf ) - sin(  alphai) )
+    qx = kvec * (cos( alphaf ) - cos(  alphai ))
+    qz = kvec * (sin( alphaf ) - sin(  alphai ))
     
     # calculate the horizontal axis q values
     qy = kvec * sin( iptheta )

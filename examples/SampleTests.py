@@ -80,9 +80,9 @@ triprismunit = triprismunit.buildUnit()
 cylinderunit = GeomUnit(Dxyz = xyz, n = resolution, scene = cylinderscene)
 cylinderunit = cylinderunit.buildUnit()
 
-print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
+print "Defining Reciprocal Space, Lattice Structure, aand Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 30 , 30 , 30 ])
+q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 50 , 50 , 50 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
