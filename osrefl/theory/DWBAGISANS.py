@@ -59,6 +59,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
     #incoming k vector
     kz_in = kvec * sin( angle_in )
     kx_in = kvec * cos( angle_in )
+    ky_in = zeros_like(ky_out)
     #q.getKSpace(beam.wavelength)
     
      
@@ -140,7 +141,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
                 #Solves the equation shown after eq. 11 on page 5.
                 pil[l]=sqrt(asarray((kz_in**2)-(pcl[l]**2),
                                         dtype = 'complex'))
-                pfl[l]=sqrt(asarray((kz_out**2)-(pcl[l]**2),
+                pfl[l]=sqrt(asarray((kz_out[ii]**2)-(pcl[l]**2),
                                         dtype = 'complex'))
                 
                 #Equations directly after eq (18).
@@ -198,18 +199,18 @@ def scatCalc(cell,lattice,beam,q, angle_in):
               
             ft = ftwRef.copy()
 
-            pioSel = pio[:,0].reshape((1,1,cell.n[2]))
-            pitSel = pit[:,0].reshape((1,1,cell.n[2]))
-            pooSel = poo[:,0].reshape((1,1,cell.n[2]))
-            potSel = pot[:,0].reshape((1,1,cell.n[2]))
+            pioSel = pio.reshape((1,1,cell.n[2]))
+            pitSel = pit.reshape((1,1,cell.n[2]))
+            pooSel = poo.reshape((1,1,cell.n[2]))
+            potSel = pot.reshape((1,1,cell.n[2]))
 
-            q_piopoo_sel = q_piopoo[:,0].reshape((1,1,cell.n[2]))
-            q_piopot_sel = q_piopot[:,0].reshape((1,1,cell.n[2]))
-            q_pitpoo_sel = q_pitpoo[:,0].reshape((1,1,cell.n[2]))
-            q_pitpot_sel = q_pitpot[:,0].reshape((1,1,cell.n[2]))
+            q_piopoo_sel = q_piopoo.reshape((1,1,cell.n[2]))
+            q_piopot_sel = q_piopot.reshape((1,1,cell.n[2]))
+            q_pitpoo_sel = q_pitpoo.reshape((1,1,cell.n[2]))
+            q_pitpot_sel = q_pitpot.reshape((1,1,cell.n[2]))
 
-            pil_sel = pil[:].reshape((1,1,cell.n[2]))
-            pfl_sel = pfl[:,0].reshape((1,1,cell.n[2]))
+            pil_sel = pil.reshape((1,1,cell.n[2]))
+            pfl_sel = pfl.reshape((1,1,cell.n[2]))
             
             #equation 15
             scat_PioPoo = (pioSel * exp(1j*pil_sel*z)*ft*

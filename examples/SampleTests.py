@@ -98,7 +98,7 @@ beam = Beam(4.54, None, None, 0.02, None)
 print "Calculating Sample 1... {}".format(alternating.__class__)
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
-sample1.DWBA(refract = False)
+sample1.DWBA_GISANS(refract = False, incident_angle=0.25)
 
 ##############################################################################
 
