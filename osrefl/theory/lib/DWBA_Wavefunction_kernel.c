@@ -86,10 +86,13 @@ DWBA_wave_function(Real SLDArray[][], Real k[][][],
 		pp = I * k[i][ii][0];
 		z_interface = (iii - 1) * thickness;
 		
-		for(int j = 0; 1 < j && j < iii; ++i)
+		for(int j = 0; j < iii; ++j)
 		{
-			p = (p * C1) + (pp * C2 / k0z);
-			pp = (p * C3 * k0z) + (pp * C4);
+			if(j > 1)
+			{
+				p = (p * C1) + (pp * C2 / k0z);
+				pp = (p * C3 * k0z) + (pp * C4);
+			}
 		}
 		
 		c = 0.5 * exp(-I * kzl * z_interface) * 
