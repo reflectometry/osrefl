@@ -485,33 +485,32 @@ class Calculator(object):
                                                    self.mag_feature, self.space,
                                                    self.lattice, self.probe)
         return
+    
+    def DWBA_GISANS(self, refract = True, incident_angle=0.25):
+        from DWBAGISANS import DWBA_form
+            
+        data = DWBA_form(self.feature,None,
+                             self.probe, self.space, incident_angle)
+                 
+        self.results = abs(data[0])**2
+        self.anglexvals = data[1]
+        self.anglezvals = data[2]     
+        
+        return 
 
     def DWBA(self,refract = True, Cuda = False):
         
         if(Cuda == True):
             from DWBA_Cuda import DWBA_form
         else:
-            from DWBAGISANS import DWBA_form
-            
-            data = DWBA_form(self.feature,None,
-                                 self.probe, self.space, 0.25)
-                     
-            self.results = abs(data[0])**2
-            self.anglexvals = data[1]
-            self.anglezvals = data[2]
- 
-            
-            return 
+            from DWBA import DWBA_form
         
         from numpy import sum
         
         results = asarray(DWBA_form(self.feature,None,
                                  self.probe, self.space, refract = refract))
         
-        self.results = abs(results)**2
-        
-       
-     
+        self.results = abs(sum(results, axis = 1))**2
         return
     
     def toAngular(self, incident_angle, intensity = None):

@@ -1,21 +1,3 @@
-'''
-import matplotlib
-matplotlib.use('Agg')
-from osrefl.model.sample_prep import *
-from osrefl.model.samples import *
-from numpy import log, abs, min, max
-from osrefl.loaders.andr_load import *
-from osrefl.theory.scatter import *
-from osrefl.theory import approximations, scatter
-from osrefl.theory.approximations import *
-from osrefl.viewers import view
-import numpy as np
-import matplotlib.pyplot as plt
-from pylab import figure, show, subplot, imshow
-
-
-'''
-
 from osrefl.model.sample_prep import *
 from osrefl.model.samples import *
 from numpy import log, abs, min, max
@@ -80,9 +62,9 @@ triprismunit = triprismunit.buildUnit()
 cylinderunit = GeomUnit(Dxyz = xyz, n = resolution, scene = cylinderscene)
 cylinderunit = cylinderunit.buildUnit()
 
-print "Defining Reciprocal Space, Lattice Structure, aand Beam Parameters..."
+print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 50 , 50 , 50 ])
+q_space = Q_space([ -0.001 , -0.2 , 0.002 ], [ 0.001 , 0.2 , .5 ], [ 150 , 150 , 150 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -97,24 +79,22 @@ beam = Beam(4.54, None, None, 0.02, None)
 
 print "Calculating Sample 1... {}".format(alternating.__class__)
 
-sample1 = scatter.Calculator(None, beam, q_space, altunit)
-sample1.DWBA(refract = False)
+#sample1 = scatter.Calculator(None, beam, q_space, altunit)
+#sample1.DWBA_GISANS(refract = False, incident_angle=0.25)
 
 ##############################################################################
 
 #print "Calculating Sample 2... {}".format(triprism.__class__)
 
 #sample2 = scatter.Calculator(None, beam, q_space, triprismunit)
-
-#raw_intensity2 = sample2.BA_FormFactor()
+#sample2.DWBA_GISANS(refract = False, incident_angle=0.25)
 
 ###############################################################################
 
 #print "Calculating Sample 3... {}".format(cylinder.__class__)
 
-#sample3 = scatter.Calculator(None, beam, q_space, cylinderunit)
-
-#raw_intensity3 = sample3.BA_FormFactor()
+sample3 = scatter.Calculator(None, beam, q_space, cylinderunit)
+sample3.DWBA_GISANS(refract = False, incident_angle=0.25)
 
 ###############################################################################
 
@@ -122,7 +102,7 @@ sample1.DWBA(refract = False)
 # View Angular Results
 print "Viewing Sample 1... {}".format(alternating.__class__)
 #sample1.toAngular(0.25)
-sample1.viewAngular()
+sample3.viewAngular()
 #sample1.viewAngularFromFile()
 #sample1.viewUncor()
 
