@@ -72,7 +72,7 @@ triprismlattice = Rectilinear([1,1,1],triprismunit)
 cylinderlattice = Rectilinear([1,1,1],cylinderunit)
 
 # Define the Beam parameters 
-beam = Beam(4.54, None, None, 0.02, None)
+beam = Beam(4.75, None, None, 0.02, None)
 
 # Calculate the Scattering and display results 
 ###############################################################################
