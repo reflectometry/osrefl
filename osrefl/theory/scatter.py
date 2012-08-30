@@ -110,16 +110,33 @@ class Calculator(object):
             :meth:`~sample_prep.Rectilinear` or :meth:`~sample_prep.Hexagonal`
 
         '''
-        if self.space.type == 'Q_space':
-
-            self.results = approximations.BA(self.feature,self.space,
-                                             self.lattice, self.probe)
-        elif self.space.type == 'Theta_space':
-            self.results = approximations.thetaBA(self.feature,
-                                          self.space,self.lattice, self.probe)
+        if lattice != None:
+        
+            if self.space.type == 'Q_space':
+    
+                self.results = approximations.BA(self.feature,self.space,
+                                                 self.lattice, self.probe)
+            elif self.space.type == 'Theta_space':
+                self.results = approximations.thetaBA(self.feature,
+                                              self.space,self.lattice, self.probe)
+            else:
+                raise Exception, ("This calculation does not ",
+                                  self.space.type,"space type")
+                
         else:
-            raise Exception, ("This calculation does not ",
-                              self.space.type,"space type")
+            
+            raw_intensity = approximations.BA_FT(self.feature.unit, self.feature.step, self.space)
+            raw_intensity = abs(approximations.complete_formula(raw_intensity, self.feature.step, self.space))**2
+        
+            qx_array = self.space.q_list[0].reshape(self.space.points[0],1,1)
+            qy_array = self.space.q_list[1].reshape(1,self.space.points[1], 1)
+            qz_array = self.space.q_list[2].reshape(1,1,self.space.points[2])
+            raw_intensity *= (4.0 * pi / (qz_array))**2
+        
+            #raw_intensity = sum(raw_intensity,axis=1).astype('float64')  
+            
+            self.results = raw_intensity
+            
         return
     
     def BA_FormFactor(self):
@@ -495,6 +512,7 @@ class Calculator(object):
         self.results = abs(data[0])**2
         self.anglexvals = data[1]
         self.anglezvals = data[2]     
+        
         return 
 
     def DWBA(self,refract = True, Cuda = False):
@@ -509,7 +527,7 @@ class Calculator(object):
         results = asarray(DWBA_form(self.feature,None,
                                  self.probe, self.space, refract = refract))
         
-        self.results = abs(results)**2
+        self.results = abs(sum(results, axis = 1))**2
         return
     
     def toAngular(self, incident_angle, intensity = None):

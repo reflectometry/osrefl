@@ -21,8 +21,10 @@ def DWBA_form(cell,lattice,beam,q, angle_in):
     return scat[0], scat[1], scat[2]
 
 def scatCalc(cell,lattice,beam,q, angle_in):
+    
     '''
     Math from Kentzinger et al. in Physical Review B, 77, 1044335(2008)
+    
     '''
     
     #Front of Eq (20)
@@ -41,7 +43,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
 
     # upper and lowerbounds for reflected angle
     alphaf_min = angle_in
-    alphaf_max = 25 * angle_in
+    alphaf_max = 100 * angle_in
 
     # upper and lowerbounds for in-plane angle 
     iptheta_max = arcsin((q.q_list[1][q.q_list[1].argmax()] / kvec))
@@ -50,26 +52,20 @@ def scatCalc(cell,lattice,beam,q, angle_in):
     # grab equally spaced intervals between upper and lowerbound angles
     angle_out = linspace(alphaf_min, alphaf_max, size(q.q_list[2]))
     iptheta = linspace(iptheta_min, iptheta_max, size(q.q_list[1]))
+    #alphai = angle_in
     #angle_in = np.zeros_like(angle_out)
     #angle_in.fill(alphai)
-    
-    # calculate the vertical axis q values
+
     kz_out = kvec * sin( angle_out )
     kx_out = kvec * cos( angle_out )
     ky_out = -kvec * sin( iptheta )
     
-    #incoming k vector
     kz_in = kvec * sin( angle_in )
     kx_in = kvec * cos( angle_in )
-    ky_in = zeros_like(ky_out)
-    #q.getKSpace(beam.wavelength)
-    
-     
-    #scat = zeros(q.points, dtype = 'complex')
+    ky_in = zeros_like( ky_out )
+
     scat = zeros((q.points[1], q.points[2]), dtype = 'complex')
-    
-    #print shape(scat)
-    
+        
     # PSI in one
     # PSI in two
     # PSI out one
@@ -116,10 +112,6 @@ def scatCalc(cell,lattice,beam,q, angle_in):
     #relative to the reference potential.
     rhoTilOverRho = Vres/(SLDArray[:,0]).reshape((1,1,cell.n[2]))
     rhoTilOverRho[isnan(rhoTilOverRho)] = 0.0
-    
-    #calculates the structure factor using the gaussian convolution.
-    if lattice != None:
-        SF = lattice.gauss_struc_calc(q)
 
     #The next few lines calculate the c and d values for each layer.
     #This is done by calculating the specular reflectivity and then
@@ -152,12 +144,11 @@ def scatCalc(cell,lattice,beam,q, angle_in):
                                         dtype = 'complex'))
                 
                 #Equations directly after eq (18).
-        
                 q_piopoo[l] = -pfl[l] - pil[l]
                 q_piopot[l] = -pfl[l] + pil[l]
                 q_pitpoo[l] = pfl[l] - pil[l]
                 q_pitpot[l] = pfl[l] + pil[l]
-                
+
             pil = asarray(pil)
             pfl = asarray(pfl)
         
@@ -197,9 +188,6 @@ def scatCalc(cell,lattice,beam,q, angle_in):
             ftwRef *= laux
             ftwRef *= lauy
     
-            #ftwRef = ftwRef*((lattice.repeat[0]*cell.Dxyz[0]*lattice.repeat[1]*cell.Dxyz[1]))
-            #ftwRef = ftwRef*(lattice.repeat[0]*cell.Dxyz[0])\
-            
             #Eq. 19
             ftwRef = ((SLDArray[:,0]).reshape((1,1,cell.n[2]))*
                       ftwRef.reshape((1,1,cell.n[2])))
@@ -218,7 +206,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
 
             pil_sel = pil.reshape((1,1,cell.n[2]))
             pfl_sel = pfl.reshape((1,1,cell.n[2]))
-            
+
             #equation 15
             scat_PioPoo = (pioSel * exp(1j*pil_sel*z)*ft*
                            exp(1j*pfl_sel*z) * pooSel)
@@ -228,7 +216,6 @@ def scatCalc(cell,lattice,beam,q, angle_in):
                            exp(1j*pfl_sel*z) *pooSel)
             scat_PitPot = (pitSel * exp(-1j*pil_sel*z)*ft*
                            exp(-1j*pfl_sel*z)* potSel)
-
             
             mask = (q_piopoo_sel != 0)
             scat_PioPoo[mask] *= ((-1j / q_piopoo_sel[mask]) * 
@@ -251,8 +238,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
             scat_PitPot[q_pitpot_sel == 0] *= cell.step[2]
             
             #Exactly equation15
-            scat[i, ii]= sum(scat_PioPoo + scat_PioPot + 
-                                scat_PitPoo + scat_PitPot)
+            scat[i, ii]= sum(scat_PioPoo + scat_PioPot + scat_PitPoo + scat_PitPot)
             
     xvals = degrees(iptheta)
     yvals = degrees(angle_out)
@@ -348,7 +334,6 @@ class dwbaWavefunction:
             B11 = C1
             B21 = C2
 
-
             C1 = B12*M11[l] + B22*M12[l]
             C2 = B12*M21[l] + B22*M22[l]
             B12 = C1
@@ -386,11 +371,6 @@ class dwbaWavefunction:
         #M21[0] = ones(shape(kz),dtype='complex')
         #M22[0] = ones(shape(kz),dtype='complex')
 
-        #M11[-1] = zeros(shape(kz),dtype='complex')
-        #M12[-1] = ones(shape(kz),dtype='complex')
-        #M21[-1] = ones(shape(kz),dtype='complex')
-        #M22[-1] = zeros(shape(kz),dtype='complex')
-
         z_interface = 0.0
 
         for l in range(1,layerCount-1):
@@ -401,6 +381,7 @@ class dwbaWavefunction:
             
             #Fine, This is c and d
             kzl =( nz[l] * k0z ) 
+
             c[l] = (.5* exp(-1j*kzl*(z_interface))*(p + (pp/(1j*kzl))))
             d[l] = (.5* exp( 1j*kzl*(z_interface))*(p - (pp/(1j*kzl))))
             ## Moved ^ above v to model wavefunction.js WRT 7/16/12
