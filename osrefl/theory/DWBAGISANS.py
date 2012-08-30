@@ -12,6 +12,8 @@ from time import time
 from  ..model.sample_prep import Q_space
 from .approximations import wavefunction_format
 
+SIMULATE_BA = False
+
 def DWBA_form(cell,lattice,beam,q, angle_in):
 
     scat = scatCalc(cell,lattice,beam,q, angle_in)
@@ -127,14 +129,19 @@ def scatCalc(cell,lattice,beam,q, angle_in):
         print 'iptheta:', degrees(iptheta[i]), 'calculating (', i+1, 'of', size(iptheta), ')' 
             
         for ii in range(size(angle_out)):
-             
-            poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
-            negkfWavePar = dwbaWavefunction(kz_out[ii],SLDArray)
-             
-            pio = poskiWavePar.c
-            pit = poskiWavePar.d
-            poo = negkfWavePar.c
-            pot = negkfWavePar.d
+            if SIMULATE_BA:
+                pio = ones((cell.n[2],), dtype='complex') 
+                pit = zeros((cell.n[2],), dtype='complex')
+                poo = zeros((cell.n[2],), dtype='complex')
+                pot = ones((cell.n[2],), dtype='complex')
+            else:  
+                poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
+                negkfWavePar = dwbaWavefunction(kz_out[ii],SLDArray)
+                 
+                pio = poskiWavePar.c
+                pit = poskiWavePar.d
+                poo = negkfWavePar.c
+                pot = negkfWavePar.d
         
             for l in range(cell.n[2]):
                     
@@ -258,50 +265,76 @@ class dwbaWavefunction:
 
         kz = array([kz]).flatten().astype(complex)
         self.kz = kz
+        kzlen = kz.shape[0]
+        sldlen = len(SLDArray)
         self.SLDArray = SLDArray
+        self.r = zeros((sldlen, kzlen), dtype=complex)
+        self.kz_l = zeros((sldlen, kzlen), dtype=complex)
+        self.c = zeros((sldlen, kzlen), dtype=complex)
+        self.d = zeros((sldlen, kzlen), dtype=complex)
+        
+        neg_k_mask = (self.kz < 0)
+        pos_k_mask = logical_not(neg_k_mask)
+        kz_ln, cn, dn, rn = self.calc_r_cd(self.kz[neg_k_mask], kz_neg=True)
+        self.kz_l[:,neg_k_mask] = kz_ln
+        self.c[:,neg_k_mask] = cn
+        self.d[:,neg_k_mask] = dn
+        self.r[:,neg_k_mask] = rn
+        
+        kz_l, c, d, r = self.calc_r_cd(self.kz[pos_k_mask], kz_neg=False)
+        self.kz_l[:,pos_k_mask] = kz_l
+        self.c[:,pos_k_mask] = c
+        self.d[:,pos_k_mask] = d
+        self.r[:,pos_k_mask] = r
+        
+    
+    def calc_r_cd(self, kz, kz_neg=False):
+        if kz_neg:
+            workingSLD = self.SLDArray[::-1]
+        else:
+            workingSLD = self.SLDArray
+            
+        layerCount = workingSLD.shape[0]
+        thickness = sum(workingSLD[1:-1,1])
 
-        self.layerCount = SLDArray.shape[0]
-        self.thickness = sum(SLDArray[1:-1,1])
-
-        SLD_inc = SLDArray[0,0]
-        SLD_sub = SLDArray[-1,0]
+        SLD_inc = workingSLD[0,0] + 1j * workingSLD[0,2]
+        SLD_sub = workingSLD[-1,0] + 1j * workingSLD[-1,2]
 
         B11 = ones(shape(kz),dtype='complex')
         B22 = ones(shape(kz),dtype='complex')
         B21 = zeros(shape(kz),dtype='complex')
         B12 = zeros(shape(kz),dtype='complex')
 
-        M11 = [None]*self.layerCount
-        M12 = [None]*self.layerCount
-        M21 = [None]*self.layerCount
-        M22 = [None]*self.layerCount
+        M11 = [None]*layerCount
+        M12 = [None]*layerCount
+        M21 = [None]*layerCount
+        M22 = [None]*layerCount
 
-        Bl11 = [None]*self.layerCount
-        Bl12 = [None]*self.layerCount
-        Bl21 = [None]*self.layerCount
-        Bl22 = [None]*self.layerCount
+        Bl11 = [None]*layerCount
+        Bl12 = [None]*layerCount
+        Bl21 = [None]*layerCount
+        Bl22 = [None]*layerCount
 
         Bl11[0] = B11
         Bl12[0] = B22
         Bl21[0] = B21
         Bl22[0] = B12
 
-        self.c = [None]*self.layerCount
-        self.d = [None]*self.layerCount
+        c = [None]*layerCount
+        d = [None]*layerCount
+        nz =[None]*layerCount
 
-        nz =[None]*self.layerCount
-
-        k0z = sqrt(asarray(kz**2 + 4 * pi * SLD_inc,dtype = 'complex'))
+        k0z = sqrt(asarray(kz**2 + 4 * pi * SLD_inc,dtype = 'complex'))# always positive!
 
         nz[0] = sqrt( complex(1) - 4 * pi * SLD_inc / k0z**2 )
         nz[-1] = sqrt( complex(1) - 4 * pi * SLD_sub / k0z**2 )
 
-        for l in range(1, self.layerCount-1):
+        for l in range(1, layerCount-1):
 
             #leaving off the incident medium and substrate from sum
-            SLD,thickness,mu = self.SLDArray[l]
+            SLD,thickness,mu = workingSLD[l]
 
-            nz[l] = sqrt(complex(1) - 4 * pi * SLD/ k0z**2 )
+            nz[l] = sqrt(complex(1) - 4 * pi * (SLD+1j*mu)/ k0z**2 )
             kzl =( nz[l] * k0z ) # edit: BBM 02/10/2012
             n = nz[l]
 
@@ -326,7 +359,7 @@ class dwbaWavefunction:
             Bl12[l] = B12
             Bl22[l] = B22
 
-        self.kz_l = nz * k0z
+        kz_l = nz * k0z
 
         r = (B11 + (1j * nz[0] * B12) + (1/(1j * nz[-1])*(
             -B21 - 1j * nz[0] * B22))) / (-B11 + (1j * nz[0] * B12) + (
@@ -337,21 +370,21 @@ class dwbaWavefunction:
         Bl21[-1] = ones(shape(kz))
         Bl22[-1] = zeros(shape(kz))
 
-        self.r = r
+        #self.r = r
 
         self.t = zeros(shape(r),dtype = 'complex')
-        self.t[nz[-1].real != 0.0] = 1.0 + self.r[nz[-1].real != 0.0]
+        #self.t[nz[-1].real != 0.0] = 1.0 + self.r[nz[-1].real != 0.0]
 
-        self.c[0] = ones(shape(kz),dtype='complex') # incident beam has intensity 1
-        self.d[0] = r # reflected beam has intensity |r|**2
+        c[0] = ones(shape(kz),dtype='complex') # incident beam has intensity 1
+        d[0] = r # reflected beam has intensity |r|**2
 
         p = asarray(1.0 + r,dtype ='complex') #psi
-        pp = asarray(1j * kz[0] * (1 - r),dtype='complex') #psi prime
+        pp = asarray(1j * kz_l[0] * (1 - r),dtype='complex') #psi prime
 
-        M11[0] = ones(shape(kz),dtype='complex')
-        M12[0] = ones(shape(kz),dtype='complex')
-        M21[0] = ones(shape(kz),dtype='complex')
-        M22[0] = ones(shape(kz),dtype='complex')
+        #M11[0] = ones(shape(kz),dtype='complex')
+        #M12[0] = ones(shape(kz),dtype='complex')
+        #M21[0] = ones(shape(kz),dtype='complex')
+        #M22[0] = ones(shape(kz),dtype='complex')
 
         #M11[-1] = zeros(shape(kz),dtype='complex')
         #M12[-1] = ones(shape(kz),dtype='complex')
@@ -360,19 +393,16 @@ class dwbaWavefunction:
 
         z_interface = 0.0
 
-        for l in range(1,self.layerCount-1):
+        for l in range(1,layerCount-1):
             ## this algorithm works all the way into the substrate
-
+            SLD,thickness,mu = workingSLD[l]
             pForDot = copy(p)
             ppForDot = copy(pp)
             
             #Fine, This is c and d
             kzl =( nz[l] * k0z ) 
-            self.c[l] = (.5* exp(-1j*kzl*(z_interface))*
-                         (p + (pp/(1j*kzl))))
-            self.d[l] = (.5* exp(1j*kzl*(z_interface))*
-                         (p - (pp/(1j*kzl))))
-            
+            c[l] = (.5* exp(-1j*kzl*(z_interface))*(p + (pp/(1j*kzl))))
+            d[l] = (.5* exp( 1j*kzl*(z_interface))*(p - (pp/(1j*kzl))))
             ## Moved ^ above v to model wavefunction.js WRT 7/16/12
             
             p = (M11[l]*pForDot) + (M12[l]*ppForDot/k0z)
@@ -381,10 +411,16 @@ class dwbaWavefunction:
             z_interface += thickness
 
         # fill final c,d
-
-        self.c[-1] = self.t
-        self.d[-1] = zeros(shape(kz),dtype='complex')
-        return
+        l=-1
+        kzl =( nz[l] * k0z ) 
+        c[l] = (.5* exp(-1j*kzl*(z_interface))*(p + (pp/(1j*kzl))))
+        #self.c[-1] =  (.5* exp(-1j*kzl*(z_interface))*(p + (pp/(1j*kzl))))
+        d[-1] = zeros(shape(kz),dtype='complex')
+                
+        if kz_neg:
+            return [-kz_l[::-1], d[::-1], c[::-1], r[::-1]]
+        else:
+            return [kz_l, c, d, r]
 
 def _test():
     # run from ipython by starting in root osrefl directory, 

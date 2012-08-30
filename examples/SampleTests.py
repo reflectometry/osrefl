@@ -53,8 +53,8 @@ cylinder = CylinderSample(shell_dim = [3000.0, 3000.0, 500.0],
 
 # Build the Samples with different materials
 print "\nBuilding Samples..."
-alternating.Create(core_SLD = 3.0e-6, core_Ms = 2.162e-6, 
-                   shell_SLD = 1.0e-6, shell_Ms = 1.0e-6)
+alternating.Create(core_SLD = 3.0e-6, core_Ms = 0.0e-6, 
+                   shell_SLD = 1.0e-6, shell_Ms = 0.0e-6)
 triprism.Create(core_SLD = 0.1e-12, core_Ms = 2.162e-6, 
                 shell_SLD = 5.0e-6, shell_Ms = 1.0e-6)
 cylinder.Create(core_SLD = 0.1e-12, core_Ms = 2.162e-6, 
@@ -67,7 +67,7 @@ cylinderscene = cylinder.getScene()
 
 # Define Resolution for Slice Drawing
 resolution = [ 100 , 100 , 100 ]
-xyz = [ 3000 , 3000 , 600 ]
+xyz = [ 3000 , 3000 , 700 ]
 
 # Define and build the Geometry Unit for the different samples
 print "Creating Unit Cells..."
@@ -82,7 +82,7 @@ cylinderunit = cylinderunit.buildUnit()
 
 print "Defining Reciprocal Space, Lattice Structure, and Beam Parameters..."
 # Define the Q space
-q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 30 , 30 , 30 ])
+q_space = Q_space([ -0.0001 , -0.1 , 0.002 ], [ 0.0001 , 0.1 , .32 ], [ 90 , 90 , 90 ])
 
 #define the lattice Structures of each unit
 altlattice = Rectilinear([1,1,1],altunit)
@@ -98,6 +98,7 @@ beam = Beam(4.54, None, None, 0.02, None)
 print "Calculating Sample 1... {}".format(alternating.__class__)
 
 sample1 = scatter.Calculator(None, beam, q_space, altunit)
+# 'feature' argument is altunit
 sample1.DWBA_GISANS(refract = False, incident_angle=0.25)
 
 ##############################################################################
@@ -122,6 +123,9 @@ sample1.DWBA_GISANS(refract = False, incident_angle=0.25)
 # View Angular Results
 print "Viewing Sample 1... {}".format(alternating.__class__)
 #sample1.toAngular(0.25)
+SLDArray_alt = wavefunction_format(altunit.unit, altunit.step[2], absorbtion = None)
+SLDArray_tri = wavefunction_format(triprismunit.unit, triprismunit.step[2], absorbtion = None)
+SLDArray_cyl = wavefunction_format(cylinderunit.unit, cylinderunit.step[2], absorbtion = None)
 sample1.viewAngular()
 #sample1.viewAngularFromFile()
 #sample1.viewUncor()

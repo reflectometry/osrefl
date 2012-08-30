@@ -48,7 +48,7 @@ class CylinderSample(Sample):
     
         self.MaterialA = []
         self.MaterialB = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
-        self.MaterialC = Parallelapiped(SLD = 2.5e-6,  dim = [self.shell_dim[0], self.shell_dim[1], 50.0], Ms = 2.162e-6 )
+        self.MaterialC = Parallelapiped(SLD = 2.5e-6,  dim = [self.shell_dim[0], self.shell_dim[1], 50.0], Ms = 0.0e-6 )
         self.MaterialC.on_top_of(self.MaterialB) 
  
         ## Creates 3 similar columns of cylinders
@@ -102,18 +102,36 @@ class AlternatingSample(Sample):
         
         self.offset_iterator = [self.offsetx, self.offsety, self.offsetz]   
        
-    def Create(self, core_SLD, core_Ms, shell_SLD, shell_Ms, base_SLD = 0.0, base_Ms = 0.0):
+    def Create(self, core_SLD, core_Ms, shell_SLD, shell_Ms, front_SLD = 0.0, front_Ms = 0.0, substrate_SLD=5.0e-6, substrate_Ms=0.0 ):
     
-        self.MaterialA = []
-        self.MaterialB = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
-        self.MaterialC = Parallelapiped(SLD = 2.5e-6,  dim = [self.shell_dim[0], self.shell_dim[1], 100.0], Ms = 2.162e-6 )
-        self.MaterialC.on_top_of(self.MaterialB)  
+        self.StripeMaterial = []
+        self.Matrix = Parallelapiped(SLD = shell_SLD, dim = self.shell_dim, Ms = shell_Ms)
+        self.Substrate = Parallelapiped(SLD = substrate_SLD,  dim = [self.shell_dim[0], self.shell_dim[1], 100.0], Ms = substrate_Ms )
+        self.Fronting = Parallelapiped(SLD = front_SLD,  dim = [self.shell_dim[0], self.shell_dim[1], 100.0], Ms = front_Ms )
+        
+        self.Matrix.on_top_of(self.Fronting)
+        self.Substrate.on_top_of(self.Matrix)
+        
           
         for i in range(6):  
-            self.MaterialA.append(Parallelapiped(SLD = core_SLD, dim = self.core_dim, Ms = core_Ms))
-            self.MaterialA[i].is_core_of(self.MaterialB, self.offset_iterator)
+            self.StripeMaterial.append(Parallelapiped(SLD = core_SLD, dim = self.core_dim, Ms = core_Ms))
+            self.StripeMaterial[i].is_core_of(self.Matrix, self.offset_iterator)
             self.offset_iterator[1] += self.y_increment
             self.offset_iterator[0] += self.x_increment
+
+    def getScene(self):
+        
+        self.scenelist = []
+        if(self.Fronting != None):
+            self.scenelist.append(self.Fronting)
+        if(self.Substrate != None):
+            self.scenelist.append(self.Substrate)
+        self.scenelist.append(self.Matrix)
+        for i in range(len(self.StripeMaterial)):
+            self.scenelist.append(self.StripeMaterial[i])
+
+        
+        return Scene(self.scenelist)  
             
 
 class TriPrismSample(Sample):
