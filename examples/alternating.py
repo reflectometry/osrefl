@@ -63,7 +63,7 @@ SLDArray = array(SLDArray)
 
 matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
 
-qz = linspace(0.01, 0.11, 501)
+qz = linspace(0.01, 0.41, 501)
 qy = linspace(-0.1, 0.1, 500)
 qx = ones_like(qy, dtype=complex128) * 1e-10
 
@@ -132,13 +132,19 @@ def calc_gisans(alpha_in, show_plot=True):
     extent = [qy.min(), qy.max(), qz.min(), qz.max()]
 
     if show_plot == True:
-        from pylab import imshow, figure, colorbar
+        from pylab import imshow, figure, colorbar, title, xlabel, ylabel
         figure()
         imshow(log10(abs(gisans)**2), origin='lower', extent=extent, aspect='auto')
+        title('vertical lamellae, DWBA (angle in = %.3f)' % alpha_in)
+        xlabel('$Q_y (\AA^{-1}$)', size='large')
+        ylabel('$Q_z (\AA^{-1}$)', size='large')
         colorbar()
         
         figure()
         imshow(log10(abs(gisans_BA)**2), origin='lower', extent=extent, aspect='auto')
+        title('vertical lamellae, BA (angle in = %.3f)' % alpha_in)
+        xlabel('$Q_y (\AA^{-1}$)', size='large')
+        ylabel('$Q_z (\AA^{-1}$)', size='large')
         colorbar()
-    return gisans, gisans_BA
+    return gisans, gisans_BA, overlap, overlap_BA
 
