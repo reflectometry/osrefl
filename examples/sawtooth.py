@@ -68,12 +68,14 @@ zs = linspace(0.0, 300.0, 31)
 dz = zs[1] - zs[0]
 
 sublayers = [sawtooth(z, sld=back_sld, sldi=back_sldi) for z in zs]
+matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
 FTs = []
 SLDArray =  [ [0,0,0], ]# air]
 for sl in sublayers:
     FT = zeros_like(qx, dtype=complex128)
     for rect in sl[0]:
-        FT += greens_form_shape(rect.points, qx, qy) * (rect.sld - sl[1])
+        FT += greens_form_shape(rect.points, qx, qy) * (rect.sld)
+    FT += greens_form_shape(matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
     FTs.append(FT)
     SLDArray.append([sl[1], dz, sl[2]])
 
@@ -92,24 +94,57 @@ from osrefl.theory.DWBAGISANS import dwbaWavefunction
 #qy = (qy -249.99) / 250.0
 #qz = qz / 500.0 + 0.1
 def calc_gisans(alpha_in, show_plot=True):
+    kz_in_0 = 2*pi/wavelength * sin(alpha_in * pi/180.0)
+    kz_out_0 = kz_in_0 - qz
 
-    kz_in = 2*pi/wavelength * sin(alpha_in * pi/180.0)
-    kz_out = kz_in - qz
+    wf_in = dwbaWavefunction(kz_in_0, SLDArray)
+    wf_out = dwbaWavefunction(-kz_out_0, conj(SLDArray))
+    
+    kz_in_l = wf_in.kz_l # inside the layers
+    kz_out_l = -wf_out.kz_l # inside the layers
 
-    wf_in = dwbaWavefunction(kz_in, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out, conj(SLDArray))
-
+    zs = cumsum(SLDArray[1:-1,1])
+    dz = zs[1] - zs[0]
+    #dz = SLDArray[1:-1,1][:,newaxis]
     z_array = array(zs)[:,newaxis]
-    qz_inside = wf_in.kz_l[1:-1] - wf_out.kz_l[1:-1]
-    overlap  = array(wf_out.d)[1:-1] * array(wf_in.c)[1:-1] / (1j * qz_inside) * \
-        (exp(1j * qz_inside * dz) - exp(1j * qz_inside * 0.0)) * exp(1j*qz_inside*z_array)
-    overlap += array(wf_out.c)[1:-1] * array(wf_in.d)[1:-1] / (-1j * qz_inside) * \
-        (exp(-1j * qz_inside * dz) - exp(-1j * qz_inside * 0.0)) * exp(-1j*qz_inside*z_array)
 
-    overlap_BA  = 1.0 / (1j * qz) * \
-        (exp(1j * qz * dz) - exp(1j * qz * 0.0)) * exp(1j*qz*z_array)
-    overlap_BA += 1.0 / (-1j * qz) * \
-        (exp(-1j * qz * dz) - exp(-1j * qz * 0.0)) * exp(-1j*qz*z_array)
+    qrt_inside =  kz_in_l[1:-1] - kz_out_l[1:-1]
+    qtt_inside =  kz_in_l[1:-1] + kz_out_l[1:-1]
+    qtr_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]
+    qrr_inside = -kz_in_l[1:-1] - kz_out_l[1:-1]
+    
+    
+    # the overlap is the forward-moving amplitude c in psi_in multiplied by 
+    # the forward-moving amplitude in the time-reversed psi_out, which
+    # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
+    # (which is calculated by the wavefunction calculator)
+    # ... and vice-verso for d and c in psi_in and psi_out
+    overlap  = wf_out.d[1:-1] * wf_in.c[1:-1] / (1j * qtt_inside) * (exp(1j * qtt_inside * dz) - 1.0)*exp(1j*qtt_inside*z_array)
+    overlap += wf_out.c[1:-1] * wf_in.d[1:-1] / (1j * qrr_inside) * (exp(1j * qrr_inside * dz) - 1.0)*exp(1j*qrr_inside*z_array)
+    overlap += wf_out.d[1:-1] * wf_in.d[1:-1] / (1j * qtr_inside) * (exp(1j * qtr_inside * dz) - 1.0)*exp(1j*qtr_inside*z_array)
+    overlap += wf_out.c[1:-1] * wf_in.c[1:-1] / (1j * qrt_inside) * (exp(1j * qrt_inside * dz) - 1.0)*exp(1j*qrt_inside*z_array)
+
+    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * dz) - 1.0) * exp(1j*qz*z_array)
+    #overlap_BA += 1.0 / (-1j * qz) * (exp(-1j * qz * dz) - 1.0) * exp(-1j*qz*z_array)
+    #######################################################################3
+
+#    kz_in = 2*pi/wavelength * sin(alpha_in * pi/180.0)
+#    kz_out = kz_in - qz
+
+#    wf_in = dwbaWavefunction(kz_in, SLDArray)
+#    wf_out = dwbaWavefunction(-kz_out, conj(SLDArray))
+
+    #z_array = array(zs)[:,newaxis]
+    #qz_inside = wf_in.kz_l[1:-1] - wf_out.kz_l[1:-1]
+#    overlap  = array(wf_out.d)[1:-1] * array(wf_in.c)[1:-1] / (1j * qz_inside) * \
+#        (exp(1j * qz_inside * dz) - exp(1j * qz_inside * 0.0)) * exp(1j*qz_inside*z_array)
+#    overlap += array(wf_out.c)[1:-1] * array(wf_in.d)[1:-1] / (-1j * qz_inside) * \
+#        (exp(-1j * qz_inside * dz) - exp(-1j * qz_inside * 0.0)) * exp(-1j*qz_inside*z_array)
+
+#    overlap_BA  = 1.0 / (1j * qz) * \
+#        (exp(1j * qz * dz) - exp(1j * qz * 0.0)) * exp(1j*qz*z_array)
+#    overlap_BA += 1.0 / (-1j * qz) * \
+#        (exp(-1j * qz * dz) - exp(-1j * qz * 0.0)) * exp(-1j*qz*z_array)
      
     #FTx0 = zeros_like(qy, dtype=complex128)
     #for rect in rects:

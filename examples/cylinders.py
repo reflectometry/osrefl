@@ -121,6 +121,14 @@ print "ratio should be 0.3491 for FCT planar array with a/b = 2 and r = a/6"
 avg_sld = (matrix.area * matrix_sld + clipped_cyl_area * cyl_sld) / matrix.area
 avg_sldi = (matrix.area * matrix_sldi + clipped_cyl_area * cyl_sldi) / matrix.area
 
+def draw_cylinders():
+    from pylab import figure, plot
+    figure()
+    for c in cylinders.clipped_cylinders:
+        cp = array(c.points)
+        if cp.shape[0] > 0: plot(cp[:,0], cp[:,1])
+
+
 front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
 back_sldi = pi/(wavelength**2) * 2.0 * 7.0e-8 # absorption in substrate
@@ -136,9 +144,10 @@ SLDArray =  [ [0,0,0], # air
 
 FT = zeros_like(qx, dtype=complex128)
 for cyl in clipped_cylinders:
-    FT += greens_form_shape(cyl.points, qx, qy) * (cyl.sld - avg_sld)
+    FT += greens_form_shape(cyl.points, qx, qy) * (cyl.sld)
 
-FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld - avg_sld)
+FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
+FT += greens_form_shape(matrix.points, qx, qy) * (-avg_sld)
 
 SLDArray = array(SLDArray)
 
@@ -146,32 +155,37 @@ def calc_gisans(alpha_in, show_plot=True):
 
     #alpha_in = 0.25 # incoming beam angle
 
-    kz_in = 2*pi/wavelength * sin(alpha_in * pi/180.0)
-    kz_out = kz_in - qz
+    kz_in_0 = 2*pi/wavelength * sin(alpha_in * pi/180.0)
+    kz_out_0 = kz_in_0 - qz
 
-    wf_in = dwbaWavefunction(kz_in, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out, conj(SLDArray))
+    wf_in = dwbaWavefunction(kz_in_0, SLDArray)
+    wf_out = dwbaWavefunction(-kz_out_0, conj(SLDArray))
+    
+    kz_in_l = wf_in.kz_l # inside the layers
+    kz_out_l = -wf_out.kz_l # inside the layers
 
     zs = cumsum(SLDArray[1:-1,1])
     dz = SLDArray[1:-1,1][:,newaxis]
     z_array = array(zs)[:,newaxis]
 
-    qz_inside = wf_in.kz_l[1] - wf_out.kz_l[1]
+    qrt_inside =  kz_in_l[1] - kz_out_l[1]
+    qtt_inside =  kz_in_l[1] + kz_out_l[1]
+    qtr_inside = -kz_in_l[1] + kz_out_l[1]
+    qrr_inside = -kz_in_l[1] - kz_out_l[1]
+    
+    
     # the overlap is the forward-moving amplitude c in psi_in multiplied by 
     # the forward-moving amplitude in the time-reversed psi_out, which
     # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
     # (which is calculated by the wavefunction calculator)
     # ... and vice-verso for d and c in psi_in and psi_out
-    overlap  = wf_out.d[1] * wf_in.c[1] / (1j * qz_inside) * \
-        (exp(1j * qz_inside * thickness) - exp(1j * qz_inside * 0.0)) 
-    overlap += wf_out.c[1] * wf_in.d[1] / (-1j * qz_inside) * \
-        (exp(-1j * qz_inside * thickness) - exp(-1j * qz_inside * 0.0)) 
+    overlap  = wf_out.d[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
+    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
+    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
+    overlap += wf_out.c[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
 
-    overlap_BA  = 1.0 / (1j * qz) * \
-        (exp(1j * qz * thickness) - exp(1j * qz * 0.0)) 
-    overlap_BA += 1.0 / (-1j * qz_inside) * \
-        (exp(-1j * qz * thickness) - exp(-1j * qz * 0.0)) 
-
+    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * thickness) - 1.0) 
+    #overlap_BA += 1.0 / (-1j * qz) * (exp(-1j * qz * thickness) - 1.0) 
 
     gisans = overlap[:,newaxis] * FT[newaxis, :]
     gisans_BA = overlap_BA[:,newaxis] * FT[newaxis, :]
