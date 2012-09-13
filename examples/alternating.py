@@ -63,7 +63,7 @@ SLDArray = array(SLDArray)
 
 matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
 
-qz = linspace(0.01, 0.41, 501)
+qz = linspace(0.01, 0.11, 501)
 qy = linspace(-0.1, 0.1, 500)
 qx = ones_like(qy, dtype=complex128) * 1e-10
 
@@ -81,19 +81,21 @@ def calc_gisans(alpha_in, show_plot=True):
     kz_out_0 = kz_in_0 - qz
 
     wf_in = dwbaWavefunction(kz_in_0, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out_0, conj(SLDArray))
+    wf_out = dwbaWavefunction(-kz_out_0, SLDArray)
     
     kz_in_l = wf_in.kz_l # inside the layers
+    kz_in_p_l = -kz_in_l # prime
     kz_out_l = -wf_out.kz_l # inside the layers
+    kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
 
     zs = cumsum(SLDArray[1:-1,1])
     dz = SLDArray[1:-1,1][:,newaxis]
     z_array = array(zs)[:,newaxis]
 
-    qrt_inside =  kz_in_l[1] - kz_out_l[1]
-    qtt_inside =  kz_in_l[1] + kz_out_l[1]
-    qtr_inside = -kz_in_l[1] + kz_out_l[1]
-    qrr_inside = -kz_in_l[1] - kz_out_l[1]
+    qrt_inside = -kz_in_l[1] - kz_out_l[1]
+    qtt_inside = -kz_in_l[1] + kz_out_l[1]
+    qtr_inside = +kz_in_l[1] + kz_out_l[1]
+    qrr_inside = +kz_in_l[1] - kz_out_l[1]
     
     
     # the overlap is the forward-moving amplitude c in psi_in multiplied by 
@@ -101,10 +103,10 @@ def calc_gisans(alpha_in, show_plot=True):
     # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
     # (which is calculated by the wavefunction calculator)
     # ... and vice-verso for d and c in psi_in and psi_out
-    overlap  = wf_out.d[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
-    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
-    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
-    overlap += wf_out.c[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
+    overlap  = wf_out.c[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
+    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
+    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
+    overlap += wf_out.d[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
 
     overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * thickness) - 1.0) 
     #overlap_BA += 1.0 / (-1j * qz) * (exp(-1j * qz * thickness) - 1.0)

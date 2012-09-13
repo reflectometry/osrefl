@@ -2,7 +2,7 @@ from greens_thm_form import greens_form_line, greens_form_shape
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10
 from osrefl.theory.DWBAGISANS import dwbaWavefunction
 
-class shape:
+class Shape:
     def __init__(self, name):
         self.name = name
         self.points = []
@@ -11,7 +11,7 @@ class shape:
 
 def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
     #generate points for a rectangle
-    rect = shape('rectangle')
+    rect = Shape('rectangle')
     rect.points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
     rect.sld = sld
     rect.sldi = sldi
@@ -38,7 +38,7 @@ def sawtooth(z, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0.0, 
     return rects, avg_sld, avg_sldi
 
 def arc(r, theta_start, theta_end, x_center, y_center, theta_step=1.0, close=True, sld=0.0, sldi=0.0, ):
-    a = shape('arc')
+    a = Shape('arc')
     a.theta_start = theta_start
     a.theta_end = theta_end
     a.area = pi * r**2 * abs(theta_end - theta_start)/360.0
@@ -54,7 +54,7 @@ def arc(r, theta_start, theta_end, x_center, y_center, theta_step=1.0, close=Tru
 
 
 def limit_cyl(arc, xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0):
-    new_arc = shape('arc')
+    new_arc = Shape('arc')
     new_arc.sld = arc.sld
     new_arc.sldi = arc.sldi
     new_arc.theta_start = arc.theta_start
@@ -133,45 +133,58 @@ front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
 back_sldi = pi/(wavelength**2) * 2.0 * 7.0e-8 # absorption in substrate
 
-qz = linspace(0.01, 0.21, 501)
+qz = linspace(0.01, 0.11, 501)
 qy = linspace(-0.1, 0.1, 500)
 qx = ones_like(qy, dtype=complex128) * 1e-8
 
-SLDArray =  [ [0,0,0], # air
-              [avg_sld, thickness, avg_sldi], # sample
-              [matrix_sld, sublayer_thickness, matrix_sldi], # full matrix layer under cylinders
-              [back_sld, 0, back_sldi] ]
+shapes = clipped_cylinders
+dz = thickness
+sublayers = [[clipped_cylinders, avg_sld, avg_sldi, thickness], \
+             [[], matrix_sld, matrix_sldi, sublayer_thickness]]
 
-FT = zeros_like(qx, dtype=complex128)
-for cyl in clipped_cylinders:
-    FT += greens_form_shape(cyl.points, qx, qy) * (cyl.sld)
+FTs = []
+SLDArray =  [ [0,0,0], ] # air
+for sl in sublayers:
+    FT = zeros_like(qx, dtype=complex128)
+    shapes = sl[0]
+    for shape in shapes:
+        FT += greens_form_shape(shape.points, qx, qy) * (shape.sld)
+    FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
+    FT += greens_form_shape(matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
+    FTs.append(FT)
+    SLDArray.append([sl[1], sl[3], sl[2]])
+              
+SLDArray.append([back_sld, 0, back_sldi])
 
-FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
-FT += greens_form_shape(matrix.points, qx, qy) * (-avg_sld)
+#FT = zeros_like(qx, dtype=complex128)
+#for cyl in clipped_cylinders:
+#    FT += greens_form_shape(cyl.points, qx, qy) * (cyl.sld)
+
+#FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
+#FT += greens_form_shape(matrix.points, qx, qy) * (-avg_sld)
 
 SLDArray = array(SLDArray)
 
 def calc_gisans(alpha_in, show_plot=True):
-
-    #alpha_in = 0.25 # incoming beam angle
-
     kz_in_0 = 2*pi/wavelength * sin(alpha_in * pi/180.0)
     kz_out_0 = kz_in_0 - qz
 
     wf_in = dwbaWavefunction(kz_in_0, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out_0, conj(SLDArray))
+    wf_out = dwbaWavefunction(-kz_out_0, SLDArray) # solve 1d equation for time-reversed state
     
     kz_in_l = wf_in.kz_l # inside the layers
+    kz_in_p_l = -kz_in_l # prime
     kz_out_l = -wf_out.kz_l # inside the layers
+    kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
 
-    zs = cumsum(SLDArray[1:-1,1])
     dz = SLDArray[1:-1,1][:,newaxis]
+    zs = cumsum(SLDArray[1:-1,1]) - SLDArray[1,1] # start at zero with first layer
     z_array = array(zs)[:,newaxis]
 
-    qrt_inside =  kz_in_l[1] - kz_out_l[1]
-    qtt_inside =  kz_in_l[1] + kz_out_l[1]
-    qtr_inside = -kz_in_l[1] + kz_out_l[1]
-    qrr_inside = -kz_in_l[1] - kz_out_l[1]
+    qrt_inside = -kz_in_l[1:-1] - kz_out_l[1:-1]
+    qtt_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]
+    qtr_inside = +kz_in_l[1:-1] + kz_out_l[1:-1]
+    qrr_inside = +kz_in_l[1:-1] - kz_out_l[1:-1]
     
     
     # the overlap is the forward-moving amplitude c in psi_in multiplied by 
@@ -179,16 +192,23 @@ def calc_gisans(alpha_in, show_plot=True):
     # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
     # (which is calculated by the wavefunction calculator)
     # ... and vice-verso for d and c in psi_in and psi_out
-    overlap  = wf_out.d[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
-    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
-    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
-    overlap += wf_out.c[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
+    overlap  = wf_out.c[1:-1] * wf_in.c[1:-1] / (1j * qtt_inside) * (exp(1j * qtt_inside * dz) - 1.0)*exp(1j*qtt_inside*z_array)
+    overlap += wf_out.d[1:-1] * wf_in.d[1:-1] / (1j * qrr_inside) * (exp(1j * qrr_inside * dz) - 1.0)*exp(1j*qrr_inside*z_array)
+    overlap += wf_out.c[1:-1] * wf_in.d[1:-1] / (1j * qtr_inside) * (exp(1j * qtr_inside * dz) - 1.0)*exp(1j*qtr_inside*z_array)
+    overlap += wf_out.d[1:-1] * wf_in.c[1:-1] / (1j * qrt_inside) * (exp(1j * qrt_inside * dz) - 1.0)*exp(1j*qrt_inside*z_array)
+#    overlap  = wf_out.c[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
+#    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
+#    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
+#    overlap += wf_out.d[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
 
-    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * thickness) - 1.0) 
+    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * dz) - 1.0) * exp(1j*qz*z_array)
+    #overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * thickness) - 1.0) 
     #overlap_BA += 1.0 / (-1j * qz) * (exp(-1j * qz * thickness) - 1.0) 
 
-    gisans = overlap[:,newaxis] * FT[newaxis, :]
-    gisans_BA = overlap_BA[:,newaxis] * FT[newaxis, :]
+    gisans = sum(overlap[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
+    gisans_BA = sum(overlap_BA[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
+#    gisans = overlap[:,newaxis] * FT[newaxis, :]
+#    gisans_BA = overlap_BA[:,newaxis] * FT[newaxis, :]
     extent = [qy.min(), qy.max(), qz.min(), qz.max()]
     if show_plot == True:
         from pylab import imshow, figure, colorbar
