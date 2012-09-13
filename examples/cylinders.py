@@ -155,14 +155,6 @@ for sl in sublayers:
     SLDArray.append([sl[1], sl[3], sl[2]])
               
 SLDArray.append([back_sld, 0, back_sldi])
-
-#FT = zeros_like(qx, dtype=complex128)
-#for cyl in clipped_cylinders:
-#    FT += greens_form_shape(cyl.points, qx, qy) * (cyl.sld)
-
-#FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
-#FT += greens_form_shape(matrix.points, qx, qy) * (-avg_sld)
-
 SLDArray = array(SLDArray)
 
 def calc_gisans(alpha_in, show_plot=True):
@@ -196,14 +188,8 @@ def calc_gisans(alpha_in, show_plot=True):
     overlap += wf_out.d[1:-1] * wf_in.d[1:-1] / (1j * qrr_inside) * (exp(1j * qrr_inside * dz) - 1.0)*exp(1j*qrr_inside*z_array)
     overlap += wf_out.c[1:-1] * wf_in.d[1:-1] / (1j * qtr_inside) * (exp(1j * qtr_inside * dz) - 1.0)*exp(1j*qtr_inside*z_array)
     overlap += wf_out.d[1:-1] * wf_in.c[1:-1] / (1j * qrt_inside) * (exp(1j * qrt_inside * dz) - 1.0)*exp(1j*qrt_inside*z_array)
-#    overlap  = wf_out.c[1] * wf_in.c[1] / (1j * qtt_inside) * (exp(1j * qtt_inside * thickness) - 1.0)
-#    overlap += wf_out.d[1] * wf_in.d[1] / (1j * qrr_inside) * (exp(1j * qrr_inside * thickness) - 1.0)
-#    overlap += wf_out.c[1] * wf_in.d[1] / (1j * qtr_inside) * (exp(1j * qtr_inside * thickness) - 1.0)
-#    overlap += wf_out.d[1] * wf_in.c[1] / (1j * qrt_inside) * (exp(1j * qrt_inside * thickness) - 1.0)
 
     overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * dz) - 1.0) * exp(1j*qz*z_array)
-    #overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * thickness) - 1.0) 
-    #overlap_BA += 1.0 / (-1j * qz) * (exp(-1j * qz * thickness) - 1.0) 
 
     gisans = sum(overlap[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
     gisans_BA = sum(overlap_BA[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
@@ -221,5 +207,4 @@ def calc_gisans(alpha_in, show_plot=True):
         colorbar()
     return gisans, gisans_BA
 
-    
 
