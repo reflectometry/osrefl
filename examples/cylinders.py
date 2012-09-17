@@ -1,13 +1,5 @@
-from greens_thm_form import greens_form_line, greens_form_shape
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10
-from osrefl.theory.DWBAGISANS import dwbaWavefunction
-
-class Shape:
-    def __init__(self, name):
-        self.name = name
-        self.points = []
-        self.sld = 0.0
-        self.sldi = 0.0
+from GISANS_problem import Shape, GISANS_problem
 
 def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
     #generate points for a rectangle
@@ -17,25 +9,6 @@ def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
     rect.sldi = sldi
     rect.area = dx * dy
     return rect
-
-def sawtooth(z, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0.0, sldi=0.0, sld_front=0.0, sldi_front=0.0):
-    if z>height:
-        return [], sld_front
-    
-    width = (z / height) * base_width
-    front_width = base_width - width
-    rects = [rectangle(0, base_width*(i+0.5) - width/2.0, x_length, width, sld, sldi) for i in range(n)]
-    # now rectangles for the gaps between the sawtooths...
-    if (sld_front !=0.0 and sldi_front != 0.0):
-        front_rects = [rectangle(0, 0, x_length, front_width/2.0, sld_front, sldi_front)]
-        front_rects.extend([rectangle(0, base_width*(i+0.5)+width/2.0, x_length, front_width, sld_front, sldi_front) for i in range(1,n-1)])
-        front_rects.append(rectangle(0, base_width*(n-0.5)+width/2.0, x_length, front_width/2.0, sld_front, sldi_front))
-        rects.extend(front_rects)
-    
-    # now calculate the average SLD (nuclear) for the layer
-    avg_sld = (width * sld + front_width * sld_front) / base_width
-    avg_sldi = (width * sldi + front_width * sldi_front) / base_width
-    return rects, avg_sld, avg_sldi
 
 def arc(r, theta_start, theta_end, x_center, y_center, theta_step=1.0, close=True, sld=0.0, sldi=0.0, ):
     a = Shape('arc')
@@ -72,10 +45,6 @@ def limit_cyl(arc, xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0):
     
     return new_arc
     
-def conj(sld):
-    conjugate_sld = sld.copy()
-    conjugate_sld[:,2] *= -1
-    return conjugate_sld
      
 # alternating SLD
 wavelength = 1.24 # x-ray wavelength, Angstroms
@@ -142,69 +111,4 @@ dz = thickness
 sublayers = [[clipped_cylinders, avg_sld, avg_sldi, thickness], \
              [[], matrix_sld, matrix_sldi, sublayer_thickness]]
 
-FTs = []
-SLDArray =  [ [0,0,0], ] # air
-for sl in sublayers:
-    FT = zeros_like(qx, dtype=complex128)
-    shapes = sl[0]
-    for shape in shapes:
-        FT += greens_form_shape(shape.points, qx, qy) * (shape.sld)
-    FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
-    FT += greens_form_shape(matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
-    FTs.append(FT)
-    SLDArray.append([sl[1], sl[3], sl[2]])
-              
-SLDArray.append([back_sld, 0, back_sldi])
-SLDArray = array(SLDArray)
-
-def calc_gisans(alpha_in, show_plot=True):
-    kz_in_0 = 2*pi/wavelength * sin(alpha_in * pi/180.0)
-    kz_out_0 = kz_in_0 - qz
-
-    wf_in = dwbaWavefunction(kz_in_0, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out_0, SLDArray) # solve 1d equation for time-reversed state
-    
-    kz_in_l = wf_in.kz_l # inside the layers
-    kz_in_p_l = -kz_in_l # prime
-    kz_out_l = -wf_out.kz_l # inside the layers
-    kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
-
-    dz = SLDArray[1:-1,1][:,newaxis]
-    zs = cumsum(SLDArray[1:-1,1]) - SLDArray[1,1] # start at zero with first layer
-    z_array = array(zs)[:,newaxis]
-
-    qrt_inside = -kz_in_l[1:-1] - kz_out_l[1:-1]
-    qtt_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]
-    qtr_inside = +kz_in_l[1:-1] + kz_out_l[1:-1]
-    qrr_inside = +kz_in_l[1:-1] - kz_out_l[1:-1]
-    
-    
-    # the overlap is the forward-moving amplitude c in psi_in multiplied by 
-    # the forward-moving amplitude in the time-reversed psi_out, which
-    # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
-    # (which is calculated by the wavefunction calculator)
-    # ... and vice-verso for d and c in psi_in and psi_out
-    overlap  = wf_out.c[1:-1] * wf_in.c[1:-1] / (1j * qtt_inside) * (exp(1j * qtt_inside * dz) - 1.0)*exp(1j*qtt_inside*z_array)
-    overlap += wf_out.d[1:-1] * wf_in.d[1:-1] / (1j * qrr_inside) * (exp(1j * qrr_inside * dz) - 1.0)*exp(1j*qrr_inside*z_array)
-    overlap += wf_out.c[1:-1] * wf_in.d[1:-1] / (1j * qtr_inside) * (exp(1j * qtr_inside * dz) - 1.0)*exp(1j*qtr_inside*z_array)
-    overlap += wf_out.d[1:-1] * wf_in.c[1:-1] / (1j * qrt_inside) * (exp(1j * qrt_inside * dz) - 1.0)*exp(1j*qrt_inside*z_array)
-
-    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * dz) - 1.0) * exp(1j*qz*z_array)
-
-    gisans = sum(overlap[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
-    gisans_BA = sum(overlap_BA[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
-#    gisans = overlap[:,newaxis] * FT[newaxis, :]
-#    gisans_BA = overlap_BA[:,newaxis] * FT[newaxis, :]
-    extent = [qy.min(), qy.max(), qz.min(), qz.max()]
-    if show_plot == True:
-        from pylab import imshow, figure, colorbar
-        figure()
-        imshow(log10(abs(gisans)**2), origin='lower', extent=extent, aspect='auto')
-        colorbar()
-        
-        figure()
-        imshow(log10(abs(gisans_BA)**2), origin='lower', extent=extent, aspect='auto')
-        colorbar()
-    return gisans, gisans_BA
-
-
+problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)

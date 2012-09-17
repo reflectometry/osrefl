@@ -1,13 +1,5 @@
-from greens_thm_form import greens_form_line, greens_form_shape
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, log10
-import itertools
-
-class Shape:
-    def __init__(self, name):
-        self.name = name
-        self.points = []
-        self.sld = 0.0
-        self.sldi = 0.0
+from GISANS_problem import Shape, GISANS_problem
 
 def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
     #generate points for a rectangle
@@ -37,12 +29,6 @@ def sawtooth(z, dz, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0
     avg_sldi = (width * sldi + front_width * sldi_front) / base_width
     return rects, avg_sld, avg_sldi, dz
 
-
-def conj(sld):
-    conjugate_sld = sld.copy()
-    conjugate_sld[:,2] *= -1
-    return conjugate_sld
-    
 # rectangles for inplane stripes: have width = 25 nm with
 # alternating SLD
  
@@ -69,71 +55,6 @@ dz = zs[1] - zs[0]
 
 sublayers = [sawtooth(z, dz, sld=back_sld, sldi=back_sldi) for z in zs]
 matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
-FTs = []
-SLDArray =  [ [0,0,0], ]# air]
-for sl in sublayers:
-    FT = zeros_like(qx, dtype=complex128)
-    shapes = sl[0]
-    for shape in shapes:
-        FT += greens_form_shape(shape.points, qx, qy) * (shape.sld)
-    FT += greens_form_shape(matrix.points, qx, qy) * (matrix.sld)
-    FT += greens_form_shape(matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
-    FTs.append(FT)
-    SLDArray.append([sl[1], sl[3], sl[2]])
 
-SLDArray.append([back_sld, 0, back_sldi])
-SLDArray = array(SLDArray)
-
-
-from osrefl.theory.DWBAGISANS import dwbaWavefunction
-
-def calc_gisans(alpha_in, show_plot=True):
-    kz_in_0 = 2*pi/wavelength * sin(alpha_in * pi/180.0)
-    kz_out_0 = kz_in_0 - qz
-
-    wf_in = dwbaWavefunction(kz_in_0, SLDArray)
-    wf_out = dwbaWavefunction(-kz_out_0, SLDArray)
-    
-    kz_in_l = wf_in.kz_l # inside the layers
-    kz_in_p_l = -kz_in_l # prime
-    kz_out_l = -wf_out.kz_l # inside the layers
-    kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
-
-    zs = cumsum(SLDArray[1:-1,1]) - SLDArray[1,1] 
-    dz = SLDArray[1:-1,1][:,newaxis]
-    z_array = array(zs)[:,newaxis]
-
-    qrt_inside = -kz_in_l[1:-1] - kz_out_l[1:-1]
-    qtt_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]
-    qtr_inside = +kz_in_l[1:-1] + kz_out_l[1:-1]
-    qrr_inside = +kz_in_l[1:-1] - kz_out_l[1:-1]
-    
-    
-    # the overlap is the forward-moving amplitude c in psi_in multiplied by 
-    # the forward-moving amplitude in the time-reversed psi_out, which
-    # ends up being the backward-moving amplitude d in the non-time-reversed psi_out
-    # (which is calculated by the wavefunction calculator)
-    # ... and vice-verso for d and c in psi_in and psi_out
-    overlap  = wf_out.c[1:-1] * wf_in.c[1:-1] / (1j * qtt_inside) * (exp(1j * qtt_inside * dz) - 1.0)*exp(1j*qtt_inside*z_array)
-    overlap += wf_out.d[1:-1] * wf_in.d[1:-1] / (1j * qrr_inside) * (exp(1j * qrr_inside * dz) - 1.0)*exp(1j*qrr_inside*z_array)
-    overlap += wf_out.c[1:-1] * wf_in.d[1:-1] / (1j * qtr_inside) * (exp(1j * qtr_inside * dz) - 1.0)*exp(1j*qtr_inside*z_array)
-    overlap += wf_out.d[1:-1] * wf_in.c[1:-1] / (1j * qrt_inside) * (exp(1j * qrt_inside * dz) - 1.0)*exp(1j*qrt_inside*z_array)
-
-    overlap_BA  = 1.0 / (1j * qz) * (exp(1j * qz * dz) - 1.0) * exp(1j*qz*z_array)
-       
-    gisans = sum(overlap[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
-    gisans_BA = sum(overlap_BA[:,:,newaxis] * array(FTs)[:,newaxis,:], axis=0)
-    extent = [qy.min(), qy.max(), qz.min(), qz.max()]
-    
-    if show_plot == True:
-        from pylab import imshow, figure, colorbar
-        figure()
-        imshow(log10(abs(gisans)**2), origin='lower', extent=extent, aspect='auto')
-        colorbar()
-        
-        figure()
-        imshow(log10(abs(gisans_BA)**2), origin='lower', extent=extent, aspect='auto')
-        colorbar()
-    return gisans, gisans_BA
-    
+problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
 
