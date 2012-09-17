@@ -15,7 +15,11 @@ def sawtooth(z, dz, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0
     
     width = (z / height) * base_width
     front_width = base_width - width
-    rects = [rectangle(0, base_width*(i+0.5) - width/2.0, x_length, width, sld, sldi) for i in range(n)]
+    if width == 0:
+        rects = []
+    else: 
+        rects = [rectangle(0, base_width*(i+0.5) - width/2.0, x_length, width, sld, sldi) for i in range(n)]
+        
     #### below is now taken care of with "matrix" rectangle that surrounds every layer.
     # now rectangles for the gaps between the sawtooths...
 #    if (sld_front !=0.0 and sldi_front != 0.0):
