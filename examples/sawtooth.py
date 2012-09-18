@@ -52,7 +52,8 @@ y0 = cumsum(array(width))
 
 qz = linspace(0.01, 0.41, 501)
 qy = linspace(-0.1, 0.1, 500)
-qx = ones_like(qy, dtype=complex128) * 1e-8
+qx = array([1e-10])
+#qx = ones_like(qy, dtype=complex128) * 1e-8
 
 zs = linspace(0.0, 300.0, 31)
 dz = zs[1] - zs[0]

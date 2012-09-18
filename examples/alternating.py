@@ -1,4 +1,4 @@
-from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, log10
+from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, log10, complex64
 from GISANS_problem import Shape, GISANS_problem
 
 def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
@@ -35,7 +35,8 @@ dz = thickness
 
 qz = linspace(0.01, 0.11, 501)
 qy = linspace(-0.1, 0.1, 500)
-qx = ones_like(qy, dtype=complex128) * 1e-10
+qx = array([1e-10], dtype=complex128)
+#qx = ones_like(qy, dtype=complex128) * 1e-10
 
 sublayers = [[rects, avg_sldn, avg_sldi, thickness] ]
 matrix = rectangle(0,0, 3000, 3000, 0.0, 0.0) # empty matrix

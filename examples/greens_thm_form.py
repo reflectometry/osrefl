@@ -1,4 +1,4 @@
-from numpy import zeros_like, complex128, exp, array, empty, sum, newaxis
+from numpy import zeros_like, complex128, exp, array, empty, sum, newaxis, zeros
 
 def greens_form_line(x0, y0, x1, y1, qx, qy):
     if y0 == y1:
@@ -23,17 +23,24 @@ def greens_form_shape(points, qx, qy):
     return result
     
 def div_form_line(x0, y0, x1, y1, qx, qy):
-    dx = x1 - x0
-    dy = y1 - y0
-    qx = qx[:,newaxis]
-    qy = qy[:,newaxis]
-    qlensq = qx**2 + qy**2
-    result = 1.0/qlensq * (-qx*dy + qy*dx) / (qx*dx + qy*dy)
-    result *= exp(1j*(qx*x1 + qy*y1)) - exp(1j*(qx*x0 + qy*y0))
+    qxl = qx[newaxis,:,newaxis] # put qx 2nd-last axis
+    qyl = qy[newaxis,newaxis,:] # put qy as last axis
+    x0l = x0[:,newaxis,newaxis] # spatial info on first axis
+    x1l = x1[:,newaxis,newaxis]
+    y0l = y0[:,newaxis,newaxis]
+    y1l = y1[:,newaxis,newaxis]
+    dxl = x1l - x0l
+    dyl = y1l - y0l
+    
+    print 'qxl: ', qxl.shape
+    print 'qyl: ', qyl.shape
+    qlensq = qxl**2 + qyl**2
+    result = 1.0/qlensq * (-qxl*dyl + qyl*dxl) / (qxl*dxl + qyl*dyl)
+    result *= exp(1j*(qxl*x1l + qyl*y1l)) - exp(1j*(qxl*x0l + qyl*y0l))
     return result
 
 def div_form_shape(points, qx, qy):
-    result = zeros_like(qx, dtype=complex128)
+    result = zeros((qx.shape[0], qy.shape[0]), dtype=complex128)
     if len(points)>0:
         arr_points = array(points + [points[0],])
         x0 = arr_points[:-1,0]
@@ -41,5 +48,5 @@ def div_form_shape(points, qx, qy):
         x1 = arr_points[1:,0]
         y1 = arr_points[1:,1]
         subresult = div_form_line(x0, y0, x1, y1, qx, qy)
-        result = sum(subresult, axis=1)
+        result = sum(subresult, axis=0)
     return result

@@ -104,7 +104,8 @@ back_sldi = pi/(wavelength**2) * 2.0 * 7.0e-8 # absorption in substrate
 
 qz = linspace(0.01, 0.11, 501)
 qy = linspace(-0.1, 0.1, 500)
-qx = ones_like(qy, dtype=complex128) * 1e-8
+qx = array([1e-8], dtype=complex128)
+#qx = ones_like(qy, dtype=complex128) * 1e-8
 
 shapes = clipped_cylinders
 dz = thickness
