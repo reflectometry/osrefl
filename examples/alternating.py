@@ -1,5 +1,6 @@
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, log10, complex64
 from GISANS_problem import Shape, GISANS_problem
+from OFFSPEC_problem import OFFSPEC_problem
 
 def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
     #generate points for a rectangle
@@ -21,9 +22,9 @@ width = [300, 200] * 6 # Angstroms
 y0 = cumsum(array(width))
 
 sldn = pi/(wavelength**2) * 2.0 * array(delta)
-avg_sldn = sum(sldn)/sldn.shape[0]
+avg_sldn = sum(sldn*array(width))/sum(array(width))
 sldi = pi/(wavelength**2) * 2.0 * array(beta)
-avg_sldi = sum(sldi)/sldi.shape[0]
+avg_sldi = sum(sldi*array(width))/sum(array(width))
 
 rects = [rectangle(0, y0[i], 3000, width[i], sldn[i], sldi[i]) for i in range(12)]
 
@@ -41,4 +42,14 @@ qx = array([1e-10], dtype=complex128)
 sublayers = [[rects, avg_sldn, avg_sldi, thickness] ]
 matrix = rectangle(0,0, 3000, 3000, 0.0, 0.0) # empty matrix
 
-problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+
+oqz = linspace(0.03, 0.21, 501)
+oqy = array([1e-10], dtype=complex128)
+oqx = linspace(-2e-3+1e-10, 2e-3, 501)
+
+orects = [rectangle(y0[i]*100.0, 0, width[i]*100.0, 300000, sldn[i], sldi[i]) for i in range(12)] # along x!
+omatrix = rectangle(0,0, 300000, 300000, 0.0, 0.0) # empty matrix
+osublayers = [[orects, avg_sldn, avg_sldi, thickness] ]
+
+o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz)

@@ -61,5 +61,5 @@ dz = zs[1] - zs[0]
 sublayers = [sawtooth(z, dz, sld=back_sld, sldi=back_sldi) for z in zs]
 matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
 
-problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
 

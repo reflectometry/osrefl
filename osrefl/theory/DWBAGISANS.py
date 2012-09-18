@@ -248,16 +248,18 @@ def scatCalc(cell,lattice,beam,q, angle_in):
 class dwbaWavefunction:
 
     def __init__(self, kz, SLDArray):
-
-        kz = array([kz]).flatten().astype(complex)
+        
+        if not isinstance(kz, ndarray):
+            kz = array([kz], dtype=complex)
+        #kz = array([kz]).flatten().astype(complex)
         self.kz = kz
-        kzlen = kz.shape[0]
+        kzlen = kz.shape
         sldlen = len(SLDArray)
         self.SLDArray = SLDArray
-        self.r = zeros((sldlen, kzlen), dtype=complex)
-        self.kz_l = zeros((sldlen, kzlen), dtype=complex)
-        self.c = zeros((sldlen, kzlen), dtype=complex)
-        self.d = zeros((sldlen, kzlen), dtype=complex)
+        self.r = zeros((sldlen,) + kzlen, dtype=complex)
+        self.kz_l = zeros((sldlen,) + kzlen, dtype=complex)
+        self.c = zeros((sldlen,) + kzlen, dtype=complex)
+        self.d = zeros((sldlen,) + kzlen, dtype=complex)
         
         neg_k_mask = (self.kz < 0)
         pos_k_mask = logical_not(neg_k_mask)

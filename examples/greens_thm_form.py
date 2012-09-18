@@ -2,7 +2,7 @@ from numpy import zeros_like, complex128, exp, array, empty, sum, newaxis, zeros
 
 def greens_form_line(x0, y0, x1, y1, qx, qy):
     if y0 == y1:
-        result = zeros_like(qx, dtype=complex128)
+        result = 0.0
     elif x0 == x1:
         # m is infinity...
         result = -1.0 / (qx*qy) * exp(1j * qx * x0)
@@ -47,4 +47,15 @@ def div_form_shape(points, qx, qy):
         y1 = arr_points[1:,1]
         subresult = div_form_line(x0, y0, x1, y1, qx, qy)
         result = sum(subresult, axis=0)
+    return result
+
+def greens_form_shape_array(points, qx, qy):
+    qxl = qx[:,newaxis] # put qx 2nd-last axis
+    qyl = qy[newaxis,:] # put qy as last axis
+    result = zeros((qx.shape[0], qy.shape[0]), dtype=complex128)
+    numpoints = len(points)
+    for i in range(numpoints):
+        x0,y0 = points[i]
+        x1,y1 = points[(i+1) % numpoints] # loops back to zero for last point.
+        result += greens_form_line(x0, y0, x1, y1, qxl, qyl)
     return result
