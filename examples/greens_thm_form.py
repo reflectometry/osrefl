@@ -31,9 +31,7 @@ def div_form_line(x0, y0, x1, y1, qx, qy):
     y1l = y1[:,newaxis,newaxis]
     dxl = x1l - x0l
     dyl = y1l - y0l
-    
-    print 'qxl: ', qxl.shape
-    print 'qyl: ', qyl.shape
+
     qlensq = qxl**2 + qyl**2
     result = 1.0/qlensq * (-qxl*dyl + qyl*dxl) / (qxl*dxl + qyl*dyl)
     result *= exp(1j*(qxl*x1l + qyl*y1l)) - exp(1j*(qxl*x0l + qyl*y0l))
