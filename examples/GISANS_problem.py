@@ -73,18 +73,23 @@ class GISANS_problem(object):
         self.update_SLDArray()
         
     def update_FTs(self):
+        dFTs = [] # differential = SLD - (avg. SLD)
         FTs = []
         for sl in self.sublayers:
-            FT = zeros((self.qx.shape[0], self.qy.shape[0]), dtype=complex128)
+            dFT = zeros((self.qx.shape[0], self.qy.shape[0]), dtype=complex128)
+            #FT = zeros((self.qx.shape[0], self.qy.shape[0]), dtype=complex128)
             qx = self.qx
             qy = self.qy
             shapes = sl[0]
             for shape in shapes:
-                FT += greens_form_shape(shape.points, qx, qy) * (shape.sld)
-            FT += greens_form_shape(self.matrix.points, qx, qy) * (self.matrix.sld)
-            FT += greens_form_shape(self.matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
-            FTs.append(FT)
+                dFT += greens_form_shape(shape.points, qx, qy) * (shape.sld)
+            dFT += greens_form_shape(self.matrix.points, qx, qy) * (self.matrix.sld)
+            FT = dFT.copy()
+            FTs.append(FT) # do this before subtracting avg. SLD
+            dFT += greens_form_shape(self.matrix.points, qx, qy) * (-sl[1]) # subtract FT of average SLD
+            dFTs.append(dFT)
         self.FTs = FTs
+        self.dFTs = dFTs
         
     def calc_gisans(self, alpha_in, show_plot=True):
         kz_in_0 = 2*pi/self.wavelength * sin(alpha_in * pi/180.0)
@@ -119,18 +124,20 @@ class GISANS_problem(object):
         self.overlap = overlap
         overlap_BA  = 1.0 / (1j * self.qz) * (exp(1j * self.qz * dz) - 1.0) * exp(1j*self.qz*z_array)
         self.overlap_BA = overlap_BA
-        gisans = sum(sum(overlap[:,newaxis,newaxis,:] * array(self.FTs)[:,:,:,newaxis], axis=0), axis=0) # first over layers, then Qx
+        gisans = sum(sum(overlap[:,newaxis,newaxis,:] * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=0) # first over layers, then Qx
         gisans_BA = sum(sum(overlap_BA[:,newaxis,newaxis,:] * array(self.FTs)[:,:,:,newaxis], axis=0), axis=0) 
         extent = [self.qy.min(), self.qy.max(), self.qz.min(), self.qz.max()]
         
         if show_plot == True:
             from pylab import imshow, figure, colorbar
+            zmax = max(log10(abs(gisans)**2).max(), log10(abs(gisans_BA)**2).max())
+            zmin = min(log10(abs(gisans)**2).min(), log10(abs(gisans_BA)**2).min())
             figure()
-            imshow(log10(abs(gisans)**2).T, origin='lower', extent=extent, aspect='auto')
+            imshow(log10(abs(gisans)**2).T, origin='lower', extent=extent, aspect='auto', vmax=zmax, vmin=zmin)
             colorbar()
             
             figure()
-            imshow(log10(abs(gisans_BA)**2).T, origin='lower', extent=extent, aspect='auto')
+            imshow(log10(abs(gisans_BA)**2).T, origin='lower', extent=extent, aspect='auto', vmax=zmax, vmin=zmin)
             colorbar()
         
         self.alpha_in = alpha_in

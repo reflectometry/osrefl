@@ -114,13 +114,13 @@ sublayers = [[clipped_cylinders, avg_sld, avg_sldi, thickness], \
 
 g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
 
-oqz = linspace(0.01, 0.21, 501)
-oqy = array([1e-10], dtype=complex128)
-oqx = linspace(-2e-3, 2e-3, 100)
-
-orects = [rectangle(y0[i]*100.0, 0, width[i]*100.0, 300000, sldn[i], sldi[i]) for i in range(12)] # along x!
-omatrix = rectangle(0,0, 300000, 300000, 0.0, 0.0) # empty matrix
-osublayers = [[rects, avg_sldn, avg_sldi, thickness] ]
-
-o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz)
+#oqz = linspace(0.01, 0.21, 501)
+#oqy = array([1e-10], dtype=complex128)
+#oqx = linspace(-2e-3, 2e-3, 100)
+#
+#orects = [rectangle(y0[i]*100.0, 0, width[i]*100.0, 300000, sldn[i], sldi[i]) for i in range(12)] # along x!
+#omatrix = rectangle(0,0, 300000, 300000, 0.0, 0.0) # empty matrix
+#osublayers = [[orects, avg_sldn, avg_sldi, thickness] ]
+#
+#o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz)
 

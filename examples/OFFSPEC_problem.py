@@ -50,7 +50,7 @@ class OFFSPEC_problem(GISANS_problem):
         self.overlap = overlap
         overlap_BA  = 1.0 / (1j * self.qz) * (exp(1j * self.qz * dz) - 1.0) * exp(1j*self.qz*z_array)
         self.overlap_BA = overlap_BA
-        offspec = sum(sum(overlap * array(self.FTs)[:,:,:,newaxis], axis=0), axis=1) # first over layers, then Qy
+        offspec = sum(sum(overlap * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=1) # first over layers, then Qy
         offspec_BA = sum(sum(overlap_BA * array(self.FTs)[:,:,:,newaxis], axis=0), axis=1) 
         extent = [self.qx.min(), self.qx.max(), self.qz.min(), self.qz.max()]
         self.offspec = offspec

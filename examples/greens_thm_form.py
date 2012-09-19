@@ -33,7 +33,7 @@ def div_form_line(x0, y0, x1, y1, qx, qy):
     dyl = y1l - y0l
 
     qlensq = qxl**2 + qyl**2
-    result = 1.0/qlensq * (-qxl*dyl + qyl*dxl) / (qxl*dxl + qyl*dyl)
+    result = complex128(1.0)/qlensq * (-qxl*dyl + qyl*dxl) / (qxl*dxl + qyl*dyl)
     result *= exp(1j*(qxl*x1l + qyl*y1l)) - exp(1j*(qxl*x0l + qyl*y0l))
     return result
 
