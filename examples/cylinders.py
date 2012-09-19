@@ -48,6 +48,8 @@ def limit_cyl(arc, xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0):
      
 # alternating SLD
 wavelength = 1.24 # x-ray wavelength, Angstroms
+Lx = 3000.
+Ly = 3000.
 
 spacing = 600.0 # distance between cylinder centers
 radius = 200.0 # Angstroms, radius of cylinders
@@ -61,7 +63,7 @@ cyl_sldi = -matrix_sldi # cylinders are holes in matrix
 unit_dx = 2.0 * spacing
 unit_dy = 1.0 * spacing
 
-matrix = rectangle(0,0, 3000, 3000, matrix_sld, matrix_sldi)
+matrix = rectangle(0,0, Lx, Ly, matrix_sld, matrix_sldi)
 
 cylinders = []
 centers = []
@@ -112,7 +114,7 @@ dz = thickness
 sublayers = [[clipped_cylinders, avg_sld, avg_sldi, thickness], \
              [[], matrix_sld, matrix_sldi, sublayer_thickness]]
 
-g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz, Lx, Ly)
 
 #oqz = linspace(0.01, 0.21, 501)
 #oqy = array([1e-10], dtype=complex128)

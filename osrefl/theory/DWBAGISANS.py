@@ -256,7 +256,7 @@ class dwbaWavefunction:
         kzlen = kz.shape
         sldlen = len(SLDArray)
         self.SLDArray = SLDArray
-        self.r = zeros((sldlen,) + kzlen, dtype=complex)
+        self.r = zeros(kzlen, dtype=complex)
         self.kz_l = zeros((sldlen,) + kzlen, dtype=complex)
         self.c = zeros((sldlen,) + kzlen, dtype=complex)
         self.d = zeros((sldlen,) + kzlen, dtype=complex)
@@ -267,13 +267,13 @@ class dwbaWavefunction:
         self.kz_l[:,neg_k_mask] = kz_ln
         self.c[:,neg_k_mask] = cn
         self.d[:,neg_k_mask] = dn
-        self.r[:,neg_k_mask] = rn
+        self.r[neg_k_mask] = rn
         
         kz_l, c, d, r = self.calc_r_cd(self.kz[pos_k_mask], kz_neg=False)
         self.kz_l[:,pos_k_mask] = kz_l
         self.c[:,pos_k_mask] = c
         self.d[:,pos_k_mask] = d
-        self.r[:,pos_k_mask] = r
+        self.r[pos_k_mask] = r
         
     
     def calc_r_cd(self, kz, kz_neg=False):

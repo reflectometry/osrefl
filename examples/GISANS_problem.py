@@ -1,7 +1,8 @@
 #from greens_thm_form import greens_form_line, greens_form_shape
 from greens_thm_form import div_form_shape as greens_form_shape
-from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10, zeros
+from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10, zeros, sqrt
 from osrefl.theory.DWBAGISANS import dwbaWavefunction
+from gaussian_envelope import FWHM_to_sigma, normgauss
 
 class Shape:
     def __init__(self, name):
@@ -17,10 +18,13 @@ class GISANS_problem(object):
                  front_sld, front_sldi, 
                  back_sld, back_sldi, 
                  wavelength, 
-                 qx, qy, qz, 
+                 qx, qy, qz,
+                 Lx,Ly,
                  autoFT=True):
         self.sublayers = sublayers
         self.matrix = matrix
+        self.Lx = Lx
+        self.Ly = Ly
         self.front_sld = front_sld
         self.front_sldi = front_sldi
         self.back_sld = back_sld
@@ -91,10 +95,17 @@ class GISANS_problem(object):
         self.FTs = FTs
         self.dFTs = dFTs
         
-    def calc_gisans(self, alpha_in, show_plot=True):
-        kz_in_0 = 2*pi/self.wavelength * sin(alpha_in * pi/180.0)
+    def calc_gisans(self, alpha_in, show_plot=True, add_specular=False):
+        k0 = 2*pi/self.wavelength
+        kz_in_0 = k0 * sin(alpha_in * pi/180.0)
+        kx_in_0 = k0 * cos(alpha_in * pi/180.0)
         kz_out_0 = kz_in_0 - self.qz
-
+        
+        ky_out_0 = -self.qy
+        kx_out_0 = sqrt(k0**2 - kz_out_0[newaxis,newaxis,:]**2 - ky_out_0[newaxis,:,newaxis]**2)
+        qx = kx_in_0 - kx_out_0
+        self.qx_derived = qx
+        
         wf_in = dwbaWavefunction(kz_in_0, self.SLDArray)
         wf_out = dwbaWavefunction(-kz_out_0, self.SLDArray) # solve 1d equation for time-reversed state
         
@@ -125,6 +136,15 @@ class GISANS_problem(object):
         overlap_BA  = 1.0 / (1j * self.qz) * (exp(1j * self.qz * dz) - 1.0) * exp(1j*self.qz*z_array)
         self.overlap_BA = overlap_BA
         gisans = sum(sum(overlap[:,newaxis,newaxis,:] * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=0) # first over layers, then Qx
+        # now if you want to add specular back in...
+        if add_specular == True:
+            specular = complex128(2)*pi/self.Lx * normgauss(qx, FWHM_to_sigma(2.0*pi/self.Lx), x0=0.0)
+            specular *= complex128(2)*pi/self.Ly * normgauss(self.qy[newaxis,:,newaxis], FWHM_to_sigma(2.0*pi/self.Ly), x0=0.0)
+            specular *= 2.0*1j*kz_in_0*wf_in.r[newaxis,newaxis,:]*self.Lx*self.Ly        
+            specular = sum(specular, axis=0)/self.qx.shape[0] # sum over Qx, taking average
+            self.specular = specular
+            gisans += specular
+        
         gisans_BA = sum(sum(overlap_BA[:,newaxis,newaxis,:] * array(self.FTs)[:,:,:,newaxis], axis=0), axis=0) 
         extent = [self.qy.min(), self.qy.max(), self.qz.min(), self.qz.max()]
         

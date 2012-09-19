@@ -4,6 +4,7 @@ from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi,
 from osrefl.theory.DWBAGISANS import dwbaWavefunction
 from osrefl.theory.approximations import QxQyQz_to_k
 from GISANS_problem import Shape, GISANS_problem
+from gaussian_envelope import FWHM_to_sigma, normgauss
 
 class OFFSPEC_problem(GISANS_problem):
     
@@ -51,6 +52,14 @@ class OFFSPEC_problem(GISANS_problem):
         overlap_BA  = 1.0 / (1j * self.qz) * (exp(1j * self.qz * dz) - 1.0) * exp(1j*self.qz*z_array)
         self.overlap_BA = overlap_BA
         offspec = sum(sum(overlap * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=1) # first over layers, then Qy
+        # now need to add specular back in...
+        specular = 2.0*1j*kz_in_0*wf_in.r*self.Lx*self.Ly
+        specular *= 2*pi/self.Lx * normgauss(self.qx[:,newaxis,newaxis], FWHM_to_sigma(2.0*pi/self.Lx), x0=0.0)
+        specular *= 2*pi/self.Ly * normgauss(self.qy[newaxis,:,newaxis], FWHM_to_sigma(2.0*pi/self.Ly), x0=0.0)
+        specular = sum(specular, axis=1)/kz_in_0.shape[1] # sum over Qy, taking average
+        self.specular = specular
+        offspec += specular
+        
         offspec_BA = sum(sum(overlap_BA * array(self.FTs)[:,:,:,newaxis], axis=0), axis=1) 
         extent = [self.qx.min(), self.qx.max(), self.qz.min(), self.qz.max()]
         self.offspec = offspec

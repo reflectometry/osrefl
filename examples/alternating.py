@@ -14,6 +14,8 @@ def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
 # alternating SLD
  
 wavelength = 1.24 # x-ray wavelength, Angstroms
+Lx = 3000.
+Ly = 3000.
  
 delta = [1.0e-6, 3.0e-6] * 6
 beta = [1.0e-7, 3.0e-7] * 6
@@ -32,6 +34,8 @@ thickness = 500.0 # Angstrom, thickness of layer
 front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
 back_sldi = pi/(wavelength**2) * 2.0 * 7.0e-8 # absorption in substrate
+#back_sld = 0.0
+#back_sldi = 0.0
 dz = thickness
 
 qz = linspace(0.01, 0.11, 501)
@@ -40,16 +44,18 @@ qx = array([1e-10], dtype=complex128)
 #qx = ones_like(qy, dtype=complex128) * 1e-10
 
 sublayers = [[rects, avg_sldn, avg_sldi, thickness] ]
-matrix = rectangle(0,0, 3000, 3000, 0.0, 0.0) # empty matrix
+matrix = rectangle(0,0, Lx, Ly, 0.0, 0.0) # empty matrix
 
-g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz, Lx, Ly)
 
 oqz = linspace(0.03, 0.21, 501)
 oqy = array([1e-10], dtype=complex128)
 oqx = linspace(-2e-3+1e-10, 2e-3, 501)
+oLx = 300000.
+oLy = 300000.
 
 orects = [rectangle(y0[i]*100.0, 0, width[i]*100.0, 300000, sldn[i], sldi[i]) for i in range(12)] # along x!
-omatrix = rectangle(0,0, 300000, 300000, 0.0, 0.0) # empty matrix
+omatrix = rectangle(0,0, oLx, oLy, 0.0, 0.0) # empty matrix
 osublayers = [[orects, avg_sldn, avg_sldi, thickness] ]
 
-o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz)
+o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz, oLx, oLy)

@@ -37,6 +37,8 @@ def sawtooth(z, dz, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0
 # alternating SLD
  
 wavelength = 1.24 # x-ray wavelength, Angstroms
+Lx = 3000.
+Ly = 3000.
 
 front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
@@ -59,7 +61,7 @@ zs = linspace(0.0, 300.0, 31)
 dz = zs[1] - zs[0]
 
 sublayers = [sawtooth(z, dz, sld=back_sld, sldi=back_sldi) for z in zs]
-matrix = rectangle(0,0, 3000, 3000, front_sld, 0.0)
+matrix = rectangle(0,0, Lx, Ly, front_sld, 0.0)
 
-g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz)
+g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz, Lx, Ly)
 
