@@ -97,26 +97,43 @@ class GISANS_problem(object):
         
     def calc_gisans(self, alpha_in, show_plot=True, add_specular=False):
         k0 = 2*pi/self.wavelength
-        kz_in_0 = k0 * sin(alpha_in * pi/180.0)
-        kx_in_0 = k0 * cos(alpha_in * pi/180.0)
+        kz_in_0 = array([k0 * sin(alpha_in * pi/180.0)], dtype=complex128)
+        kx_in_0 = array([k0 * cos(alpha_in * pi/180.0)], dtype=complex128)
         kz_out_0 = kz_in_0 - self.qz
+        self.kz_out_0 = kz_out_0
         
         ky_out_0 = -self.qy
         kx_out_0 = sqrt(k0**2 - kz_out_0[newaxis,newaxis,:]**2 - ky_out_0[newaxis,:,newaxis]**2)
         qx = kx_in_0 - kx_out_0
         self.qx_derived = qx
         
-        wf_in = dwbaWavefunction(kz_in_0, self.SLDArray)
-        wf_out = dwbaWavefunction(-kz_out_0, self.SLDArray) # solve 1d equation for time-reversed state
+#        wf_in = dwbaWavefunction(kz_in_0, self.SLDArray)
+#        wf_out = dwbaWavefunction(-kz_out_0, self.SLDArray) # solve 1d equation for time-reversed state
+#        
+#        kz_in_l = wf_in.kz_l # inside the layers
+#        kz_in_p_l = -kz_in_l # prime
+#        kz_out_l = -wf_out.kz_l # inside the layers
+#        kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
+
+        kz_out_neg = kz_out_0 < 0
+        kz_in_neg = kz_in_0 < 0
+        
+        wf_in = dwbaWavefunction(abs(kz_in_0), self.SLDArray)
+        wf_out = dwbaWavefunction(abs(kz_out_0), self.SLDArray) # solve 1d equation for time-reversed state
+        self.wf_in = wf_in
+        self.wf_out = wf_out
         
         kz_in_l = wf_in.kz_l # inside the layers
+        kz_in_l[:, kz_in_neg] *= -1.0     
         kz_in_p_l = -kz_in_l # prime
-        kz_out_l = -wf_out.kz_l # inside the layers
+        kz_out_l = wf_out.kz_l # inside the layers
+        kz_out_l[:, kz_out_neg] *= -1.0
         kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
-
+        
         dz = self.SLDArray[1:-1,1][:,newaxis]
         zs = cumsum(self.SLDArray[1:-1,1]) - self.SLDArray[1,1] # start at zero with first layer
         z_array = array(zs)[:,newaxis]
+        thickness = sum(self.SLDArray[1:-1,1])
 
         qrt_inside = -kz_in_l[1:-1] - kz_out_l[1:-1]
         qtt_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]

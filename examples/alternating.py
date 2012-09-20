@@ -14,21 +14,22 @@ def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
 # alternating SLD
  
 wavelength = 1.24 # x-ray wavelength, Angstroms
-Lx = 3000.
-Ly = 3000.
- 
-delta = [1.0e-6, 3.0e-6] * 6
-beta = [1.0e-7, 3.0e-7] * 6
-width = [300, 200] * 6 # Angstroms
+Lx = 8.0e5
+
+numstripes = 30
+delta = [1.0e-6, 3.0e-6] * numstripes
+beta = [1.0e-7, 3.0e-7] * numstripes
+width = [300, 200] * numstripes # in Angstroms
 
 y0 = cumsum(array(width))
+Ly = sum(array(width))
 
 sldn = pi/(wavelength**2) * 2.0 * array(delta)
 avg_sldn = sum(sldn*array(width))/sum(array(width))
 sldi = pi/(wavelength**2) * 2.0 * array(beta)
 avg_sldi = sum(sldi*array(width))/sum(array(width))
 
-rects = [rectangle(0, y0[i], 3000, width[i], sldn[i], sldi[i]) for i in range(12)]
+rects = [rectangle(0, y0[i], Lx, w, sldn[i], sldi[i]) for i,w in enumerate(width)]
 
 thickness = 500.0 # Angstrom, thickness of layer
 front_sld = 0.0 # air
@@ -48,13 +49,14 @@ matrix = rectangle(0,0, Lx, Ly, 0.0, 0.0) # empty matrix
 
 g_problem = GISANS_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, qx, qy, qz, Lx, Ly)
 
-oqz = linspace(0.03, 0.21, 501)
+oqz = linspace(0.001, 0.21, 501)
 oqy = array([1e-10], dtype=complex128)
 oqx = linspace(-2e-3+1e-10, 2e-3, 501)
-oLx = 300000.
 oLy = 300000.
+oLx = sum(array(width)) * 100.0
+#oLy = 300000.
 
-orects = [rectangle(y0[i]*100.0, 0, width[i]*100.0, 300000, sldn[i], sldi[i]) for i in range(12)] # along x!
+orects = [rectangle(y0[i]*100.0, 0, w*100.0, oLy, sldn[i], sldi[i]) for i,w in enumerate(width)] # along x!
 omatrix = rectangle(0,0, oLx, oLy, 0.0, 0.0) # empty matrix
 osublayers = [[orects, avg_sldn, avg_sldi, thickness] ]
 

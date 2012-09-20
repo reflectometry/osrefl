@@ -277,7 +277,7 @@ class dwbaWavefunction:
         
     
     def calc_r_cd(self, kz, kz_neg=False):
-        if kz_neg:
+        if kz_neg==True:
             workingSLD = self.SLDArray[::-1]
         else:
             workingSLD = self.SLDArray
@@ -400,7 +400,8 @@ class dwbaWavefunction:
         #self.c[-1] =  (.5* exp(-1j*kzl*(z_interface))*(p + (pp/(1j*kzl))))
         d[-1] = zeros(shape(kz),dtype='complex')
                 
-        if kz_neg:
+        if kz_neg==True:
+            print "neg_kz!"
             return [-kz_l[::-1], d[::-1], c[::-1], r[::-1]]
         else:
             return [kz_l, c, d, r]
