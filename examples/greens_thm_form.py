@@ -23,22 +23,27 @@ def greens_form_shape(points, qx, qy):
     return result
     
 def div_form_line(x0, y0, x1, y1, qx, qy):
-    qxl = qx[newaxis,:,newaxis] # put qx 2nd-last axis
-    qyl = qy[newaxis,newaxis,:] # put qy as last axis
-    x0l = x0[:,newaxis,newaxis] # spatial info on first axis
-    x1l = x1[:,newaxis,newaxis]
-    y0l = y0[:,newaxis,newaxis]
-    y1l = y1[:,newaxis,newaxis]
-    dxl = x1l - x0l
-    dyl = y1l - y0l
+    qxl = qx[..., newaxis] 
+    qyl = qy[..., newaxis] 
+#    qxl = qx[newaxis,:,newaxis] # put qx 2nd-last axis
+#    qyl = qy[newaxis,newaxis,:] # put qy as last axis
+#    x0l = x0[:,newaxis,newaxis] # spatial info on first axis
+#    x1l = x1[:,newaxis,newaxis]
+#    y0l = y0[:,newaxis,newaxis]
+#    y1l = y1[:,newaxis,newaxis]
+#    dxl = x1l - x0l
+#    dyl = y1l - y0l
+    dx = x1 - x0
+    dy = y1 - y0
+
 
     qlensq = qxl**2 + qyl**2
-    result = complex128(1.0)/qlensq * (-qxl*dyl + qyl*dxl) / (qxl*dxl + qyl*dyl)
-    result *= exp(1j*(qxl*x1l + qyl*y1l)) - exp(1j*(qxl*x0l + qyl*y0l))
+    result = complex128(1.0)/qlensq * (-qxl*dy + qyl*dx) / (qxl*dx + qyl*dy)
+    result *= exp(1j*(qxl*x1 + qyl*y1)) - exp(1j*(qxl*x0 + qyl*y0))
     return result
 
 def div_form_shape(points, qx, qy):
-    result = zeros((qx.shape[0], qy.shape[0]), dtype=complex128)
+    result = 0.0
     if len(points)>0:
         arr_points = array(points + [points[0],])
         x0 = arr_points[:-1,0]
@@ -46,16 +51,16 @@ def div_form_shape(points, qx, qy):
         x1 = arr_points[1:,0]
         y1 = arr_points[1:,1]
         subresult = div_form_line(x0, y0, x1, y1, qx, qy)
-        result = sum(subresult, axis=0)
+        result = sum(subresult, axis=(subresult.ndim-1))
     return result
 
 def greens_form_shape_array(points, qx, qy):
-    qxl = qx[:,newaxis] # put qx 2nd-last axis
-    qyl = qy[newaxis,:] # put qy as last axis
+    #qxl = qx[:,newaxis] # put qx 2nd-last axis
+    #qyl = qy[newaxis,:] # put qy as last axis
     result = zeros((qx.shape[0], qy.shape[0]), dtype=complex128)
     numpoints = len(points)
     for i in range(numpoints):
         x0,y0 = points[i]
         x1,y1 = points[(i+1) % numpoints] # loops back to zero for last point.
-        result += greens_form_line(x0, y0, x1, y1, qxl, qyl)
+        result += greens_form_line(x0, y0, x1, y1, qx, qy)
     return result

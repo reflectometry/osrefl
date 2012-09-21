@@ -52,9 +52,9 @@ width = [300, 200] * 6 # Angstroms
 y0 = cumsum(array(width))
 #arange(12.0) * 250
 
-qz = linspace(0.01, 0.41, 501)
-qy = linspace(-0.1, 0.1, 500)
-qx = array([1e-10])
+qz = linspace(0.01, 0.41, 501)[newaxis,newaxis,:]
+qy = linspace(-0.1, 0.1, 500)[newaxis,:,newaxis]
+qx = array([1e-10])[:,newaxis,newaxis]
 #qx = ones_like(qy, dtype=complex128) * 1e-8
 
 zs = linspace(0.0, 300.0, 31)

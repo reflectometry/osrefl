@@ -104,9 +104,9 @@ front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
 back_sldi = pi/(wavelength**2) * 2.0 * 7.0e-8 # absorption in substrate
 
-qz = linspace(0.01, 0.11, 501)
-qy = linspace(-0.1, 0.1, 500)
-qx = array([1e-8], dtype=complex128)
+qz = linspace(0.01, 0.11, 501)[newaxis,newaxis,:]
+qy = linspace(-0.1, 0.1, 500)[newaxis,:,newaxis]
+qx = array([1e-8], dtype=complex128)[:,newaxis,newaxis]
 #qx = ones_like(qy, dtype=complex128) * 1e-8
 
 shapes = clipped_cylinders

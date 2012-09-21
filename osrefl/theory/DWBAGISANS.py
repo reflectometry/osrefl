@@ -402,7 +402,7 @@ class dwbaWavefunction:
                 
         if kz_neg==True:
             print "neg_kz!"
-            return [-kz_l[::-1], d[::-1], c[::-1], r[::-1]]
+            return [-kz_l[::-1], c[::-1], d[::-1], r[::-1]]
         else:
             return [kz_l, c, d, r]
 

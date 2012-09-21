@@ -1,6 +1,6 @@
 #from greens_thm_form import greens_form_line, greens_form_shape
 from greens_thm_form import div_form_shape as greens_form_shape
-from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10, zeros, sqrt
+from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10, zeros, sqrt, ones
 from osrefl.theory.DWBAGISANS import dwbaWavefunction
 from osrefl.theory.approximations import QxQyQz_to_k
 from GISANS_problem import Shape, GISANS_problem
@@ -12,8 +12,38 @@ class OFFSPEC_problem(GISANS_problem):
     def calc_gisans(self, alpha_in, show_plot=True):
         print "this class is for offspec, not gisans"
         return
+            
+    def update_Qs(self):
+        kz_in_0, kz_out_0 = QxQyQz_to_k(self.qx,self.qy,self.qz,self.wavelength)
+        self.kz_in = kz_in_0
+        self.kz_out = kz_out_0
         
     def calc_offspec(self, show_plot=True, add_specular=True):
+        overlap = self.calc_overlap()
+        offspec = sum(sum(overlap * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=1) # first over layers, then Qy
+        
+        if add_specular == True:
+            specular = ones((self.qx.shape[0], self.qy.shape[1], self.qz.shape[2]), dtype=complex128)
+            specular *= complex128(2)*pi/self.Lx * normgauss(self.qx, FWHM_to_sigma(2.0*pi/self.Lx), x0=0.0)
+            specular *= complex128(2)*pi/self.Ly * normgauss(self.qy, FWHM_to_sigma(2.0*pi/self.Ly), x0=0.0)
+            specular *= 2.0*1j*self.kz_in*self.wf_in.r*self.Lx*self.Ly        
+            specular = sum(specular, axis=1)/self.qy.shape[1] # sum over Qy, taking average
+            self.specular = specular
+            offspec += specular
+        self.offspec = offspec
+        
+        if show_plot == True:
+            self.plot_offspec()
+    
+    def plot_offspec(self, vmax=None, vmin=None):    
+        from pylab import imshow, figure, colorbar, xlabel, ylabel, title
+        extent = [self.qx.min(), self.qx.max(), self.qz.min(), self.qz.max()]
+        figure()
+        imshow(log10(abs(self.offspec)**2).T, origin='lower', extent=extent, aspect='auto', vmax=vmax, vmin=vmin)
+        title('%s offspecular scattering' % (self.name,))
+        colorbar()
+        
+    def calc_offspec_old(self, show_plot=True, add_specular=True):
         kz_in_0, kz_out_0 = QxQyQz_to_k(self.qx[:,newaxis,newaxis],self.qy[newaxis,:,newaxis],self.qz[newaxis,newaxis,:],self.wavelength)
         kzi_shape = kz_in_0.shape
         kzf_shape = kz_out_0.shape
@@ -21,16 +51,16 @@ class OFFSPEC_problem(GISANS_problem):
         kz_out_neg = kz_out_0 < 0
         kz_in_neg = kz_in_0 < 0
         
-        wf_in = dwbaWavefunction(abs(kz_in_0), self.SLDArray)
-        wf_out = dwbaWavefunction(abs(kz_out_0), self.SLDArray) # solve 1d equation for time-reversed state
+        wf_in = dwbaWavefunction((kz_in_0), self.SLDArray)
+        wf_out = dwbaWavefunction((-kz_out_0), self.SLDArray) # solve 1d equation for time-reversed state
         self.wf_in = wf_in
         self.wf_out = wf_out
         
         kz_in_l = wf_in.kz_l # inside the layers
-        kz_in_l[:, kz_in_neg] *= -1.0     
+        #kz_in_l[:, kz_in_neg] *= -1.0     
         kz_in_p_l = -kz_in_l # prime
-        kz_out_l = wf_out.kz_l # inside the layers
-        kz_out_l[:, kz_out_neg] *= -1.0
+        kz_out_l = -wf_out.kz_l # inside the layers
+        #kz_out_l[:, kz_out_neg] *= -1.0
         kz_out_p_l = -kz_out_l    # kz_f_prime in the Sinha paper notation
 
         dz = self.SLDArray[1:-1,1][:,newaxis,newaxis,newaxis]
@@ -42,6 +72,11 @@ class OFFSPEC_problem(GISANS_problem):
         qtt_inside = -kz_in_l[1:-1] + kz_out_l[1:-1]
         qtr_inside = +kz_in_l[1:-1] + kz_out_l[1:-1]
         qrr_inside = +kz_in_l[1:-1] - kz_out_l[1:-1]
+        
+        self.qrt = qrt_inside
+        self.qtt = qtt_inside
+        self.qtr = qtr_inside
+        self.qrr = qrr_inside
                
         # the overlap is the forward-moving amplitude c in psi_in multiplied by 
         # the forward-moving amplitude in the time-reversed psi_out, which
