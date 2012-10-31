@@ -4,13 +4,34 @@ from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi,
 from osrefl.theory.DWBAGISANS import dwbaWavefunction
 from gaussian_envelope import FWHM_to_sigma, normgauss
 
-class Shape:
-    def __init__(self, name):
-        self.name = name
-        self.points = []
-        self.sld = 0.0
-        self.sldi = 0.0
+class Shape(object):
+    name = "Shape"
+    def __init__(self, name=None, points=None, sld=0.0, sldi=0.0):
+        if name is not None: self.name = name
+        if points is not None: self.points = points
+        else: self.points = []
+        self.sld = sld
+        self.sldi = sldi
         
+class rectangle(Shape):
+    name = "rectangle"
+    
+    def __init__(self, x0, y0, dx, dy, sld=0.0, sldi=0.0):
+        points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
+        Shape.__init__(self, points=points, sld=sld, sldi=sldi)
+        self.x0 = x0
+        self.y0 = y0
+        self.dx = dx
+        self.dy = dy
+        self.area = dx * dy
+        
+    def reference_integral(self,qx,qy):
+        x0=self.x0
+        y0=self.y0
+        dx=self.dx
+        dy=self.dy
+        result = -1.0/(qx * qy) * (exp(1j*qx*(x0+dx)) - exp(1j*qx*x0)) * (exp(1j*qy*(y0+dy)) - exp(1j*qy*y0))
+        return result
         
 class GISANS_problem(object):
     def __init__(self, 

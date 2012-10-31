@@ -1,13 +1,13 @@
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, log10
-from GISANS_problem import Shape, GISANS_problem
+from GISANS_problem import Shape, rectangle, GISANS_problem
 
-def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
-    #generate points for a rectangle
-    rect = Shape('rectangle')
-    rect.points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
-    rect.sld = sld
-    rect.sldi = sldi
-    return rect
+#def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
+#    #generate points for a rectangle
+#    rect = Shape('rectangle')
+#    rect.points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
+#    rect.sld = sld
+#    rect.sldi = sldi
+#    return rect
 
 def sawtooth(z, dz, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0.0, sldi=0.0, sld_front=0.0, sldi_front=0.0):
     if z>height:
@@ -35,6 +35,43 @@ def sawtooth(z, dz, n=6, x_length=3000.0, base_width=500.0, height=300.0,  sld=0
 
 # rectangles for inplane stripes: have width = 25 nm with
 # alternating SLD
+
+def draw_planview(shapes, xview = (0,5000), yview=(0,5000)):
+    from pylab import plot, figure, draw, Polygon
+    slds = [shape.sld for shape in shapes]
+    max_sld = max(slds)
+    min_sld = min(slds + [0,])
+    fig = figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlim(xview)
+    ax.set_ylim(yview)
+    draw()
+    ps = [Polygon(array(shape.points)) for shape in shapes]
+    for p in ps:
+        ax.add_patch(p)
+    draw()
+    
+def draw_sideview(sublayers, yview=(0,5000), zview=(-50,400)):
+    from pylab import plot, figure, draw, Polygon
+    dz = [sl[3] for sl in sublayers]
+    thickness = sum(array(dz))
+    
+    fig = figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlim(yview)
+    ax.set_ylim(zview)
+    draw()
+    z = 0
+    for sl in sublayers:
+        for shape in sl[0]:
+            sp = array(shape.points)
+            ymax = sp[:,1].max()
+            ymin = sp[:,1].min()
+            sideview = array([[ymin, z],[ymax, z],[ymax, z+sl[3]], [ymin, z+sl[3]]])
+            p = Polygon(sideview)
+            ax.add_patch(p)
+        z += sl[3] # dz
+    draw()
  
 wavelength = 1.24 # x-ray wavelength, Angstroms
 Lx = 3000.
@@ -53,7 +90,7 @@ y0 = cumsum(array(width))
 #arange(12.0) * 250
 
 qz = linspace(0.01, 0.41, 501)[newaxis,newaxis,:]
-qy = linspace(-0.1, 0.1, 500)[newaxis,:,newaxis]
+qy = linspace(-0.1, 0.1, 501)[newaxis,:,newaxis]
 qx = array([1e-10])[:,newaxis,newaxis]
 #qx = ones_like(qy, dtype=complex128) * 1e-8
 

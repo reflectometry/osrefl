@@ -56,7 +56,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
     #angle_in = np.zeros_like(angle_out)
     #angle_in.fill(alphai)
 
-    kz_out = kvec * sin( angle_out )
+    kz_out = -kvec * sin( angle_out )
     kx_out = kvec * cos( angle_out )
     ky_out = -kvec * sin( iptheta )
     
@@ -128,7 +128,7 @@ def scatCalc(cell,lattice,beam,q, angle_in):
                 pot = ones((cell.n[2],), dtype='complex')
             else:  
                 poskiWavePar = dwbaWavefunction(kz_in,SLDArray)
-                negkfWavePar = dwbaWavefunction(kz_out[ii],SLDArray)
+                negkfWavePar = dwbaWavefunction(-kz_out[ii],SLDArray)
                  
                 pio = poskiWavePar.c
                 pit = poskiWavePar.d
@@ -401,7 +401,7 @@ class dwbaWavefunction:
         d[-1] = zeros(shape(kz),dtype='complex')
                 
         if kz_neg==True:
-            print "neg_kz!"
+            print "neg_kz!", len(kz_l)
             return [-kz_l[::-1], c[::-1], d[::-1], r[::-1]]
         else:
             return [kz_l, c, d, r]

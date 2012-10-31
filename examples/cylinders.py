@@ -1,17 +1,17 @@
 from numpy import arange, linspace, float64, indices, zeros_like, ones_like, pi, sin, complex128, array, exp, newaxis, cumsum, sum, cos, sin, log, log10
-from GISANS_problem import Shape, GISANS_problem
+from GISANS_problem import Shape, GISANS_problem, rectangle
 
-def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
-    #generate points for a rectangle
-    rect = Shape('rectangle')
-    rect.points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
-    rect.sld = sld
-    rect.sldi = sldi
-    rect.area = dx * dy
-    return rect
+#def rectangle(x0, y0, dx, dy, sld=0.0, sldi=0.0):
+#    #generate points for a rectangle
+#    rect = Shape('rectangle')
+#    rect.points = [[x0,y0], [x0+dx, y0], [x0+dx, y0+dy], [x0, y0+dy]]
+#    rect.sld = sld
+#    rect.sldi = sldi
+#    rect.area = dx * dy
+#    return rect
 
 def arc(r, theta_start, theta_end, x_center, y_center, theta_step=1.0, close=True, sld=0.0, sldi=0.0, ):
-    a = Shape('arc')
+    a = Shape(name='arc')
     a.theta_start = theta_start
     a.theta_end = theta_end
     a.area = pi * r**2 * abs(theta_end - theta_start)/360.0
@@ -27,7 +27,7 @@ def arc(r, theta_start, theta_end, x_center, y_center, theta_step=1.0, close=Tru
 
 
 def limit_cyl(arc, xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0):
-    new_arc = Shape('arc')
+    new_arc = Shape(name='arc')
     new_arc.sld = arc.sld
     new_arc.sldi = arc.sldi
     new_arc.theta_start = arc.theta_start
@@ -82,6 +82,11 @@ for cyl in cylinders:
     cyl_area += cyl.area
 
 clipped_cylinders = [limit_cyl(cyl, xmin=0.0, xmax=3000.0, ymin=0.0, ymax=3000.0) for cyl in cylinders]
+# manual fix for improperly clipped cylinder in upper left corner:
+clipped_cylinders[10].points.pop(0)
+clipped_cylinders[10].points.pop(0)
+clipped_cylinders[10].points.append([0,3000])
+
 clipped_cyl_area = 0.0
 for cyl in clipped_cylinders:
     clipped_cyl_area += cyl.area
@@ -92,13 +97,27 @@ print "ratio should be 0.3491 for FCT planar array with a/b = 2 and r = a/6"
 avg_sld = (matrix.area * matrix_sld + clipped_cyl_area * cyl_sld) / matrix.area
 avg_sldi = (matrix.area * matrix_sldi + clipped_cyl_area * cyl_sldi) / matrix.area
 
-def draw_cylinders():
+def draw_cylinders_planview():
     from pylab import figure, plot
     figure()
     for c in cylinders.clipped_cylinders:
         cp = array(c.points)
         if cp.shape[0] > 0: plot(cp[:,0], cp[:,1])
 
+def draw_planview(shapes, xview = (0,5000), yview=(0,5000)):
+    from pylab import plot, figure, draw, Polygon
+    slds = [shape.sld for shape in shapes]
+    max_sld = max(slds)
+    min_sld = min(slds + [0,])
+    fig = figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlim(xview)
+    ax.set_ylim(yview)
+    draw()
+    ps = [Polygon(array(shape.points)) for shape in shapes if len(shape.points)>2]
+    for p in ps:
+        ax.add_patch(p)
+    draw()
 
 front_sld = 0.0 # air
 back_sld = pi/(wavelength**2) * 2.0 * 5.0e-6 # substrate
