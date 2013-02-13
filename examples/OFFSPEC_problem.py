@@ -9,10 +9,21 @@ from pylab import find
 
 class OFFSPEC_problem(GISANS_problem):
     
-    def calc_gisans(self, alpha_in, show_plot=True):
+    def calc_gisans(self, alpha_in, show_plot=True, **kwargs):
         print "this class is for offspec, not gisans"
         return
-            
+        
+    def calc_both(self, show_plot=True, add_specular=False):
+        self.calc_offspec(show_plot=False, add_specular=add_specular)
+        self.calc_offspec_BA(show_plot=False, add_specular=add_specular)
+        if show_plot == True: self.plot_both()
+                
+    def plot_both(self):
+        vmax = max(log10(abs(self.offspec)**2).max(), log10(abs(self.offspec_BA)**2).max())
+        vmin = min(log10(abs(self.offspec)**2).min(), log10(abs(self.offspec_BA)**2).min())
+        self.plot_offspec(vmax=vmax, vmin=vmin)
+        self.plot_offspec_BA(vmax=vmax, vmin=vmin)
+        
     def update_Qs(self):
         kz_in_0, kz_out_0 = QxQyQz_to_k(self.qx,self.qy,self.qz,self.wavelength)
         self.kz_in = kz_in_0
@@ -35,12 +46,37 @@ class OFFSPEC_problem(GISANS_problem):
         if show_plot == True:
             self.plot_offspec()
     
+    def calc_offspec_BA(self, show_plot=True, add_specular=True):
+        overlap = self.calc_overlap_BA()
+        offspec = sum(sum(overlap * array(self.dFTs)[:,:,:,newaxis], axis=0), axis=1) # first over layers, then Qy
+        
+        if add_specular == True:
+            specular = ones((self.qx.shape[0], self.qy.shape[1], self.qz.shape[2]), dtype=complex128)
+            specular *= complex128(2)*pi/self.Lx * normgauss(self.qx, FWHM_to_sigma(2.0*pi/self.Lx), x0=0.0)
+            specular *= complex128(2)*pi/self.Ly * normgauss(self.qy, FWHM_to_sigma(2.0*pi/self.Ly), x0=0.0)
+            specular *= 2.0*1j*self.kz_in*self.wf_in.r*self.Lx*self.Ly        
+            specular = sum(specular, axis=1)/self.qy.shape[1] # sum over Qy, taking average
+            self.specular = specular
+            offspec += specular
+        self.offspec_BA = offspec
+        
+        if show_plot == True:
+            self.plot_offspec_BA()
+    
     def plot_offspec(self, vmax=None, vmin=None):    
         from pylab import imshow, figure, colorbar, xlabel, ylabel, title
         extent = [self.qx.min(), self.qx.max(), self.qz.min(), self.qz.max()]
         figure()
         imshow(log10(abs(self.offspec)**2).T, origin='lower', extent=extent, aspect='auto', vmax=vmax, vmin=vmin)
         title('%s offspecular scattering' % (self.name,))
+        colorbar()
+        
+    def plot_offspec_BA(self, vmax=None, vmin=None):    
+        from pylab import imshow, figure, colorbar, xlabel, ylabel, title
+        extent = [self.qx.min(), self.qx.max(), self.qz.min(), self.qz.max()]
+        figure()
+        imshow(log10(abs(self.offspec_BA)**2).T, origin='lower', extent=extent, aspect='auto', vmax=vmax, vmin=vmin)
+        title('%s offspecular scattering (Born)' % (self.name,))
         colorbar()
         
     def calc_offspec_old(self, show_plot=True, add_specular=True):

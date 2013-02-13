@@ -62,9 +62,14 @@ omatrix = rectangle(0,0, oLx, oLy, 0.0, 0.0) # empty matrix
 osublayers = [[orects, avg_sldn, avg_sldi, thickness] ]
 
 o_problem = OFFSPEC_problem(osublayers, omatrix, front_sld, 0.0, back_sld, 0.0, wavelength, oqx, oqy, oqz, oLx, oLy, name="alternating lamellae")
+o_problem.update_Qs()
+o_problem.calc_both()
 
 angle_in = 0.18
 angle_out = linspace(0.01, 1.0, 501)
 inplane_angle = linspace(-1.0, 1.0, 500)
 
 a_problem = GISANS_angle_problem(sublayers, matrix, front_sld, 0.0, back_sld, back_sldi, wavelength, angle_in, angle_out, inplane_angle, Lx, Ly, name="alternating lamellae")
+
+a_problem.update_Qs()
+a_problem.calc_both()
