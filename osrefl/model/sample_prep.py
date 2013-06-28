@@ -2424,7 +2424,7 @@ class Rectilinear(Lattice):
         '''
         **Overview:**
 
-            This structure calculation applies a gaussian convelution to the
+            This structure calculation applies a gaussian convolution to the
             delta function diffraction peaks produced by the structure factor to
             produce a more accurate theory function. The convelution represents
             The combination of the diffraction from the lattice with the
