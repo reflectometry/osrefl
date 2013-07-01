@@ -35,14 +35,23 @@ class bornWavefunction:
     def calc_r_refract(self, kz):
         qz = kz*2.0
         sld = self.SLDArray
+        rho = sld[:,0]
+        qz_l_sq = 4.0*((kz**2) - 4*pi*rho[:,None])
+        #print "qz_l_sq shape:", qz_l_sq.shape
         r = zeros_like(kz)
         zs = cumsum(sld, axis=0)
+        qzs = sqrt(qz_l_sq) * (sld[:,1,None])
+        qzs = cumsum(qzs, axis=0)
         for i in range(len(sld)-1):
             for j in range(len(sld)-1):
+                qzi = qzs[i] 
+                qzj = qzs[j]
                 zi = zs[i][1] # interface i location
                 zj = zs[j][1]
-                dsldi = sld[i+1][0] - sld[i][0]
-                dsldj = sld[j+1][0] - sld[j][0]
-                r += 16*pi**2/qz**4*dsldi*dsldj*cos(qz*(zj-zi))*exp(-(zj-zi)**2/(4.0*self.sigmaz**2))
+                dsldi = sld[i+1][0]/qz_l_sq[i+1] - sld[i][0]/qz_l_sq[i]
+                dsldj = sld[j+1][0]/qz_l_sq[j+1] - sld[j][0]/qz_l_sq[j]
+                #print dsldi.shape, qzj.shape, zj.shape
+                #print i,j,qzi-qzj, qz*(zi-zj)
+                r += 16*pi**2*dsldi*dsldj*cos(qzj-qzi)*exp(-(zj-zi)**2/(4.0*self.sigmaz**2))
         return sqrt(r)
                 
