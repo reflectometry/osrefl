@@ -28,7 +28,7 @@ class bornWavefunction:
                 zj = zs[j][1]
                 dsldi = sld[i+1][0] - sld[i][0]
                 dsldj = sld[j+1][0] - sld[j][0]
-                r += 16*pi**2/qz**4*dsldi*dsldj*cos(qz*(zj-zi))*exp(-(zj-zi)**2/(4.0*self.sigmaz**2))
+                r += 16*pi**2/qz**4*dsldi*dsldj*cos(qz*(zj-zi))*exp(-(zj-zi)**2/(self.sigmaz**2))
         return sqrt(r)
         
     def calc_r_refract(self, kz):
@@ -55,6 +55,6 @@ class bornWavefunction:
                 dsldj = sld[j+1][0]/qz_l[j+1] - sld[j][0]/qz_l[j]
                 #print dsldi.shape, qzj.shape, zj.shape
                 #print i,j,qzi-qzj, qz*(zi-zj)
-                r += 16*pi**2/qz**2*dsldi*dsldj*cos(qzj-qzi)*exp(-(zj-zi)**2/(4.0*self.sigmaz**2))
+                r += 16*pi**2/qz**2*dsldi*dsldj*cos(qzj-qzi)*exp(-(zj-zi)**2/(self.sigmaz**2))
         return sqrt(r)
                 
