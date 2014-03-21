@@ -2,7 +2,7 @@ from numpy import *
 
 EPSILON = 1e-10
 
-def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
+def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
     """\
     Calculation of reflectivity in magnetic sample in framework that 
     also yields the wavefunction in each layer for DWBA.  
@@ -18,9 +18,9 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
     #  the number of layers in the sample including fronting and      #
     #  substrate.                                                     #
     ###################################################################
-     A, B, C are components of unit vector describing quantization direction:
-       A is along H_external, B and C are perpendicular to A and each other and
-       B x C = A
+    AGUIDE is the angle between the z-axis of the lab (guide field)
+      and the z-axis of the sample (always perpendicular to interface and 
+      parallell to Q)
     """
     # sld is array([[sld, thickness, mu], [...], ...])
     # ordered from top (vacuum usually) to bottom (substrate)
@@ -105,8 +105,16 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
     
     newB = unitary_LAB_SAM_LAB(newB, AGUIDE)
     
+    denom = complex(1.0) / ((newB[3][3] * newB[1][1]) - (newB[1][3] * newB[3][1]))
+    YA_sam = ((newB[1][3] * newB[3][0]) - (newB[1][0] * newB[3][3])) * denom # r++
+    YB_sam = ((newB[1][0] * newB[3][1]) - (newB[3][0] * newB[1][1])) * denom # r+-
+    YC_sam = ((newB[1][3] * newB[3][2]) - (newB[1][2] * newB[3][3])) * denom # r-+
+    YD_sam = ((newB[1][2] * newB[3][1]) - (newB[3][2] * newB[1][1])) * denom # r--
+            
+    return [YA_sam, YB_sam, YC_sam, YD_sam];
     
-def get_U_sam_lab = function(AGUIDE) {
+    
+def get_U_sam_lab(AGUIDE): {
     C = complex(cos(AGUIDE/2.0*pi/180.))
     IS = 1j * sin(AGUIDE/2.0*pi/180.)
     U = matrix([ [C , IS, 0 , 0 ],
