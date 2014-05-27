@@ -2,7 +2,7 @@ from numpy import *
 
 EPSILON = 1e-10
 
-def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
+def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
     """\
     Calculation of reflectivity in magnetic sample in framework that 
     also yields the wavefunction in each layer for DWBA.  
@@ -37,7 +37,7 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
     
     
     global B 
-    B = zeros((N,4,4), dtype='complex') # one matrix per layer
+    B = zeros((N-1,4,4), dtype='complex') # one matrix per layer
     
     newB = matrix([[1, 0, 0, 0], 
                   [0, 1, 0, 0], 
@@ -148,6 +148,7 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
         z += dz[l]
         l = lp
     
+    """
     denom = complex(1.0) / ((newB[3,3] * newB[1,1]) - (newB[1,3] * newB[3,1]))
     YA_sam = ((newB[1,3] * newB[3,0]) - (newB[1,0] * newB[3,3])) * denom # r++
     YB_sam = ((newB[1,0] * newB[3,1]) - (newB[3,0] * newB[1,1])) * denom # r+-
@@ -162,7 +163,54 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
     YD_lab = r_lab[1,1];
     
     return YA_lab, YB_lab, YC_lab, YD_lab, B
+    """
+    return B
+
+def calculateR_sam(B):
+    denom = complex(1.0) / ((B[3,3] * B[1,1]) - (B[1,3] * B[3,1]))
+    YA_sam = ((B[1,3] * B[3,0]) - (B[1,0] * B[3,3])) * denom # r++
+    YB_sam = ((B[1,0] * B[3,1]) - (B[3,0] * B[1,1])) * denom # r+-
+    YC_sam = ((B[1,3] * B[3,2]) - (B[1,2] * B[3,3])) * denom # r-+
+    YD_sam = ((B[1,2] * B[3,1]) - (B[3,2] * B[1,1])) * denom # r--
+    return [YA_sam, YB_sam, YC_sam, YD_sam]
+
+def calculateR_lab(R_sam, AGUIDE):
+    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[1]], [R_sam[2], R_sam[3]]]), AGUIDE);
+
+    YA_lab = r_lab[0,0];
+    YB_lab = r_lab[0,1];
+    YC_lab = r_lab[1,0];
+    YD_lab = r_lab[1,1];
     
+    return YA_lab, YB_lab, YC_lab, YD_lab
+
+def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
+    B = calculateB(kz, dz, rhoN, rhoM, mx, my, mz)
+    R_sam = calculateR_sam(B[-1])
+    R_lab = calculateR_lab(R_sam, AGUIDE)
+    return R_lab[0], R_lab[1], R_lab[2], R_lab[3], B
+
+def calculateC_sam(C0_sam, B):
+    """ take 4x1 matrix (row vector) of initial C
+    and get C in each layer """
+    layers = B.shape[0]
+    C_all = zeros((layers, 4), dtype='complex')
+    for l in range(layers):
+        C_all[l] = B[l] * C0_sam
+    return C_all
+
+def calculateC0_lab(I_plus, I_minus, R_lab):
+    # C0 is I+, r+, I-, r-
+    # where I+ and I- are supplied by the user and 
+    # r+ = (r++ * I+) + (r+- * I-)
+    # r- = (r-+ * I+) + (r-- * I-)
+    C0_lab = matrix([[I_plus, R_lab[0] * I_plus + R_lab[1] * I_minus, I_minus, R_lab[2] * I_plus + R_lab[3] * I_minus]])
+    return C0_lab
+
+# Note: 
+# C0_sam = get_Uinv_sam_lab2(AGUIDE) * C0_lab
+    
+
 def get_U_sam_lab(AGUIDE):
     C = complex(cos(AGUIDE/2.0*pi/180.))
     IS = 1j * sin(AGUIDE/2.0*pi/180.)
