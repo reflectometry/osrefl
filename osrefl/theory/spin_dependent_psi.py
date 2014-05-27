@@ -2,7 +2,7 @@ from numpy import *
 
 EPSILON = 1e-10
 
-def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
+def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
     """\
     Calculation of reflectivity in magnetic sample in framework that 
     also yields the wavefunction in each layer for DWBA.  
@@ -18,9 +18,9 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
     #  the number of layers in the sample including fronting and      #
     #  substrate.                                                     #
     ###################################################################
-     A, B, C are components of unit vector describing quantization direction:
-       A is along H_external, B and C are perpendicular to A and each other and
-       B x C = A
+     AGUIDE is the angle of the z-axis of the sample with respect to the 
+     z-axis (quantization) of the neutron in the lab frame.
+     AGUIDE = 0 for perpendicular films (= 270 for field along y)
     """
     # sld is array([[sld, thickness, mu], [...], ...])
     # ordered from top (vacuum usually) to bottom (substrate)
@@ -106,7 +106,7 @@ def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, A, B, C):
     newB = unitary_LAB_SAM_LAB(newB, AGUIDE)
     
     
-def get_U_sam_lab = function(AGUIDE) {
+def get_U_sam_lab(AGUIDE):
     C = complex(cos(AGUIDE/2.0*pi/180.))
     IS = 1j * sin(AGUIDE/2.0*pi/180.)
     U = matrix([ [C , IS, 0 , 0 ],
