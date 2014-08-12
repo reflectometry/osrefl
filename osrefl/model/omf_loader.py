@@ -9,7 +9,6 @@
 from numpy import array, arange, indices, zeros, reshape, float, sqrt, int
 from numpy import float64, fromfile, product, ma, isinf, isnan,inf,nan
 
-import wx
 DEBUG = True
 
 class Omf(object):
