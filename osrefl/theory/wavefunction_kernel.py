@@ -122,10 +122,10 @@ class neutron_wavefunction:
         for layer_num in range(1, layer_num_total-1):
             #leaving off the incident medium and substrate from sum
             SLD,thickness,mu = array_of_sld[layer_num]
-            nz[layer_num] = sqrt(( 1 - 4 * pi * SLD/ k0z**2 ))
-            kz = nz[layer_num] * k0z
+            #nz[layer_num] = sqrt(( 1 - 4 * pi * SLD/ k0z**2 ))
+            kz_l = nz[layer_num] * k0z[0]
             n = nz[layer_num]
-            ml = array([[cos(kz * thickness), 1/n * sin(kz * thickness)],[-n * sin(kz * thickness), cos(kz * thickness)]])
+            ml = array([[cos(kz_l * thickness), 1/n * sin(kz_l * thickness)],[-n * sin(kz_l * thickness), cos(kz_l * thickness)]])
             M_l[layer_num] = ml
             M_new = M.copy()
             # explicit dot product over first two axes:
