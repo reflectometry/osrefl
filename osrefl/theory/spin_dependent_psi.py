@@ -1,8 +1,9 @@
 from numpy import *
 
 EPSILON = 1e-10
+B2SLD = 2.31604654e-6
 
-def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
+def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
     """\
     Calculation of reflectivity in magnetic sample in framework that 
     also yields the wavefunction in each layer for DWBA.  
@@ -11,10 +12,12 @@ def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
      kz is the incoming momentum along the z direction
      dz is the thickness of each layer (top and bottom thickness ignored)
      rhoN is nuclear scattering length density array
-     rhoM is magnetic scattering length density array
-     mx, my, mz are components of unit vector along M for layer
+     rhoB is magnetic scattering length density array
+     bx, by, bz are components of unit vector along M for layer
+     if plus_in, the B calculated will be valid for r+- and r++...
+        plus_in=False, B will be valid for r-+ and r--
     ###################################################################
-    #  all of dz, rhoN, rhoM, mx, my, mz should have length equal to  #
+    #  all of dz, rhoN, rhoB, bx, by, bz should have length equal to  #
     #  the number of layers in the sample including fronting and      #
     #  substrate.                                                     #
     ###################################################################
@@ -37,7 +40,7 @@ def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
         return [YA, YB, YC, YD];
     
     
-    global B 
+    global B # matrices for calculating R
     B = zeros((N-1,4,4), dtype='complex') # one matrix per layer
     
     newB = matrix([[1, 0, 0, 0], 
@@ -45,27 +48,28 @@ def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
                   [0, 0, 1, 0], 
                   [0, 0, 0, 1]], dtype='complex')
     
-    m_tot = sqrt(mx**2 + my**2 + mz**2)
-    m_tot_nz = (m_tot != 0.0)
+    b_tot = sqrt(bx**2 + by**2 + bz**2)
+    rhoB = B2SLD * b_tot
     
-    m_ip = sqrt(mx**2 + my**2) # in-plane projection of m unit vector
-    m_ip_nz = (m_ip != 0.0) # mask for nonzero
+    #bx_ip = zeros_like(bx) 
+    #by_ip = zeros_like(by) 
+    #bx_ip[m_ip_nz] = bx[m_ip_nz] / m_ip[m_ip_nz]
+    #by_ip[m_ip_nz] = by[m_ip_nz] / m_ip[m_ip_nz]
     
-    #mx_ip = zeros_like(mx) 
-    #my_ip = zeros_like(my) 
-    #mx_ip[m_ip_nz] = mx[m_ip_nz] / m_ip[m_ip_nz]
-    #my_ip[m_ip_nz] = my[m_ip_nz] / m_ip[m_ip_nz]
     
-    thetaM = arctan2(my, mx)
+    E0 = kz**2 + PI4*rhoN[0] # fronting medium removed from effective kz
+    if plus_in: 
+        E0 +=  PI4*rhoB[0]
+    else:
+        E0 += -PI4*rhoB[0]
     
-    rhoM_ip = zeros_like(rhoM)
-    rhoM_ip[m_tot_nz] = rhoM[m_tot_nz] * m_ip[m_tot_nz] / m_tot[m_tot_nz]
-    
-    KSQREL = kz**2 + PI4*rhoN[0] # fronting medium removed from effective kz
-    
-    S1 = sqrt(PI4*(rhoN + rhoM_ip)-KSQREL)
-    S3 = sqrt(PI4*(rhoN - rhoM_ip)-KSQREL)
-    mu = exp(1j * thetaM)
+    b_nz = (b_tot != 0)
+    S1 = sqrt(PI4*(rhoN + rhoB)-E0)
+    S3 = sqrt(PI4*(rhoN - rhoB)-E0)
+    u1 = ones_like(b_tot, dtype='complex')
+    u3 = ones_like(b_tot, dtype='complex') * -1
+    u1[b_nz] = ( b_tot + bx + 1j*by - bz )[b_nz] / ( b_tot + bx - 1j*by + bz )[b_nz]
+    u3[b_nz] = (-b_tot + bx + 1j*by - bz )[b_nz] / (-b_tot + bx - 1j*by + bz )[b_nz]
     
     l=0
     step = 1
@@ -82,11 +86,11 @@ def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
         
         # inverse chi at layer l+1
         chi_inv_lp = matrix(\
-            [[ 1,  1/mu[lp],  1/S1[lp],  1/(mu[lp]*S1[lp]) ],
-             [ 1,  1/mu[lp], -1/S1[lp], -1/(mu[lp]*S1[lp]) ],
-             [ 1, -1/mu[lp],  1/S3[lp], -1/(mu[lp]*S3[lp]) ],
-             [ 1, -1/mu[lp], -1/S3[lp],  1/(mu[lp]*S3[lp]) ]])
-        chi_inv_lp *= 0.25
+            [[ u3[lp], -1,  u3[lp]/S1[lp], -1/S1[lp] ],
+             [ u3[lp], -1, -u3[lp]/S1[lp],  1/S1[lp] ],
+             [ -u1[lp], 1, -u1[lp]/S3[lp],  1/S3[lp] ],
+             [ -u1[lp], 1,  u1[lp]/S3[lp], -1/S3[lp] ]])
+        chi_inv_lp *= (1.0 + 0j) / (2.0*(u3[lp] - u1[lp]))
         
         S_l_vec = array([exp( S1[l] * z),
                          exp(-S1[l] * z),
@@ -115,17 +119,17 @@ def calculateB(kz, dz, rhoN, rhoM, mx, my, mz):
         lp = l+step
         chi_l = matrix(\
             [[1,              1,             1,              1            ],
-             [mu[l],          mu[l],        -mu[l],         -mu[l]        ],
+             [u1[l],          u1[l],         u3[l],          u3[l]        ],
              [S1[l],         -S1[l],         S3[l],         -S3[l]        ],
-             [mu[l]*S1[l],   -mu[l]*S1[l],  -mu[l]*S3[l],    mu[l]*S3[l]] ])
+             [u1[l]*S1[l],   -u1[l]*S1[l],   u3[l]*S3[l],   -u3[l]*S3[l]] ])
         
         # inverse chi at layer l+1
         chi_inv_lp = matrix(\
-            [[ 1,  1/mu[lp],  1/S1[lp],  1/(mu[lp]*S1[lp]) ],
-             [ 1,  1/mu[lp], -1/S1[lp], -1/(mu[lp]*S1[lp]) ],
-             [ 1, -1/mu[lp],  1/S3[lp], -1/(mu[lp]*S3[lp]) ],
-             [ 1, -1/mu[lp], -1/S3[lp],  1/(mu[lp]*S3[lp]) ]])
-        chi_inv_lp *= 0.25
+            [[ u3[lp], -1,  u3[lp]/S1[lp], -1/S1[lp] ],
+             [ u3[lp], -1, -u3[lp]/S1[lp],  1/S1[lp] ],
+             [ -u1[lp], 1, -u1[lp]/S3[lp],  1/S3[lp] ],
+             [ -u1[lp], 1,  u1[lp]/S3[lp], -1/S3[lp] ]])
+        chi_inv_lp *= (1.0 + 0j) / (2.0*(u3[lp] - u1[lp]))
         
         S_l_vec = array([exp( S1[l] * z),
                          exp(-S1[l] * z),
@@ -176,19 +180,25 @@ def calculateR_sam(B):
     return [YA_sam, YB_sam, YC_sam, YD_sam]
 
 def calculateR_lab(R_sam, AGUIDE):
-    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[1]], [R_sam[2], R_sam[3]]]), AGUIDE);
+    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[2]], [R_sam[1], R_sam[3]]]), AGUIDE);
 
     YA_lab = r_lab[0,0];
-    YB_lab = r_lab[0,1];
-    YC_lab = r_lab[1,0];
+    YB_lab = r_lab[1,0];
+    YC_lab = r_lab[0,1];
     YD_lab = r_lab[1,1];
     
     return YA_lab, YB_lab, YC_lab, YD_lab
 
-def calculateRB(kz, dz, rhoN, rhoM, mx, my, mz, AGUIDE):
-    B = calculateB(kz, dz, rhoN, rhoM, mx, my, mz)
-    R_sam = calculateR_sam(B[-1])
-    R_lab = calculateR_lab(R_sam, AGUIDE)
+def calculateRB(kz, dz, rhoN, rhoB, bx, by, bz, AGUIDE):
+    Bp = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True)
+    Bm = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=False)
+    #B_lab = unitary_LAB_SAM_LAB(B[-1], AGUIDE);
+    #R_lab = calculateR_sam(B_lab)
+    Rp_sam = calculateR_sam(Bp[-1])
+    Rm_sam = calculateR_sam(Bm[-1])
+    R_sam = [Rp_sam[0], Rp_sam[1], Rm_sam[2], Rm_sam[3]]
+    R_lab = calculateR_lab(R_sam, AGUIDE)    
+    #return Rp_lab[0], Rp_lab[1], Rm_lab[2], Rm_lab[3], B
     return R_lab[0], R_lab[1], R_lab[2], R_lab[3], B
 
 def calculateC_sam(C0_sam, B):
@@ -262,13 +272,13 @@ def unitary_LAB_SAM_LAB2(A, AGUIDE):
 
 def _test():
     rhoN_mult = 2e-4
-    rhoM_mult = 2e-4
+    rhoB_mult = 2e-4
     dz_mult = 5
     rhoN = array([0.0, 2.0, 1.0,  2.0, 1.0, 2.0, 1.0, 0.0]) * rhoN_mult
-    rhoM = array([0.0, 1.0, 0.0,  1.0, 0.0, 1.0, 0.0, 0.0]) * rhoM_mult
-    my =   array([0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0])
-    mx =   array([0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0])
-    mz =   array([0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0])
+    rhoB = array([0.0, 1.0, 0.0,  1.0, 0.0, 1.0, 0.0, 0.0]) * rhoB_mult
+    by =   array([0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0])
+    bx =   array([0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0])
+    bz =   array([0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0])
     dz =   array([1.0, 1.0, 1.0,  1.0, 1.0, 1.0, 1.0, 1.0]) * dz_mult
     AGUIDE = 0.0 # 90.0 would be along y
     kz_array = linspace(0.01, 1.5, 201)
@@ -278,7 +288,113 @@ def _test():
     rmm = []
     B = []
     for kzi in kz_array:
-        result = list(calculateRB(kzi, dz, rhoN, rhoM, mx, my, mz, AGUIDE))
+        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
+        rpp.append(result[0])
+        rpm.append(result[1])
+        rmp.append(result[2])
+        rmm.append(result[3])
+        B.append(result[4])
+        
+    rpp = array(rpp)
+    rpm = array(rpm)
+    rmp = array(rmp)
+    rmm = array(rmm)
+    B = array(B)
+    
+    from pylab import *
+    plot(2*kz_array, abs(rpp)**2, label="r++")
+    plot(2*kz_array, abs(rmp)**2, label="r-+")
+    plot(2*kz_array, abs(rpm)**2, label="r+-")
+    plot(2*kz_array, abs(rmm)**2, label="r--")
+    legend()
+    show()
+    
+    return rpp, rpm, rmp, rmm, B
+    
+def _Yaohua_test(H=0.4):
+    """
+    layers = [
+        # depth rho rhoM thetaM phiM
+        [ 0, 0.0, rhoB, 90, 0.0],
+        [ 200, 4.0, rhoB + 1.0, np.degrees(np.arctan2(rhoB, 1.0)), 0.0],
+        [ 200, 2.0, rhoB + 1.0, 90, 0.0],
+        [ 0, 4.0, rhoB, 90 , 0.0],
+        ]
+    """
+    B2SLD = 2.31929 # *1e-6
+    rhoN_mult = 1e-6
+    rhoB_mult = 1e-6
+    dz_mult = 200.0
+    rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
+    #rhoB = array([0.4*B2SLD, sqrt((0.4*B2SLD)**2+1.0), 0.4*B2SLD+1.0, 0.4*B2SLD]) * rhoB_mult
+    rhoB = array([      0.0,           1.0,           1.0,       0.0]) * rhoB_mult # doesn't matter anymore!
+    #by =   array([     -1.0,  -0.4 * B2SLD,          -1.0,      -1.0])
+    by =   array([        H,             H,         1.0+H,         H])
+    bx =   array([      0.0,           1.0,           0.0,       0.0])
+    bz =   array([      0.0,           0.0,           0.0,       0.0])
+    dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
+    AGUIDE = 270.0 # 90.0 would be along y
+    kz_array = linspace(0.0001, 0.016, 201)
+    rpp = []
+    rpm = []
+    rmp = []
+    rmm = []
+    B = []
+    for kzi in kz_array:
+        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
+        rpp.append(result[0])
+        rpm.append(result[1])
+        rmp.append(result[2])
+        rmm.append(result[3])
+        B.append(result[4])
+        
+    rpp = array(rpp)
+    rpm = array(rpm)
+    rmp = array(rmp)
+    rmm = array(rmm)
+    B = array(B)
+    
+    from pylab import *
+    plot(2*kz_array, abs(rpp)**2, label="r++")
+    plot(2*kz_array, abs(rmp)**2, label="r-+")
+    plot(2*kz_array, abs(rpm)**2, label="r+-")
+    plot(2*kz_array, abs(rmm)**2, label="r--")
+    legend()
+    show()
+    
+    return rpp, rpm, rmp, rmm, B
+    
+def _Yaohua_test_noRotate(H=0.4):
+    """
+    layers = [
+        # depth rho rhoM thetaM phiM
+        [ 0, 0.0, rhoB, 90, 0.0],
+        [ 200, 4.0, rhoB + 1.0, np.degrees(np.arctan2(rhoB, 1.0)), 0.0],
+        [ 200, 2.0, rhoB + 1.0, 90, 0.0],
+        [ 0, 4.0, rhoB, 90 , 0.0],
+        ]
+    """
+    B2SLD = 2.31929 # *1e-6
+    rhoN_mult = 1e-6
+    rhoB_mult = 1e-6
+    dz_mult = 200.0
+    rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
+    #rhoB = array([0.4*B2SLD, sqrt((0.4*B2SLD)**2+1.0), 0.4*B2SLD+1.0, 0.4*B2SLD]) * rhoB_mult
+    rhoB = array([      0.0,           1.0,           1.0,       0.0]) * rhoB_mult # doesn't matter anymore!
+    #by =   array([     -1.0,  -0.4 * B2SLD,          -1.0,      -1.0])
+    by =   array([      0.0,           1.0,           0.0,       0.0])
+    bx =   array([      0.0,           0.0,           0.0,       0.0])
+    bz =   array([        H,             H,         1.0+H,         H])
+    dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
+    AGUIDE = 0.0001 # 90.0 would be along y
+    kz_array = linspace(0.0001, 0.016, 201)
+    rpp = []
+    rpm = []
+    rmp = []
+    rmm = []
+    B = []
+    for kzi in kz_array:
+        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
         rpp.append(result[0])
         rpm.append(result[1])
         rmp.append(result[2])
