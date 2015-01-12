@@ -58,14 +58,15 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
     
     
     E0 = kz**2 + PI4*rhoN[0] # fronting medium removed from effective kz
+
     if plus_in: 
         E0 +=  PI4*rhoB[0]
     else:
         E0 += -PI4*rhoB[0]
     
     b_nz = (b_tot != 0)
-    S1 = sqrt(PI4*(rhoN + rhoB)-E0)
-    S3 = sqrt(PI4*(rhoN - rhoB)-E0)
+    S1 = -sqrt(PI4*(rhoN + rhoB)-E0 -EPSILON*1j)
+    S3 = -sqrt(PI4*(rhoN - rhoB)-E0 -EPSILON*1j)
     u1 = ones_like(b_tot, dtype='complex')
     u3 = ones_like(b_tot, dtype='complex') * -1
     u1[b_nz] = ( b_tot + bx + 1j*by - bz )[b_nz] / ( b_tot + bx - 1j*by + bz )[b_nz]
@@ -180,16 +181,16 @@ def calculateR_sam(B):
     return [YA_sam, YB_sam, YC_sam, YD_sam]
 
 def calculateR_lab(R_sam, AGUIDE):
-    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[2]], [R_sam[1], R_sam[3]]]), AGUIDE);
+    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[1]], [R_sam[2], R_sam[3]]]), AGUIDE);
 
     YA_lab = r_lab[0,0];
-    YB_lab = r_lab[1,0];
-    YC_lab = r_lab[0,1];
+    YB_lab = r_lab[0,1];
+    YC_lab = r_lab[1,0];
     YD_lab = r_lab[1,1];
     
     return YA_lab, YB_lab, YC_lab, YD_lab
 
-def calculateRB(kz, dz, rhoN, rhoB, bx, by, bz, AGUIDE):
+def calculateRB(kz, dz, rhoN, bx, by, bz, AGUIDE):
     Bp = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True)
     Bm = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=False)
     #B_lab = unitary_LAB_SAM_LAB(B[-1], AGUIDE);
@@ -272,7 +273,7 @@ def unitary_LAB_SAM_LAB2(A, AGUIDE):
 
 def _test():
     rhoN_mult = 2e-4
-    rhoB_mult = 2e-4
+    rhoB_mult = 2e-4 / 2.31604654e-6
     dz_mult = 5
     rhoN = array([0.0, 2.0, 1.0,  2.0, 1.0, 2.0, 1.0, 0.0]) * rhoN_mult
     rhoB = array([0.0, 1.0, 0.0,  1.0, 0.0, 1.0, 0.0, 0.0]) * rhoB_mult
@@ -288,7 +289,7 @@ def _test():
     rmm = []
     B = []
     for kzi in kz_array:
-        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
+        result = list(calculateRB(kzi, dz, rhoN, bx, by, bz, AGUIDE))
         rpp.append(result[0])
         rpm.append(result[1])
         rmp.append(result[2])
@@ -302,6 +303,7 @@ def _test():
     B = array(B)
     
     from pylab import *
+    figure()
     plot(2*kz_array, abs(rpp)**2, label="r++")
     plot(2*kz_array, abs(rmp)**2, label="r-+")
     plot(2*kz_array, abs(rpm)**2, label="r+-")
@@ -326,11 +328,8 @@ def _Yaohua_test(H=0.4):
     rhoB_mult = 1e-6
     dz_mult = 200.0
     rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
-    #rhoB = array([0.4*B2SLD, sqrt((0.4*B2SLD)**2+1.0), 0.4*B2SLD+1.0, 0.4*B2SLD]) * rhoB_mult
-    rhoB = array([      0.0,           1.0,           1.0,       0.0]) * rhoB_mult # doesn't matter anymore!
-    #by =   array([     -1.0,  -0.4 * B2SLD,          -1.0,      -1.0])
-    by =   array([        H,             H,         1.0+H,         H])
-    bx =   array([      0.0,           1.0,           0.0,       0.0])
+    by =   array([        H,             H,         (-1.0/B2SLD)+H,         H])
+    bx =   array([      0.0,           1.0/B2SLD,           0.0,       0.0])
     bz =   array([      0.0,           0.0,           0.0,       0.0])
     dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
     AGUIDE = 270.0 # 90.0 would be along y
@@ -341,7 +340,7 @@ def _Yaohua_test(H=0.4):
     rmm = []
     B = []
     for kzi in kz_array:
-        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
+        result = list(calculateRB(kzi, dz, rhoN, bx, by, bz, AGUIDE))
         rpp.append(result[0])
         rpm.append(result[1])
         rmp.append(result[2])
@@ -355,6 +354,7 @@ def _Yaohua_test(H=0.4):
     B = array(B)
     
     from pylab import *
+    figure()
     plot(2*kz_array, abs(rpp)**2, label="r++")
     plot(2*kz_array, abs(rmp)**2, label="r-+")
     plot(2*kz_array, abs(rpm)**2, label="r+-")
@@ -379,14 +379,11 @@ def _Yaohua_test_noRotate(H=0.4):
     rhoB_mult = 1e-6
     dz_mult = 200.0
     rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
-    #rhoB = array([0.4*B2SLD, sqrt((0.4*B2SLD)**2+1.0), 0.4*B2SLD+1.0, 0.4*B2SLD]) * rhoB_mult
-    rhoB = array([      0.0,           1.0,           1.0,       0.0]) * rhoB_mult # doesn't matter anymore!
-    #by =   array([     -1.0,  -0.4 * B2SLD,          -1.0,      -1.0])
     by =   array([      0.0,           1.0,           0.0,       0.0])
     bx =   array([      0.0,           0.0,           0.0,       0.0])
     bz =   array([        H,             H,         1.0+H,         H])
     dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
-    AGUIDE = 0.0001 # 90.0 would be along y
+    AGUIDE = 270 # 90.0 would be along y
     kz_array = linspace(0.0001, 0.016, 201)
     rpp = []
     rpm = []
@@ -408,6 +405,8 @@ def _Yaohua_test_noRotate(H=0.4):
     B = array(B)
     
     from pylab import *
+    figure()
+    
     plot(2*kz_array, abs(rpp)**2, label="r++")
     plot(2*kz_array, abs(rmp)**2, label="r-+")
     plot(2*kz_array, abs(rpm)**2, label="r+-")
