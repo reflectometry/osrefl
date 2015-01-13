@@ -40,8 +40,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
         return [YA, YB, YC, YD];
     
     
-    global B # matrices for calculating R
-    B = zeros((N-1,4,4), dtype='complex') # one matrix per layer
+    #global B # matrices for calculating R
+    B = zeros((N-1,4,4), dtype='complex') # one matrix per interface
     
     newB = matrix([[1, 0, 0, 0], 
                   [0, 1, 0, 0], 
@@ -64,6 +64,7 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
     else:
         E0 += -PI4*rhoB[0]
     
+    print rhoB
     b_nz = (b_tot != 0)
     S1 = -sqrt(PI4*(rhoN + rhoB)-E0 -EPSILON*1j)
     S3 = -sqrt(PI4*(rhoN - rhoB)-E0 -EPSILON*1j)
@@ -112,8 +113,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
         newB = A * newB
         #print newB
         B[l] = newB.copy()
-        z += dz[l]
         l = lp
+        z += dz[l]
     
     for I in range(1, N-1):
         # chi in layer l
@@ -151,8 +152,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
         newB = A * newB
         #print newB
         B[l] = newB.copy()
-        z += dz[l]
         l = lp
+        z += dz[l]
     
     """
     denom = complex(1.0) / ((newB[3,3] * newB[1,1]) - (newB[1,3] * newB[3,1]))
@@ -181,12 +182,12 @@ def calculateR_sam(B):
     return [YA_sam, YB_sam, YC_sam, YD_sam]
 
 def calculateR_lab(R_sam, AGUIDE):
-    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[1]], [R_sam[2], R_sam[3]]]), AGUIDE);
+    r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[2]], [R_sam[1], R_sam[3]]]), AGUIDE);
 
-    YA_lab = r_lab[0,0];
-    YB_lab = r_lab[0,1];
-    YC_lab = r_lab[1,0];
-    YD_lab = r_lab[1,1];
+    YA_lab = r_lab[0,0]; # r++
+    YB_lab = r_lab[1,0]; # r+-
+    YC_lab = r_lab[0,1]; # r-+
+    YD_lab = r_lab[1,1]; # r--
     
     return YA_lab, YB_lab, YC_lab, YD_lab
 
@@ -196,11 +197,14 @@ def calculateRB(kz, dz, rhoN, bx, by, bz, AGUIDE):
     #B_lab = unitary_LAB_SAM_LAB(B[-1], AGUIDE);
     #R_lab = calculateR_sam(B_lab)
     Rp_sam = calculateR_sam(Bp[-1])
+    Rp_lab = calculateR_lab(Rp_sam, AGUIDE) 
     Rm_sam = calculateR_sam(Bm[-1])
-    R_sam = [Rp_sam[0], Rp_sam[1], Rm_sam[2], Rm_sam[3]]
-    R_lab = calculateR_lab(R_sam, AGUIDE)    
-    #return Rp_lab[0], Rp_lab[1], Rm_lab[2], Rm_lab[3], B
-    return R_lab[0], R_lab[1], R_lab[2], R_lab[3], B
+    Rm_lab = calculateR_lab(Rm_sam, AGUIDE) 
+    #R_sam = [Rp_sam[0], Rp_sam[1], Rm_sam[1], Rm_sam[3]]
+       
+    return Rp_lab[0], Rp_lab[1], Rp_lab[2], Rp_lab[3], Bp
+    #return Rm_lab[0], Rm_lab[1], Rm_lab[2], Rm_lab[3], Bp
+    #return R_lab[0], R_lab[1], R_lab[2], R_lab[3], B
 
 def calculateC_sam(C0_sam, B):
     """ take 4x1 matrix (row vector) of initial C
@@ -325,15 +329,14 @@ def _Yaohua_test(H=0.4):
     """
     B2SLD = 2.31929 # *1e-6
     rhoN_mult = 1e-6
-    rhoB_mult = 1e-6
     dz_mult = 200.0
     rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
-    by =   array([        H,             H,         (-1.0/B2SLD)+H,         H])
-    bx =   array([      0.0,           1.0/B2SLD,           0.0,       0.0])
+    by =   array([        H,             H, (1.0/B2SLD)+H,         H])
+    bx =   array([      0.0,     1.0/B2SLD,           0.0,       0.0])
     bz =   array([      0.0,           0.0,           0.0,       0.0])
     dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
     AGUIDE = 270.0 # 90.0 would be along y
-    kz_array = linspace(0.0001, 0.016, 201)
+    kz_array = linspace(0.0001, 0.015, 201)
     rpp = []
     rpm = []
     rmp = []
