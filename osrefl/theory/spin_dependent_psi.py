@@ -64,7 +64,6 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
     else:
         E0 += -PI4*rhoB[0]
     
-    print rhoB
     b_nz = (b_tot != 0)
     S1 = -sqrt(PI4*(rhoN + rhoB)-E0 -EPSILON*1j)
     S3 = -sqrt(PI4*(rhoN - rhoB)-E0 -EPSILON*1j)
@@ -108,10 +107,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
         S_l = matrix(eye(4,4) * S_l_vec)
         
         A = S_lp_inv * chi_inv_lp * chi_l * S_l
-        #print A
         
         newB = A * newB
-        #print newB
         B[l] = newB.copy()
         l = lp
         z += dz[l]
@@ -147,10 +144,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
         S_l = matrix(eye(4,4) * S_l_vec)
         
         A = S_lp_inv * chi_inv_lp * chi_l * S_l
-        #print A
         
         newB = A * newB
-        #print newB
         B[l] = newB.copy()
         l = lp
         z += dz[l]
@@ -173,6 +168,8 @@ def calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True ):
     """
     return B
 
+
+
 def calculateR_sam(B):
     denom = complex(1.0) / ((B[3,3] * B[1,1]) - (B[1,3] * B[3,1]))
     YA_sam = ((B[1,3] * B[3,0]) - (B[1,0] * B[3,3])) * denom # r++
@@ -182,6 +179,7 @@ def calculateR_sam(B):
     return [YA_sam, YB_sam, YC_sam, YD_sam]
 
 def calculateR_lab(R_sam, AGUIDE):
+    # this only works when rhoB is zero in the fronting (and backing?)!
     r_lab = unitary_LAB_SAM_LAB2(matrix([[R_sam[0], R_sam[2]], [R_sam[1], R_sam[3]]]), AGUIDE);
 
     YA_lab = r_lab[0,0]; # r++
@@ -192,19 +190,13 @@ def calculateR_lab(R_sam, AGUIDE):
     return YA_lab, YB_lab, YC_lab, YD_lab
 
 def calculateRB(kz, dz, rhoN, bx, by, bz, AGUIDE):
-    Bp = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=True)
-    Bm = calculateB(kz, dz, rhoN, bx, by, bz, plus_in=False)
-    #B_lab = unitary_LAB_SAM_LAB(B[-1], AGUIDE);
-    #R_lab = calculateR_sam(B_lab)
-    Rp_sam = calculateR_sam(Bp[-1])
-    Rp_lab = calculateR_lab(Rp_sam, AGUIDE) 
-    Rm_sam = calculateR_sam(Bm[-1])
-    Rm_lab = calculateR_lab(Rm_sam, AGUIDE) 
-    #R_sam = [Rp_sam[0], Rp_sam[1], Rm_sam[1], Rm_sam[3]]
-       
-    return Rp_lab[0], Rp_lab[1], Rp_lab[2], Rp_lab[3], Bp
-    #return Rm_lab[0], Rm_lab[1], Rm_lab[2], Rm_lab[3], Bp
-    #return R_lab[0], R_lab[1], R_lab[2], R_lab[3], B
+    bxr, byr, bzr = rotateYZ(bx, by, bz, AGUIDE)
+    Bp = calculateB(kz, dz, rhoN, bxr, byr, bzr, plus_in=True)
+    Bm = calculateB(kz, dz, rhoN, bxr, byr, bzr, plus_in=False)
+    Rp_lab = calculateR_sam(Bp[-1]) # we rotated magnetization b-vector, so Rlab = Rsam
+    Rm_lab = calculateR_sam(Bm[-1])
+
+    return Rp_lab[0], Rp_lab[1], Rm_lab[2], Rm_lab[3], Bp
 
 def calculateC_sam(C0_sam, B):
     """ take 4x1 matrix (row vector) of initial C
@@ -215,17 +207,6 @@ def calculateC_sam(C0_sam, B):
         C_all[l] = B[l] * C0_sam
     return C_all
 
-def calculateC0_lab(I_plus, I_minus, R_lab):
-    # C0 is I+, r+, I-, r-
-    # where I+ and I- are supplied by the user and 
-    # r+ = (r++ * I+) + (r+- * I-)
-    # r- = (r-+ * I+) + (r-- * I-)
-    C0_lab = matrix([[I_plus, R_lab[0] * I_plus + R_lab[1] * I_minus, I_minus, R_lab[2] * I_plus + R_lab[3] * I_minus]])
-    return C0_lab
-
-# Note: 
-# C0_sam = get_Uinv_sam_lab2(AGUIDE) * C0_lab
-    
 
 def get_U_sam_lab(AGUIDE):
     C = complex(cos(AGUIDE/2.0*pi/180.))
@@ -274,6 +255,15 @@ def unitary_LAB_SAM_LAB2(A, AGUIDE):
     Uinv = get_Uinv_sam_lab2(AGUIDE)
     CST =  (U * A) * Uinv
     return CST
+
+def rotateYZ(bx, by, bz, AGUIDE):
+    # get B in lab frame, from sample frame
+    C = cos(AGUIDE * pi/180.)
+    S = sin(AGUIDE * pi/180.)
+    bxr = bx
+    byr = bz * S + by * C
+    bzr = bz * C - by * S
+    return bxr, byr, bzr
 
 def _test():
     rhoN_mult = 2e-4
@@ -336,7 +326,7 @@ def _Yaohua_test(H=0.4):
     bz =   array([      0.0,           0.0,           0.0,       0.0])
     dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
     AGUIDE = 270.0 # 90.0 would be along y
-    kz_array = linspace(0.0001, 0.015, 201)
+    kz_array = linspace(0.0001, 0.0151, 201)
     rpp = []
     rpm = []
     rmp = []
@@ -381,12 +371,13 @@ def _Yaohua_test_noRotate(H=0.4):
     rhoN_mult = 1e-6
     rhoB_mult = 1e-6
     dz_mult = 200.0
+    E = EPSILON
     rhoN = array([      0.0,           4.0,           2.0,       4.0]) * rhoN_mult
-    by =   array([      0.0,           1.0,           0.0,       0.0])
-    bx =   array([      0.0,           0.0,           0.0,       0.0])
-    bz =   array([        H,             H,         1.0+H,         H])
+    by =   array([      0.0,     1.0/B2SLD,           0.0,       0.0])
+    bx =   array([        E,             E,             E,         E])
+    bz =   array([        H,             H, (1.0/B2SLD)+H,         H])
     dz =   array([      1.0,           1.0,           1.0,       1.0]) * dz_mult
-    AGUIDE = 270 # 90.0 would be along y
+    AGUIDE = 0 # 90.0 would be along y
     kz_array = linspace(0.0001, 0.016, 201)
     rpp = []
     rpm = []
@@ -394,7 +385,7 @@ def _Yaohua_test_noRotate(H=0.4):
     rmm = []
     B = []
     for kzi in kz_array:
-        result = list(calculateRB(kzi, dz, rhoN, rhoB, bx, by, bz, AGUIDE))
+        result = list(calculateRB(kzi, dz, rhoN, bx, by, bz, AGUIDE))
         rpp.append(result[0])
         rpm.append(result[1])
         rmp.append(result[2])
